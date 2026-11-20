@@ -1,0 +1,38 @@
+name: Capturas de tela
+# Fotografa as telas com a empresa de demonstração para revisar o visual (não publica nada).
+on:
+  workflow_dispatch:
+  push:
+    branches: [visual]
+jobs:
+  capturas:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///dados/visualizar.db
+      SECRET_KEY: capturas
+      SEM_AGENDADOR: "1"
+      IDIOMA_PADRAO: pt
+      PUBLIC_URL: http://127.0.0.1:8100
+      APP_NOME: Data Worke Brasil
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt httpx playwright && python -m playwright install --with-deps chromium
+      - name: Empresa de demonstração
+        run: |
+          mkdir -p dados
+          python tools/demo_completa.py
+          python -c "import sqlite3; c=sqlite3.connect('dados/visualizar.db'); c.execute('update usuarios set guia_visto=1'); c.commit()"
+      - name: Ligar o servidor
+        run: |
+          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8100 > servidor.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8100/entrar >/dev/null && break; sleep 1; done
+      - run: python tools/capturas.py
+      - if: always()
+        run: tail -n 40 servidor.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: capturas
+          path: capturas/
