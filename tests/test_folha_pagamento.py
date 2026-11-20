@@ -160,7 +160,7 @@ def main():
           tipo="d", valor="500,00")
     with SessionLocal() as db:
         ana = db.get(FolhaItem, iid_ana)
-        assert ana.bruto == 366750 and ana.liquido == 366750 - (21818 + cf.inss(304023, t) + 50000)
+        assert ana.bruto == 366750 and ana.liquido == 366750 - (32727 + cf.inss(293114, t) + 50000)
     posta(g, f"/painel/pagamento/{fid}/item/{iid_ana}/lancamento/1/remover", tg)
     with SessionLocal() as db:
         assert len(json.loads(db.get(FolhaItem, iid_ana).lancamentos)) == 1
