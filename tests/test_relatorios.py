@@ -17,7 +17,7 @@ for k in ("PUBLIC_URL", "ADMIN_EMAIL"):
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
-from app import db as banco  # noqa: E402
+from app import apuracao, db as banco  # noqa: E402
 from app import push  # noqa: E402
 from app.db import AvaliacaoTurno, Disponibilidade, SessionLocal, Usuario  # noqa: E402
 from app.main import app  # noqa: E402
@@ -139,6 +139,29 @@ def main():
     linhas = resp.text.lstrip("﻿").splitlines()
     assert linhas[1].startswith("Ana Souza;Cozinha;2;8,0;7,67;-0,33;50;1;0;2,0;153,33"), linhas[1]
     assert linhas[2].startswith("Bia Reis;Garçom;1;4,0;0,0;-4,0;;0;1;"), linhas[2]
+
+    # ---- adicional noturno: Bia trabalha quinta 20h-23h (1h depois das 22h) e ganha R$ 10 a hora
+    qui = SEG + timedelta(days=3)
+    with SessionLocal() as db:
+        db.get(Usuario, ids["Bia"]).salario_centavos = 220000
+        db.get(Usuario, ids["Bia"]).empresa.pct_noturno = 20
+        db.commit()
+    as_("08:00", qui)
+    turno(g, tg, ids["Bia"], qui, "20:00", "23:00")
+    bate(g, tg, ids["Bia"], "entrada", qui, "20:00")
+    bate(g, tg, ids["Bia"], "saida", qui, "23:00")
+    as_("23:30", qui)
+    with SessionLocal() as db:
+        e = db.get(Usuario, ids["Bia"]).empresa
+        noite = {r["u"].id: r["noturno"] for r in apuracao.apurar(db, e, SEG, qui)}[ids["Bia"]]
+    assert noite >= 60, noite                                  # 1h (mais a hora reduzida, se houver)
+    valor = round(noite * 1000 * 20 / 6000)
+    rel = g.get(url).text
+    assert "Adicional noturno" in rel and f"{noite // 60}h{noite % 60:02d}" in rel
+    assert ("R$ " + f"{valor / 100:.2f}".replace(".", ",")) in rel and "(20%)" in rel
+    linhas = g.get(url + "&formato=csv").text.lstrip("\ufeff").splitlines()
+    assert "Horas noturnas" in linhas[0] and "Adicional noturno (R$)" in linhas[0]
+    assert linhas[2].endswith(f'{f"{valor / 100:.2f}".replace(".", ",")}'), linhas[2]
 
     # ---- desligar a avaliação: não pergunta mais
     posta(g, "/painel/config/avaliar-turno", tg, ligado="")
