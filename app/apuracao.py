@@ -309,9 +309,14 @@ def apurar(db: Session, e: Empresa, ini: date, fim: date, usuario_id: int | None
                              sobreaviso=sob, sobreavisos=sobreavisos.get((uid, d), []),
                              motivos=mots))
             d += timedelta(days=1)
-        if e.dsr_faltas:  # falta sem justificativa: perde o descanso remunerado daquela semana
-            tot["dsr_perdidos"] = len(semanas_com_falta)
-            tot["dsr_perdido_min"] = sum(semanas_com_falta.values())
+        if e.dsr_faltas and semanas_com_falta:
+            # Falta sem justificativa (Lei 605/1949, art. 6º): perde a remuneração de TODOS os
+            # descansos daquela semana: as folgas da escala (duas na 5x2, EC 141/2026; uma na 6x1)
+            # e os feriados não trabalhados. Sem folga marcada na escala, conta um descanso.
+            for semana, dia_min in semanas_com_falta.items():
+                n = descansos_da_semana(db, e, uid, semana)
+                tot["dsr_perdidos"] += n
+                tot["dsr_perdido_min"] += n * dia_min
         if e.dsr_extras and e.controle == "extra" and uteis:  # reflexo das extras pagas no descanso
             tot["dsr_extras"] = int(com_acrescimo(
                 tot["extra_normal"], tot["extra_especial"], e.pct_extra_normal,
@@ -343,6 +348,19 @@ def fechar(db: Session, e: Empresa, ini: date, fim: date, autor: str) -> Fechame
 
 # ------------------------------------------------------------------ semana (avisos de escala)
 SEMANA_CLT_MIN = 44 * 60   # CLT art. 58 / Constituição art. 7º, XIII: 44 horas por semana
+
+
+def descansos_da_semana(db: Session, e: Empresa, uid: int, segunda: date) -> int:
+    """Quantos descansos remunerados a pessoa tem na semana (segunda a domingo): os dias de
+    Folga na escala dela mais os feriados em que não trabalhou. No mínimo um."""
+    fim = segunda + timedelta(days=6)
+    folgas = set(db.scalars(select(Turno.data).where(
+        Turno.usuario_id == uid, Turno.folga.is_(True), Turno.data.between(segunda, fim))))
+    trabalhados = set(db.scalars(select(Batida.dia).where(
+        Batida.usuario_id == uid, Batida.dia.between(segunda, fim), VALIDA)))
+    feriados = {f for f in db.scalars(select(Feriado.data).where(
+        Feriado.empresa_id == e.id, Feriado.data.between(segunda, fim))) if f not in trabalhados}
+    return max(len(folgas | feriados), 1)
 
 
 def inicio_semana(e, d: date) -> date:
