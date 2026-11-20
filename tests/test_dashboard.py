@@ -100,6 +100,22 @@ def main():
     posta(m, "/master/banners", tm, titulo="Img ruim", imagem="https://x.com/a.png'); alert(1)", ativo="1")
     assert "A imagem precisa" in m.get("/master/banners").text
     posta(m, "/master/banners", tm, titulo="Com foto", imagem="https://exemplo.com/banner.jpg", ativo="1", ordem="5")
+    # imagem enviada como arquivo (PNG de verdade) vira /banners/<nome> e é servida
+    png = bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+                        "1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082")
+    r = m.post("/master/banners", data={"csrf": tm, "titulo": "Arquivo", "ativo": "1", "ordem": "6"},
+               files={"arquivo": ("b.png", png, "image/png")})
+    assert r.status_code == 303
+    with SessionLocal() as db:
+        img = db.scalar(select(Banner.imagem).where(Banner.titulo == "Arquivo"))
+    assert img.startswith("/banners/") and img.endswith(".png"), img
+    r = m.get(img)
+    assert r.status_code == 200 and r.content == png
+    assert novo().get(img).status_code == 200                 # pública (divulgação)
+    assert m.get("/banners/../teste.db").status_code == 404 and m.get("/banners/x.png").status_code == 404
+    m.post("/master/banners", data={"csrf": tm, "titulo": "Falso", "ativo": "1"},
+           files={"arquivo": ("x.png", b"<script>alert(1)</script>", "image/png")})
+    assert "JPG, PNG ou WebP" in m.get("/master/banners").text
     t = m.get("/painel").text
     assert "--banner-img: url('https://exemplo.com/banner.jpg')" in t and "Img ruim" not in t
     assert "Folha com 20% off" in t and "cor-roxo" in t and 'href="/painel/assinatura"' in t

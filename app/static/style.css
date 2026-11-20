@@ -1181,3 +1181,11 @@ a.numero.clicavel:hover { transform: translateY(-2px); box-shadow: var(--sombra-
 .rotina-qtd { position: absolute; top: 10px; right: 10px; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: grid; place-items: center;
   background: var(--erro-solido); color: #fff; font-size: .78rem; font-weight: 800; }
 .rotina.forte { background: linear-gradient(150deg, var(--cor-escura), var(--cor)); color: #fff; border-color: transparent; }
+.grafico .ref-linha { stroke: var(--texto); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .55; }
+.grafico .ref-texto { fill: var(--suave); font-weight: 700; }
+.grafico .barra.faixa-alerta { fill: var(--alerta-solido); }
+.grafico .barra.faixa-erro { fill: var(--erro-solido); }
+.cmo-guia { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; font-size: .86rem; }
+.cmo-guia span { display: inline-flex; align-items: center; gap: 6px; }
+.cmo-guia i { width: 10px; height: 10px; border-radius: 3px; }
+.sit-ok { background: var(--ok-solido); }

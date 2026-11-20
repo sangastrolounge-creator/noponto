@@ -5,12 +5,13 @@
   {% for b in g.barras %}
   <g class="barra-grupo" tabindex="0" data-tip="{{ caller(b) }}">
     <rect class="alvo" x="{{ b.alvo_x }}" y="0" width="{{ b.alvo_w }}" height="{{ g.base_y }}"/>
-    {% if b.caminho %}<path class="barra{{ ' hoje' if b.destaque }}" d="{{ b.caminho }}"/>{% endif %}
+    {% if b.caminho %}<path class="barra{{ ' hoje' if b.destaque }}{{ ' faixa-' ~ b.linha.faixa if b.linha and b.linha.faixa }}" d="{{ b.caminho }}"/>{% endif %}
     {% if b.rotulo_valor %}<text class="valor-barra" x="{{ b.cx }}" y="{{ b.y - 6 }}" text-anchor="middle">{{ b.rotulo_valor }}</text>{% endif %}
     <text class="eixo{{ ' forte' if b.destaque }}" x="{{ b.cx }}" y="{{ g.altura - 8 }}" text-anchor="middle">{{ b.rotulo|traduz }}</text>
   </g>
   {% endfor %}
   <line class="eixo-linha" x1="44" x2="{{ g.largura }}" y1="{{ g.base_y }}" y2="{{ g.base_y }}"/>
+  {% if g.ref_y %}<line class="ref-linha" x1="44" x2="{{ g.largura }}" y1="{{ g.ref_y }}" y2="{{ g.ref_y }}"/><text class="eixo ref-texto" x="{{ g.largura }}" y="{{ g.ref_y - 4 }}" text-anchor="end">{{ _('meta') }}</text>{% endif %}
 </svg>
 {% endmacro %}
 {% block conteudo %}
@@ -66,9 +67,8 @@
   <div class="numero"><div class="rotulo">{{ _('Trabalhando agora') }}</div><div class="valor">{{ n.presentes }}</div></div>
   <div class="numero {{ 'atencao' if n.atrasados }}"><div class="rotulo">{{ _('Atrasos') }}</div><div class="valor">{{ n.atrasados }}</div></div>
   <div class="numero {{ 'ruim' if n.ausentes }}"><div class="rotulo">{{ _('Sem ponto') }}</div><div class="valor">{{ n.ausentes }}</div></div>
-  {% if resumo %}{% set r0 = resumo[0] %}
-  <div class="numero"><div class="rotulo">{{ _('Custo da equipe hoje') }}</div><div class="valor">{{ r0.custo|dinheiro }}</div><div class="nota">{{ _('{v1} trabalhadas até agora', v1=fmt_min(r0.minutos)) }}</div></div>
-  <div class="numero {{ 'atencao' if r0.pct and r0.pct > 35 }}"><div class="rotulo">{{ _('Custo / vendas') }}</div><div class="valor">{{ (r0.pct|string) ~ '%' if r0.pct is not none else '—' }}</div><div class="nota">{{ _('vendas: {v1}', v1=(r0.vendas|dinheiro)) if r0.vendas else _('informe as vendas abaixo') }}</div></div>
+  {% if cmo %}{% set c0 = cmo[0] %}
+  <a class="numero clicavel {{ 'atencao' if c0.faixa == 'alerta' }}{{ ' ruim' if c0.faixa == 'erro' }}" href="#faturamento"><div class="rotulo">{{ _('CMO do mês') }}</div><div class="valor">{{ (c0.pct|string|replace('.', ',')) ~ '%' if c0.pct is not none else '—' }}</div><div class="nota">{{ _('meta {v1}%', v1=e.meta_cmo) if c0.pct is not none else _('informe o faturamento') }}</div></a>
   {% endif %}
   <a class="numero clicavel {{ 'atencao' if alertas }}" href="/painel/avisos"><div class="rotulo">{{ _('Avisos novos') }}</div><div class="valor">{{ alertas|length }}</div><div class="nota">{{ _('ver avisos') }}</div></a>
   <div class="numero"><div class="rotulo">{{ _('Tarefas feitas') }}</div><div class="valor">{{ n.tarefas_feitas }}<span class="suave" style="font-size:1rem;font-weight:500"> {{ _('de {v1}', v1=(tarefas|length)) }}</span></div></div>
@@ -123,13 +123,13 @@
     <p class="suave pequeno grafico-sub">{{ _('{v1} no total · {v2} atraso(s)', v1=fmt_min(semana.total_min), v2=semana.atrasos) }}</p>
     {% call(b) grafico_barras(semana.horas, _('Horas trabalhadas por dia'), '', 'h') %}{{ b.data.strftime('%d/%m') }} · {{ b.texto }} · {{ _('{v1} pessoa(s)', v1=b.pessoas) }}{% if b.atrasos %} · {{ _('{v1} atraso(s)', v1=b.atrasos) }}{% endif %}{% endcall %}
   </div>
-  {% if semana.custo %}
-  <div class="cartao grafico-cartao">
-    <h2>{{ _('Custo da equipe · 7 dias') }}</h2>
-    <p class="suave pequeno grafico-sub">{{ _('Em cima da barra: % das vendas do dia, quando informadas.') }}</p>
-    {% call(b) grafico_barras(semana.custo, _('Custo da equipe por dia'), 'R$ ') %}{{ b.data.strftime('%d/%m') }} · {{ b.centavos|dinheiro }}{% if b.vendas %} · {{ _('vendas {v1}', v1=(b.vendas|dinheiro)) }} · {{ b.pct|string|replace('.', ',') }}%{% endif %}{% endcall %}
-  </div>
   {% endif %}
+  {% if cmo %}
+  <div class="cartao grafico-cartao">
+    <h2>{{ _('CMO · 6 meses') }}</h2>
+    <p class="suave pequeno grafico-sub">{{ _('Custo da equipe em % do faturamento; a linha tracejada é a sua meta.') }}</p>
+    {% call(b) grafico_barras(cmo_grafico, _('CMO por mês'), '', '%') %}{{ b.linha.nome }} · {% if b.linha.pct is not none %}{{ b.linha.pct|string|replace('.', ',') }}% · {{ _('faturamento {v1}', v1=(b.linha.faturamento|dinheiro)) }} · {{ _('equipe {v1}', v1=(b.linha.custo.total|dinheiro)) }}{% else %}{{ _('faturamento não informado') }}{% endif %}{% endcall %}
+  </div>
   {% endif %}
   {% if agora_sit %}
   <div class="cartao grafico-cartao">
@@ -181,28 +181,34 @@
 </div>
 
 
-{% if resumo %}
-<div class="cartao" id="vendas">
-  <h2>{{ _('Vendas e custo da equipe') }}</h2>
-  <p class="suave pequeno">{{ _('Digite as vendas do dia (o total do caixa). O sistema calcula quanto a equipe custou e quanto isso representa das vendas.') }}</p>
+{% if cmo %}
+<div class="cartao" id="faturamento">
+  <h2>{{ _('Faturamento e CMO') }}</h2>
+  <p class="suave pequeno">{{ _('Informe o faturamento de cada mês (vendas de produtos ou serviços). O sistema soma o custo da equipe — salários, encargos estimados e vale-transporte — e mostra o CMO: quanto a mão de obra representa do faturamento.') }}</p>
   <div class="rolagem"><table>
-    <thead><tr><th>{{ _('Dia') }}</th><th>{{ _('Vendas') }}</th><th>{{ _('Horas') }}</th><th>{{ _('Custo da equipe') }}</th><th>{{ _('% das vendas') }}</th></tr></thead>
+    <thead><tr><th>{{ _('Mês') }}</th><th>{{ _('Faturamento') }}</th><th>{{ _('Salários') }}</th><th>{{ _('Encargos') }}</th><th>{{ _('Custo da equipe') }}</th><th>{{ _('CMO') }}</th></tr></thead>
     <tbody>
-    {% for r in resumo %}
+    {% for l in cmo %}
     <tr>
-      <td style="white-space:nowrap">{{ DIAS[r.dia.weekday()] }} {{ r.dia.strftime('%d/%m') }}{{ _(' · hoje') if loop.first }}</td>
-      <td><form method="post" action="/painel/vendas" style="margin:0;display:flex;gap:6px;align-items:center">
-        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="data" value="{{ r.dia.isoformat() }}"><input type="hidden" name="volta" value="/painel#vendas">
-        <input type="text" name="valor" inputmode="decimal" value="{{ '%.2f'|format(r.vendas / 100) if r.vendas else '' }}" placeholder="0.00" aria-label="{{ _('Vendas de {v1}', v1=r.dia.strftime('%d/%m')) }}" style="width:110px;min-width:90px">
+      <td style="white-space:nowrap">{{ l.nome }}{{ _(' · atual') if l.atual }}</td>
+      <td><form method="post" action="/painel/faturamento" style="margin:0;display:flex;gap:6px;align-items:center">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="mes" value="{{ l.mes }}">
+        <input type="text" name="valor" inputmode="decimal" value="{{ (l.faturamento|dinheiro)|replace('R$ ', '') if l.faturamento else '' }}" placeholder="0,00" aria-label="{{ _('Faturamento de {v1}', v1=l.nome) }}" style="width:130px;min-width:100px">
         <button class="botao mini claro" type="submit">{{ _('Salvar') }}</button></form></td>
-      <td>{{ fmt_min(r.minutos) }}</td>
-      <td>{{ r.custo|dinheiro }}{% if r.sem_valor %}<br><span class="etiqueta alerta pequeno" title="{{ r.sem_valor|join(', ') }}">{{ _('{v1} sem valor da hora', v1=(r.sem_valor|length)) }}</span>{% endif %}</td>
-      <td>{% if r.pct is not none %}<strong class="{{ 'erro-texto' if r.pct > 35 }}">{{ r.pct }}%</strong>{% else %}—{% endif %}</td>
+      <td>{{ l.custo.salarios|dinheiro }}</td>
+      <td>{{ l.custo.encargos|dinheiro }}</td>
+      <td>{{ l.custo.total|dinheiro }}{% if l.custo.sem_valor %}<br><span class="etiqueta alerta pequeno" title="{{ l.custo.sem_valor|join(', ') }}">{{ _('{v1} sem salário na ficha', v1=(l.custo.sem_valor|length)) }}</span>{% endif %}</td>
+      <td>{% if l.pct is not none %}<span class="etiqueta {{ l.faixa }}">{{ l.pct|string|replace('.', ',') }}%</span>{% else %}—{% endif %}</td>
     </tr>
     {% endfor %}
     </tbody>
   </table></div>
-  <p class="ajuda">{{ _('Custo estimado: horas trabalhadas × valor da hora de cada um (salário ÷ jornada mensal). Encargos, hora extra e gorjeta não entram; o valor exato sai na folha. Em restaurantes, o custo da equipe costuma ficar entre 25% e 35% das vendas.') }}</p>
+  <div class="cmo-guia">
+    <span><i class="sit-ok"></i>{{ _('até {v1}%: saudável', v1=e.meta_cmo) }}</span>
+    <span><i class="sit-atrasado"></i>{{ _('{v1}% a {v2}%: atenção', v1=e.meta_cmo, v2=e.meta_cmo + 5) }}</span>
+    <span><i class="sit-sem_ponto"></i>{{ _('acima de {v1}%: alto', v1=e.meta_cmo + 5) }}</span>
+  </div>
+  <p class="ajuda">{{ cmo_orientacao|traduz }} {{ _('Encargos estimados para {v1}: FGTS, 13º e férias com 1/3{v2}. O valor exato sai na folha.', v1=(REGIMES[cmo[0].custo.regime]|traduz), v2=(_(', mais INSS patronal, RAT e terceiros') if cmo[0].custo.regime == 'presumido' else '')) }} <a href="/painel/config#faturamento">{{ _('Meta e regime') }}</a></p>
 </div>
 {% endif %}
 

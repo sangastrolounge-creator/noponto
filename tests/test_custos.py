@@ -17,9 +17,9 @@ for k in ("PUBLIC_URL", "ADMIN_EMAIL"):
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
-from app import custos, push  # noqa: E402
+from app import custos, faturamento, push  # noqa: E402
 from app import db as banco  # noqa: E402
-from app.db import Empresa, SessionLocal, Usuario  # noqa: E402
+from app.db import Empresa, FaturamentoMes, SessionLocal, Usuario  # noqa: E402
 from app.main import app  # noqa: E402
 
 SEG = date(2026, 11, 16)
@@ -99,30 +99,51 @@ def main():
         e = db.get(Empresa, 1)
         c = custos.custo_do_dia(db, e, SEG)
     assert c["centavos"] == 8000 + 8000 and c["minutos"] == 240 + 480 + 60 and c["sem_valor"] == ["Caio"], c
+    # ---- Hoje: nada de custo por hora; faturamento e CMO só quando a empresa liga
     tela = g.get("/painel").text
-    assert "Custo da equipe hoje" in tela and "R$ 160,00" in tela and "informe as vendas" in tela
-    assert "1 sem valor da hora" in tela
-
-    # ---- vendas do dia: R$ 640 -> 25%
-    posta(g, "/painel/vendas", tg, data=SEG.isoformat(), valor="640,00")
+    assert "Custo da equipe hoje" not in tela and "Vendas e custo da equipe" not in tela
+    assert "Faturamento e CMO" not in tela and "Acompanhe o CMO pelo faturamento" in tela
+    posta(g, "/painel/config/faturamento", tg, usa="1", meta="200", regime="simples")
+    assert "entre 5 e 80" in g.get("/painel/config").text
+    posta(g, "/painel/config/faturamento", tg, usa="1", meta="30", regime="simples")
     tela = g.get("/painel").text
-    assert "25.0%" in tela and "vendas: R$ 640,00" in tela
-    posta(g, "/painel/vendas", tg, data=(SEG + timedelta(days=3)).isoformat(), valor="10")   # futuro
-    assert "Informe o dia" in g.get("/painel").text
-    posta(g, "/painel/vendas", tg, data=SEG.isoformat(), valor="")     # apagar
-    assert "informe as vendas" in g.get("/painel").text
+    assert "Faturamento e CMO" in tela and "CMO do mês" in tela and "informe o faturamento" in tela
+    assert "1 sem salário na ficha" in tela                      # Caio
+    # custo do mês: salários (R$ 4.400 + R$ 2.200) + encargos do Simples (FGTS, 13º, férias com 1/3)
+    with SessionLocal() as db:
+        e = db.get(Empresa, 1)
+        c = faturamento.custo_mensal(db, e, "2026-11", SEG)
+    enc = faturamento.ENCARGOS["clt"]["simples"]
+    assert c["salarios"] == 660000 and c["pessoas"] == 2 and c["sem_valor"] == ["Caio Reis"], c
+    assert c["encargos"] == round(440000 * enc) + round(220000 * enc) and 0.28 < float(enc) < 0.30, c
+    posta(g, "/painel/faturamento", tg, mes="2026-11", valor="30.000,00")
+    tela = g.get("/painel").text
+    pct = round(c["total"] * 100 / 3000000, 1)
+    assert f"{pct}%".replace(".", ",") in tela and 'etiqueta ok' in tela, pct
+    posta(g, "/painel/faturamento", tg, mes="2026-11", valor="20.000,00")        # CMO alto
+    assert "etiqueta erro" in g.get("/painel").text
+    posta(g, "/painel/faturamento", tg, mes="2026-12", valor="10")               # mês futuro
+    assert "Informe o mês" in g.get("/painel").text
+    posta(g, "/painel/faturamento", tg, mes="2026-11", valor="")                  # apagar
+    assert "informe o faturamento" in g.get("/painel").text
+    # Lucro Presumido: encargos maiores (INSS patronal, RAT e terceiros)
+    posta(g, "/painel/config/faturamento", tg, usa="1", meta="30", regime="presumido")
+    with SessionLocal() as db:
+        c2 = faturamento.custo_mensal(db, db.get(Empresa, 1), "2026-11", SEG)
+    assert c2["encargos"] > c["encargos"] * 2, (c2, c)
 
-    # ---- gerente sem a permissão Pagamento não vê custo nem vendas
+    # ---- gerente sem a permissão Pagamento não vê nem lança o faturamento
     posta(g, "/painel/gerentes", tg, nome="Lia", email="lia@c.com", p_escala="1")
     with SessionLocal() as db:
         token = db.scalar(select(Usuario).where(Usuario.email == "lia@c.com")).convite_token
     lc = novo()
     posta(lc, f"/convite/{token}", csrf(lc, f"/convite/{token}"), senha="senha123")
-    assert "Custo da equipe hoje" not in lc.get("/painel").text
-    assert "R$ 160,00" not in lc.get(f"/painel/escala?semana={SEG}").text
-    r = posta(lc, "/painel/vendas", csrf(lc, "/painel"), data=SEG.isoformat(), valor="1,00")
+    assert "Faturamento e CMO" not in lc.get("/painel").text
+    r = posta(lc, "/painel/faturamento", csrf(lc, "/painel"), mes="2026-11", valor="1,00")
     assert r.headers["location"] == "/painel"
-    print("OK: custo da equipe, vendas e publicar escala passou")
+    with SessionLocal() as db:
+        assert not db.scalar(select(FaturamentoMes.id))
+    print("OK: custo da equipe, faturamento/CMO e publicar escala passou")
 
 
 if __name__ == "__main__":

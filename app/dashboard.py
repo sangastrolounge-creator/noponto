@@ -23,10 +23,11 @@ def _passo(maximo: float) -> float:
     return 10 * pot
 
 
-def barras(itens: list[dict]) -> dict:
-    """itens: [{rotulo, valor, dica, destaque}] -> retângulos e grade prontos para o SVG."""
+def barras(itens: list[dict], referencia: float | None = None) -> dict:
+    """itens: [{rotulo, valor, dica, destaque}] -> retângulos e grade prontos para o SVG.
+    `referencia`: valor de uma linha tracejada (meta)."""
     n = max(len(itens), 1)
-    maximo = max([i["valor"] for i in itens] + [0])
+    maximo = max([i["valor"] for i in itens] + [0, referencia or 0])
     passo = _passo(maximo)
     teto = max(passo * 4, passo * (int(maximo / passo) + (1 if maximo % passo else 0))) or 1
     util = ALTURA - TOPO - BASE
@@ -51,7 +52,16 @@ def barras(itens: list[dict]) -> dict:
     while v <= teto + 1e-9:
         grade.append(dict(valor=v, y=TOPO + util - util * v / teto))
         v += passo
-    return dict(barras=saida, grade=grade, largura=LARGURA, altura=ALTURA, base_y=TOPO + util)
+    ref_y = TOPO + util - util * referencia / teto if referencia else None
+    return dict(barras=saida, grade=grade, largura=LARGURA, altura=ALTURA, base_y=TOPO + util, ref_y=ref_y)
+
+
+def grafico_cmo(linhas: list[dict], meta: int) -> dict:
+    """CMO em % do faturamento, do mês mais antigo ao atual, com a linha da meta."""
+    itens = [dict(rotulo=l["nome"].split("/")[0], valor=l["pct"] or 0, destaque=l["atual"], linha=l,
+                  rotulo_valor=(f"{l['pct']:.0f}%" if l["pct"] is not None else "—"))
+             for l in reversed(linhas)]
+    return barras(itens, referencia=meta)
 
 
 def semana(db: Session, e, dia: date, resumo: list[dict] | None) -> dict:
@@ -135,6 +145,9 @@ def sugestoes(db: Session, e, u, dia: date) -> list[dict]:
     if e.lat is None and core.pode(u, "dono"):
         s.append(dict(titulo="Defina o local da empresa", link="/painel/config", botao="Definir",
                       texto="Sem o local, o ponto é aceito de qualquer lugar."))
+    if not e.usa_faturamento and core.pode(u, "dono"):
+        s.append(dict(titulo="Acompanhe o CMO pelo faturamento", link="/painel/config#faturamento", botao="Ligar",
+                      texto="Se a empresa vende produtos ou serviços, informe o faturamento do mês e veja quanto a equipe pesa nele."))
     if core.pode(u, "ponto"):
         s.append(dict(titulo="Confira o Ajuste de ponto", link="/painel/ponto/ajuste", botao="Abrir",
                       texto="Corrija marcações com um clique, lance atestados, sobreaviso e o motivo de cada ajuste."))

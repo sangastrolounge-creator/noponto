@@ -10,7 +10,12 @@
     <div><label>{{ _('Link (opcional)') }}</label><input type="text" name="link" maxlength="300" value="{{ b.link if b }}" placeholder="/painel/assinatura {{ _('ou') }} https://..."></div>
     <div><label>{{ _('Texto do botão') }}</label><input type="text" name="botao" maxlength="40" value="{{ b.botao if b }}" placeholder="{{ _('Saiba mais') }}"></div>
   </div>
-  <div class="campo"><label>{{ _('Imagem de fundo (opcional)') }}</label><input type="url" name="imagem" maxlength="400" value="{{ b.imagem if b }}" placeholder="https://..."><div class="ajuda">{{ _('Endereço https:// de uma imagem larga (por exemplo 1600 × 300). Sem imagem, o banner usa a cor escolhida.') }}</div></div>
+  <div class="linha-form" style="grid-template-columns:1fr 1fr">
+    <div><label>{{ _('Imagem de fundo: enviar arquivo') }}</label><input type="file" name="arquivo" accept="image/jpeg,image/png,image/webp"></div>
+    <div><label>{{ _('ou endereço da imagem') }}</label><input type="text" name="imagem" maxlength="400" value="{{ b.imagem if b }}" placeholder="https://..."></div>
+  </div>
+  <div class="ajuda" style="margin:-4px 0 10px">{{ _('JPG, PNG ou WebP de até 3 MB, de preferência larga (por exemplo 1600 × 300). O texto fica por cima, do lado esquerdo. Sem imagem, o banner usa a cor escolhida.') }}</div>
+  {% if b and b.imagem %}<label class="marcar campo"><input type="checkbox" name="sem_imagem" value="1"><span>{{ _('Tirar a imagem') }}</span></label>{% endif %}
   <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
     <div><label>{{ _('Começa em') }}</label><input type="date" name="inicio" value="{{ b.inicio.isoformat() if b and b.inicio }}"></div>
     <div><label>{{ _('Termina em') }}</label><input type="date" name="fim" value="{{ b.fim.isoformat() if b and b.fim }}"></div>
@@ -31,7 +36,7 @@
   <p class="pequeno" style="margin-top:0">{% if no_ar %}<span class="etiqueta ok">{{ _('No ar') }}</span>{% elif not b.ativo %}<span class="etiqueta">{{ _('Desligado') }}</span>{% else %}<span class="etiqueta alerta">{{ _('Fora do período') }}</span>{% endif %}
     {% if b.inicio or b.fim %}<span class="suave">{{ b.inicio.strftime('%d/%m/%Y') if b.inicio else '…' }} – {{ b.fim.strftime('%d/%m/%Y') if b.fim else '…' }}</span>{% endif %}</p>
   <details><summary>{{ _('Editar') }}</summary>
-    <form method="post" action="/master/banners" style="margin-top:10px">{{ campos(b) }}<button class="botao" type="submit">{{ _('Salvar') }}</button></form>
+    <form method="post" action="/master/banners" enctype="multipart/form-data" style="margin-top:10px">{{ campos(b) }}<button class="botao" type="submit">{{ _('Salvar') }}</button></form>
   </details>
   <form method="post" action="/master/banners/{{ b.id }}/remover" class="inline" data-confirma="{{ _('Remover este banner?') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao link" type="submit">{{ _('Remover') }}</button></form>
 </div>
@@ -39,7 +44,7 @@
 <div class="cartao"><div class="vazio">{{ _('Nenhum banner ainda.') }}</div></div>
 {% endfor %}
 
-<form method="post" action="/master/banners" class="cartao">
+<form method="post" action="/master/banners" class="cartao" enctype="multipart/form-data">
   <h2>{{ _('Novo banner') }}</h2>
   {{ campos() }}
   <button class="botao" type="submit">{{ _('Publicar banner') }}</button>

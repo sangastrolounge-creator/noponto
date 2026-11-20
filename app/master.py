@@ -1,9 +1,11 @@
 """Revenda: Painel Master (o dono da plataforma gerencia empresas, planos, pagamentos e a
 plataforma) e a tela Assinatura de cada empresa. O master é o usuário com is_admin."""
 import secrets
+import re
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -409,6 +411,40 @@ def banners_no_ar(db: Session, hoje: date) -> list[Banner]:
             if (not b.inicio or b.inicio <= hoje) and (not b.fim or hoje <= b.fim)]
 
 
+PASTA_BANNERS = banco.PASTA_DADOS / "banners"
+TIPOS_IMAGEM = {b"\xff\xd8\xff": "jpg", b"\x89PNG": "png", b"RIFF": "webp"}
+NOME_IMAGEM = re.compile(r"^[0-9]+-[0-9a-f]{12}\.(jpg|png|webp)$")
+
+
+def _salvar_imagem(arquivo: UploadFile, bid: int) -> str | None:
+    """Guarda a imagem enviada (JPG, PNG ou WebP até 3 MB) e devolve o endereço dela."""
+    dados = arquivo.file.read(3 * 1024 * 1024 + 1)
+    if not dados or len(dados) > 3 * 1024 * 1024:
+        return None
+    ext = next((x for sig, x in TIPOS_IMAGEM.items() if dados.startswith(sig)), None)
+    if ext == "webp" and dados[8:12] != b"WEBP":
+        ext = None
+    if not ext:
+        return None
+    PASTA_BANNERS.mkdir(parents=True, exist_ok=True)
+    nome = f"{bid}-{secrets.token_hex(6)}.{ext}"
+    (PASTA_BANNERS / nome).write_bytes(dados)
+    return f"/banners/{nome}"
+
+
+def _apagar_imagem(imagem: str):
+    if imagem.startswith("/banners/") and NOME_IMAGEM.match(imagem[9:]):
+        (PASTA_BANNERS / imagem[9:]).unlink(missing_ok=True)
+
+
+@rota.get("/banners/{nome}")
+def banner_imagem(nome: str):
+    """Imagem de fundo de banner (pública: é material de divulgação)."""
+    if not NOME_IMAGEM.match(nome) or not (PASTA_BANNERS / nome).is_file():
+        return Response(status_code=404)
+    return FileResponse(PASTA_BANNERS / nome, headers={"Cache-Control": "public,max-age=86400"})
+
+
 def _link_ok(link: str) -> bool:
     link = link.strip()
     return not link or link.startswith("https://") or (link.startswith("/") and not link.startswith("//"))
@@ -432,7 +468,8 @@ def banners(request: Request, u: Usuario = Depends(admin_logado), db: Session = 
 def banner_salvar(request: Request, u: Usuario = Depends(admin_logado), db: Session = Depends(get_db),
                   bid: int = Form(0), titulo: str = Form(""), texto: str = Form(""),
                   link: str = Form(""), botao: str = Form(""), cor: str = Form("azul"),
-                  imagem: str = Form(""),
+                  imagem: str = Form(""), arquivo: UploadFile | None = File(None),
+                  sem_imagem: str = Form(""),
                   inicio: str = Form(""), fim: str = Form(""), ordem: int = Form(0),
                   ativo: str = Form("")):
     titulo = titulo.strip()
@@ -441,7 +478,8 @@ def banner_salvar(request: Request, u: Usuario = Depends(admin_logado), db: Sess
         avisar(request, "Dê um título ao banner.", "erro")
     elif not _link_ok(link):
         avisar(request, "O link precisa começar com https:// ou ser uma página do sistema (/painel/...).", "erro")
-    elif imagem.strip() and (not imagem.strip().startswith("https://") or any(c in imagem for c in "'\"()<> ")):
+    elif imagem.strip() and not (imagem.strip().startswith("/banners/") and NOME_IMAGEM.match(imagem.strip()[9:])) and (
+            not imagem.strip().startswith("https://") or any(c in imagem for c in "'\"()<> ")):
         avisar(request, "A imagem precisa ser um endereço https:// de uma foto (sem espaços nem aspas).", "erro")
     elif ini and fi and fi < ini:
         avisar(request, "O fim do banner é antes do início.", "erro")
@@ -452,7 +490,20 @@ def banner_salvar(request: Request, u: Usuario = Depends(admin_logado), db: Sess
             db.add(b)
         b.titulo, b.texto = titulo[:90], texto.strip()[:240]
         b.link, b.botao = link.strip()[:300], botao.strip()[:40]
-        b.imagem = imagem.strip()[:400]
+        db.flush()
+        nova = imagem.strip()[:400]
+        if arquivo is not None and arquivo.filename:
+            enviada = _salvar_imagem(arquivo, b.id)
+            if not enviada:
+                db.rollback()
+                avisar(request, "A imagem precisa ser JPG, PNG ou WebP de até 3 MB.", "erro")
+                return ir("/master/banners")
+            nova = enviada
+        if sem_imagem:
+            nova = ""
+        if b.imagem and b.imagem != nova:
+            _apagar_imagem(b.imagem)
+        b.imagem = nova
         b.cor = cor if cor in CORES_BANNER else "azul"
         b.inicio, b.fim, b.ordem, b.ativo = ini, fi, ordem, bool(ativo)
         db.commit()
@@ -465,6 +516,7 @@ def banner_remover(request: Request, bid: int, u: Usuario = Depends(admin_logado
                    db: Session = Depends(get_db)):
     b = db.get(Banner, bid)
     if b:
+        _apagar_imagem(b.imagem or "")
         db.delete(b)
         db.commit()
         avisar(request, "Banner removido.")

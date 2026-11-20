@@ -24,7 +24,7 @@ from . import core
 from . import db as banco
 from . import (apuracao, asaas, cobranca, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
-               ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard)
+               ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
                    SECRET_KEY, Redirecionar, avisar, base_url, celular_limpo,
                    da_empresa, data_iso, ir,
@@ -116,6 +116,7 @@ app.include_router(perguntas.rota)
 app.include_router(cerca.rota)
 app.include_router(ferias.rota)
 app.include_router(apropriacao.rota)
+app.include_router(faturamento.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 
 templates.env.globals.update(
@@ -355,17 +356,18 @@ def painel(request: Request, u: Usuario = Depends(gestor_logado),
         Alerta.criado_em >= banco.agora() - timedelta(days=7))
         .order_by(Alerta.criado_em.desc()).limit(30)))
     tarefas = regras.tarefas_do_dia(db, e, dia)
-    resumo = custos.resumo_dias(db, e, dia) if core.pode(u, "pagamento") else None
     sm = salario_minimo.situacao(db, e, dia) if core.pode(u, "pagamento") or core.pode(u, "equipe") else None
     return render(
         request, "painel_hoje.html", u=u, e=e, aba="hoje", dia=dia, linhas=linhas,
-        soltas=soltas, alertas=alertas, tarefas=tarefas, resumo=resumo, sm=sm,
+        soltas=soltas, alertas=alertas, tarefas=tarefas, sm=sm,
         banners=master.banners_no_ar(db, dia),
         saudacao=dashboard.saudacao(regras.agora_local(e)),
         n_problemas=len(ponto_problemas.problemas(db, e)) if core.pode(u, "ponto") else 0,
         sugestoes=dashboard.sugestoes(db, e, u, dia),
-        semana=dashboard.semana(db, e, dia, resumo if core.pode(u, "pagamento") else None)
-        if core.pode(u, "ponto") else None,
+        semana=dashboard.semana(db, e, dia, None) if core.pode(u, "ponto") else None,
+        cmo=(cmo := faturamento.historico(db, e, dia) if e.usa_faturamento and core.pode(u, "pagamento") else None),
+        cmo_grafico=dashboard.grafico_cmo(cmo, e.meta_cmo or 30) if cmo else None,
+        cmo_orientacao=faturamento.orientacao(e), REGIMES=faturamento.REGIMES,
         agora_sit=dashboard.situacao_agora(linhas),
         n={"escalados": sum(c not in ("folga", "ausencia") for c in cods),
            "presentes": sum(c in ("trabalhando", "sem_saida") for c in cods),
@@ -1020,7 +1022,7 @@ def config(request: Request, u: Usuario = Depends(gestor_logado), db: Session = 
     e = u.empresa
     return render(request, "painel_config.html", u=u, e=e, aba="config", fusos=regras.FUSOS,
                   sm=salario_minimo.situacao(db, e, regras.hoje(e)),
-                  sm_atualizado=salario_minimo.ATUALIZADO_EM)
+                  sm_atualizado=salario_minimo.ATUALIZADO_EM, REGIMES=faturamento.REGIMES)
 
 
 @app.post("/painel/config", dependencies=CSRF)

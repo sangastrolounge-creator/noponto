@@ -107,6 +107,19 @@
   <button class="botao" type="submit">{{ _('Salvar') }}</button>
 </form>
 
+<form method="post" action="/painel/config/faturamento" class="cartao" id="faturamento">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Faturamento e CMO') }}</h2>
+  <p class="suave pequeno">{{ _('Para empresas que vendem produtos ou serviços: você informa o faturamento de cada mês e a tela Hoje mostra o CMO, quanto a equipe (salários e encargos) representa do faturamento.') }}</p>
+  <label class="marcar campo"><input type="checkbox" name="usa" value="1" {{ 'checked' if e.usa_faturamento }}><span>{{ _('Acompanhar faturamento e CMO na tela Hoje') }}</span></label>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    <div><label for="meta_cmo">{{ _('Meta de CMO (% do faturamento)') }}</label><input id="meta_cmo" type="number" name="meta" min="5" max="80" value="{{ e.meta_cmo }}"></div>
+    <div><label for="regime">{{ _('Regime tributário') }}</label><select id="regime" name="regime">{% for k, v in REGIMES.items() %}<option value="{{ k }}" {{ 'selected' if e.regime_tributario == k }}>{{ v|traduz }}</option>{% endfor %}</select></div>
+  </div>
+  <p class="ajuda">{{ _('O regime muda os encargos estimados: no Simples Nacional entram FGTS, 13º e férias com 1/3 (cerca de 29% sobre o salário); no Lucro Presumido ou Real entram também INSS patronal, RAT e terceiros (cerca de 62%). Em bares e restaurantes, a referência de CMO saudável é de até cerca de 30% do faturamento.') }}</p>
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+
 <form method="post" action="/painel/config/salario-minimo" class="cartao" id="salario-minimo">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <h2>{{ _('Salário mínimo e piso') }}</h2>

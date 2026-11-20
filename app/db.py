@@ -176,6 +176,11 @@ class Empresa(Base):
     avaliar_turno: Mapped[bool] = mapped_column(Boolean, default=True)
     # Configuração guiada (triagem): respostas e o que foi preparado a partir delas.
     segmento: Mapped[str] = mapped_column(String(20), default="")
+    # Faturamento mensal e CMO (opcional): liga o bloco na tela Hoje; meta em % e regime tributário
+    # (o regime muda os encargos estimados sobre a folha).
+    usa_faturamento: Mapped[bool] = mapped_column(Boolean, default=False)
+    meta_cmo: Mapped[int] = mapped_column(Integer, default=30)
+    regime_tributario: Mapped[str] = mapped_column(String(12), default="simples")
     uf: Mapped[str] = mapped_column(String(2), default="")
     porte: Mapped[str] = mapped_column(String(10), default="")
     provedor_folha: Mapped[str] = mapped_column(String(20), default="")
@@ -750,6 +755,18 @@ class FuncaoUsuario(Base):
     ordem: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class FaturamentoMes(Base):
+    """Faturamento do mês informado pelo gestor (base do CMO: custo de mão de obra ÷ faturamento)."""
+    __tablename__ = "faturamento_mes"
+    __table_args__ = (UniqueConstraint("empresa_id", "mes"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
+    mes: Mapped[str] = mapped_column(String(7), index=True)      # AAAA-MM
+    valor_centavos: Mapped[int] = mapped_column(Integer, default=0)
+    registrado_por: Mapped[str] = mapped_column(String(120), default="")
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+
+
 class VendaDia(Base):
     """Vendas do dia digitadas pelo gestor (para o custo da equipe em % das vendas)."""
     __tablename__ = "vendas_dia"
@@ -978,6 +995,9 @@ COLUNAS_NOVAS = [
     ("fechamento_linhas", "intervalo_suprimido", "INTEGER NOT NULL DEFAULT 0"),
     ("fechamento_linhas", "sobreaviso", "INTEGER NOT NULL DEFAULT 0"),
     ("plataforma", "nome_curto", "VARCHAR(20) NOT NULL DEFAULT ''"),
+    ("empresas", "usa_faturamento", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("empresas", "meta_cmo", "INTEGER NOT NULL DEFAULT 30"),
+    ("empresas", "regime_tributario", "VARCHAR(12) NOT NULL DEFAULT 'simples'"),
     ("historico", "usuario_id", "INTEGER"),
     ("historico", "dia", "DATE"),
 ]
