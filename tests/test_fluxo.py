@@ -154,15 +154,17 @@ def main():
     assert len(sem) == 1 and "Bruno Lima" in sem[0].texto, [a.texto for a in alertas()]
     painel = g.get("/painel").text
     assert "Não bateu o ponto" in painel and "Trabalhando" in painel
-    assert "Bruno Lima não bateu o ponto" in painel
+    assert "Bruno Lima não bateu o ponto" in g.get("/painel/avisos").text
+    assert "Avisos novos" in painel and "Situação da equipe agora" in painel and "Acesso rápido" in painel
 
     as_("09:30")
     r = bater(bruno, tb)
     assert r.status_code == 200 and "Atraso de 90 min" in r.json()["mensagem"], r.text
     assert "chegou 90 min atrasado" in alertas("atraso")[0].texto
     assert "atrasou 90 min" in g.get("/painel").text
-    posta(g, "/painel/alertas/lidos", tg)
-    assert "Nenhum aviso novo" in g.get("/painel").text
+    r = posta(g, "/painel/alertas/lidos", tg)
+    assert r.headers["location"] == "/painel/avisos"
+    assert 'etiqueta azul">novo<' not in g.get("/painel/avisos").text
 
     # ---- tarefas
     posta(g, "/painel/tarefas", tg, titulo="Fechar o caixa", usuario_id="0",
@@ -175,7 +177,7 @@ def main():
     assert "Fechar o caixa" in pa and "Limpar a vitrine" in pa and "Só domingo" not in pa
     assert "Fechar o caixa" in pb and "Limpar a vitrine" not in pb
     posta(ana, "/app/tarefas/1", ta, dia=seg)
-    assert "Ana às 09:30" in g.get("/painel").text
+    assert "Ana · 09:30" in g.get("/painel/tarefas").text
     posta(bruno, "/app/tarefas/1", tb, dia=seg)  # Bruno não desmarca a tarefa da Ana
     assert "marcada por Ana" in bruno.get("/app").text
     posta(bruno, "/app/tarefas/2", tb, dia=seg)  # nem marca a tarefa só dela

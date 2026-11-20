@@ -1,7 +1,7 @@
 """Revenda: Painel Master (o dono da plataforma gerencia empresas, planos, pagamentos e a
 plataforma) e a tela Assinatura de cada empresa. O master é o usuário com is_admin."""
 import secrets
-from datetime import timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Form, Request
 from sqlalchemy import func, select
@@ -13,7 +13,7 @@ from .core import (SITUACOES, Redirecionar, admin_logado, avisar, base_url, celu
                    dinheiro, email_valido, exigir_csrf, funcionarios_ativos, gerar_hash,
                    ir, ler_centavos, limite_funcionarios, plataforma,
                    plataforma_mudou, render, situacao)
-from .db import Batida, Empresa, Pagamento, Plano, Plataforma, Usuario, get_db
+from .db import Banner, Batida, Empresa, Pagamento, Plano, Plataforma, Usuario, get_db
 
 rota = APIRouter()
 CSRF = [Depends(exigir_csrf)]
@@ -362,6 +362,7 @@ def plataforma_form(request: Request, u: Usuario = Depends(admin_logado),
 @rota.post("/master/plataforma", dependencies=CSRF)
 def plataforma_salvar(request: Request, u: Usuario = Depends(admin_logado),
                       db: Session = Depends(get_db), nome: str = Form(""),
+                      nome_curto: str = Form(""),
                       whatsapp: str = Form(""), dias_teste: int = Form(7),
                       carencia_dias: int = Form(3), carencia_teste_dias: int = Form(0),
                       cadastro_aberto: str = Form(""), instrucoes_pagamento: str = Form(""),
@@ -382,6 +383,7 @@ def plataforma_salvar(request: Request, u: Usuario = Depends(admin_logado),
         avisar(request, "E-mail de contato legal inválido.", "erro")
     else:
         p.nome, p.whatsapp, p.dias_teste = nome.strip()[:60], zap[:20], dias_teste
+        p.nome_curto = nome_curto.strip()[:20]
         p.carencia_dias, p.carencia_teste_dias = carencia_dias, carencia_teste_dias
         p.cadastro_aberto = bool(cadastro_aberto)
         p.instrucoes_pagamento = instrucoes_pagamento.strip()[:2000]
@@ -394,3 +396,72 @@ def plataforma_salvar(request: Request, u: Usuario = Depends(admin_logado),
         plataforma_mudou()
         avisar(request, "Plataforma atualizada.")
     return ir("/master/plataforma")
+
+
+# ------------------------------------------------------------------ banners da tela Hoje
+CORES_BANNER = {"azul": "Azul", "verde": "Verde", "roxo": "Roxo", "laranja": "Laranja"}
+
+
+def banners_no_ar(db: Session, hoje: date) -> list[Banner]:
+    """Banners ativos e dentro do período, na ordem escolhida pelo Master."""
+    return [b for b in db.scalars(select(Banner).where(Banner.ativo.is_(True))
+                                  .order_by(Banner.ordem, Banner.id.desc()))
+            if (not b.inicio or b.inicio <= hoje) and (not b.fim or hoje <= b.fim)]
+
+
+def _link_ok(link: str) -> bool:
+    link = link.strip()
+    return not link or link.startswith("https://") or (link.startswith("/") and not link.startswith("//"))
+
+
+def _data(s: str) -> date | None:
+    try:
+        return date.fromisoformat(s) if s else None
+    except ValueError:
+        return None
+
+
+@rota.get("/master/banners")
+def banners(request: Request, u: Usuario = Depends(admin_logado), db: Session = Depends(get_db)):
+    return render(request, "master/banners.html", u=u, e=u.empresa, aba="master", sub="banners",
+                  banners=list(db.scalars(select(Banner).order_by(Banner.ordem, Banner.id.desc()))),
+                  CORES=CORES_BANNER, hoje=date.today())
+
+
+@rota.post("/master/banners", dependencies=CSRF)
+def banner_salvar(request: Request, u: Usuario = Depends(admin_logado), db: Session = Depends(get_db),
+                  bid: int = Form(0), titulo: str = Form(""), texto: str = Form(""),
+                  link: str = Form(""), botao: str = Form(""), cor: str = Form("azul"),
+                  inicio: str = Form(""), fim: str = Form(""), ordem: int = Form(0),
+                  ativo: str = Form("")):
+    titulo = titulo.strip()
+    ini, fi = _data(inicio), _data(fim)
+    if not titulo:
+        avisar(request, "Dê um título ao banner.", "erro")
+    elif not _link_ok(link):
+        avisar(request, "O link precisa começar com https:// ou ser uma página do sistema (/painel/...).", "erro")
+    elif ini and fi and fi < ini:
+        avisar(request, "O fim do banner é antes do início.", "erro")
+    else:
+        b = db.get(Banner, bid) if bid else None
+        if b is None:
+            b = Banner()
+            db.add(b)
+        b.titulo, b.texto = titulo[:90], texto.strip()[:240]
+        b.link, b.botao = link.strip()[:300], botao.strip()[:40]
+        b.cor = cor if cor in CORES_BANNER else "azul"
+        b.inicio, b.fim, b.ordem, b.ativo = ini, fi, ordem, bool(ativo)
+        db.commit()
+        avisar(request, "Banner salvo." + ("" if b.ativo else " Ele está desligado: ligue para aparecer."))
+    return ir("/master/banners")
+
+
+@rota.post("/master/banners/{bid}/remover", dependencies=CSRF)
+def banner_remover(request: Request, bid: int, u: Usuario = Depends(admin_logado),
+                   db: Session = Depends(get_db)):
+    b = db.get(Banner, bid)
+    if b:
+        db.delete(b)
+        db.commit()
+        avisar(request, "Banner removido.")
+    return ir("/master/banners")

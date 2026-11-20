@@ -24,7 +24,7 @@ from . import core
 from . import db as banco
 from . import (apuracao, asaas, cobranca, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
-               ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario)
+               ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
                    SECRET_KEY, Redirecionar, avisar, base_url, celular_limpo,
                    da_empresa, data_iso, ir,
@@ -174,7 +174,8 @@ def sw():
 @app.get("/manifest.webmanifest")
 def manifest():
     return JSONResponse({
-        "name": master.plataforma()["nome"], "short_name": master.plataforma()["nome"],
+        "name": master.plataforma()["nome"],
+        "short_name": master.plataforma().get("nome_curto") or master.plataforma()["nome"],
         "start_url": "/", "scope": "/",
         "display": "standalone", "background_color": "#f4f6f5", "theme_color": "#0f766e",
         "lang": "pt-BR", "description": "Escala, ponto e tarefas da equipe.",
@@ -359,6 +360,10 @@ def painel(request: Request, u: Usuario = Depends(gestor_logado),
     return render(
         request, "painel_hoje.html", u=u, e=e, aba="hoje", dia=dia, linhas=linhas,
         soltas=soltas, alertas=alertas, tarefas=tarefas, resumo=resumo, sm=sm,
+        banners=master.banners_no_ar(db, dia),
+        semana=dashboard.semana(db, e, dia, resumo if core.pode(u, "pagamento") else None)
+        if core.pode(u, "ponto") else None,
+        agora_sit=dashboard.situacao_agora(linhas),
         n={"escalados": sum(c not in ("folga", "ausencia") for c in cods),
            "presentes": sum(c in ("trabalhando", "sem_saida") for c in cods),
            "atrasados": sum(l["sit"]["cor"] == "alerta" and l["sit"]["cod"] != "sem_saida"
@@ -382,13 +387,24 @@ def guia_visto(u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db
     return {"ok": True}
 
 
+@app.get("/painel/avisos")
+def avisos(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
+    """Avisos da operação (atrasos, faltas, aparelho novo...) dos últimos 7 dias."""
+    e = u.empresa
+    alertas = list(db.scalars(select(Alerta).where(
+        Alerta.empresa_id == e.id, Alerta.criado_em >= banco.agora() - timedelta(days=7))
+        .order_by(Alerta.criado_em.desc()).limit(60)))
+    return render(request, "painel_avisos.html", u=u, e=e, aba="hoje", alertas=alertas,
+                  novos=sum(1 for a in alertas if not a.lido))
+
+
 @app.post("/painel/alertas/lidos", dependencies=CSRF)
 def alertas_lidos(u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     for a in db.scalars(select(Alerta).where(Alerta.empresa_id == u.empresa_id,
                                              Alerta.lido.is_(False))):
         a.lido = True
     db.commit()
-    return ir("/painel")
+    return ir("/painel/avisos")
 
 
 @app.post("/push", dependencies=CSRF)

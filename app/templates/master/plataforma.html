@@ -5,6 +5,7 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <h2>{{ _('Marca e página inicial') }}</h2>
   <div class="campo"><label for="nome">{{ _('Nome da plataforma') }}</label><input id="nome" type="text" name="nome" value="{{ p.nome or app_nome }}" maxlength="60" required style="max-width:320px"></div>
+  <div class="campo"><label for="nome_curto">{{ _('Nome curto (embaixo do ícone no celular)') }}</label><input id="nome_curto" type="text" name="nome_curto" value="{{ p.nome_curto }}" maxlength="20" placeholder="{{ _('Ex.: DW Brasil') }}" style="max-width:220px"><div class="ajuda">{{ _('Até 12 letras cabem sem cortar na maioria dos celulares. Em branco, usa o nome da plataforma. Quem já instalou o app vê a mudança quando o celular atualizar o atalho (pode levar alguns dias, ou reinstale).') }}</div></div>
   <div class="campo"><label for="titulo">{{ _('Título da página inicial') }}</label><input id="titulo" type="text" name="titulo" value="{{ p.titulo }}" maxlength="200"><div class="ajuda">{{ _('Em branco, usa o título padrão.') }}</div></div>
   <div class="campo"><label for="subtitulo">{{ _('Texto de apoio') }}</label><textarea id="subtitulo" name="subtitulo" maxlength="600">{{ p.subtitulo }}</textarea></div>
 

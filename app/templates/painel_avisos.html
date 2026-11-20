@@ -1,0 +1,27 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Avisos') }}</h1><p class="suave" style="margin:0">{{ _('Atrasos, faltas, aparelhos novos e outros avisos dos últimos 7 dias.') }}</p></div>
+  <div class="acoes">
+    <a class="botao claro" href="/painel">{{ _('Voltar para Hoje') }}</a>
+    {% if novos %}
+    <form method="post" action="/painel/alertas/lidos" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="botao" type="submit">{{ _('Marcar como vistos') }}</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+<div class="cartao">
+  {% if alertas %}
+  <ul class="lista-alertas">
+    {% for a in alertas %}
+    <li class="{{ 'visto' if a.lido }}"><span class="ponto-cor {{ a.tipo }}"></span><span>{{ _(a.texto) }}{% if not a.lido %} <span class="etiqueta azul">{{ _('novo') }}</span>{% endif %}<br><span class="suave pequeno">{{ local(e, a.criado_em, '%d/%m %H:%M') }}</span></span></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="vazio">{{ _('Nenhum aviso nos últimos 7 dias.') }}</div>
+  {% endif %}
+  {% if not alertas_liberados(e) %}<p class="ajuda">{{ _('Os alertas de atraso e de não comparecimento não estão no seu plano.') }} <a href="/painel/assinatura">{{ _('Ver planos') }}</a></p>{% endif %}
+</div>
+{% endblock %}

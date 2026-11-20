@@ -27,7 +27,7 @@
   <nav class="abas" aria-label="{{ _('Menu do painel') }}">
     <span class="menu-titulo">{{ _('Dia a dia') }}</span>
     {{ item('/painel', 'hoje', _('Hoje'), '<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>') }}
-    {% if pode(u, 'escala') %}{{ item('/painel/escala', 'escala', _('Escala'), '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>', [('/painel/escala', _('Escala da semana')), ('/painel/escala#ofertas', _('Turnos abertos e trocas'))]) }}{% endif %}
+    {% if pode(u, 'escala') %}{{ item('/painel/escala', 'escala', _('Escala'), '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>') }}{% endif %}
     {% if pode(u, 'ponto') %}{{ item('/painel/ponto', 'ponto', _('Ponto'), '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', [('/painel/ponto', _('Batidas e horas')), ('/painel/ponto/ajuste', _('Ajuste de ponto')), ('/painel/ponto/problemas', _('Problemas de ponto')), ('/painel/perguntas', _('Perguntas de fim de turno')), ('/painel/historico', _('Histórico de alterações'))]) }}{% endif %}
     {% if pode(u, 'ausencias') %}{{ item('/painel/ausencias', 'ausencias', _('Ausências'), '<rect x="4" y="6" width="16" height="14" rx="2"/><path d="M9 6V4h6v2M12 10v6M9 13h6"/>', [('/painel/ausencias', _('Ausências e pedidos')), ('/painel/ferias', _('Férias')), ('/painel/ausencias#feriados', _('Feriados'))]) }}{% endif %}
     {% if pode(u, 'mural') %}{{ item('/painel/mural', 'mural', _('Mural'), '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>') }}{% endif %}

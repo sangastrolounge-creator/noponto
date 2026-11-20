@@ -122,7 +122,7 @@ def main():
     r = bater(ana, csrf(ana, "/app"))
     assert r.status_code == 400 and "outro colaborador" in r.json()["erro"], r.text
     assert conta(Alerta, Alerta.tipo == "aparelho") == 1
-    assert "no aparelho de Ana Souza" in g.get("/painel").text
+    assert "no aparelho de Ana Souza" in g.get("/painel/avisos").text
     assert conta(Batida, Batida.usuario_id == ids["Bruno"]) == 0
 
     # Bruno no próprio celular: funciona. Sem lembrete repetido de "não bateu".

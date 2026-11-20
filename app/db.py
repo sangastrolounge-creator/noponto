@@ -58,6 +58,7 @@ class Plataforma(Base):
     __tablename__ = "plataforma"
     id: Mapped[int] = mapped_column(primary_key=True)
     nome: Mapped[str] = mapped_column(String(60), default="")  # vazio = APP_NOME
+    nome_curto: Mapped[str] = mapped_column(String(20), default="")  # embaixo do ícone; vazio = nome
     whatsapp: Mapped[str] = mapped_column(String(20), default="")
     dias_teste: Mapped[int] = mapped_column(Integer, default=7)
     # Carência: dias que a empresa ainda usa depois do vencimento (assinatura) e do fim do teste.
@@ -536,6 +537,22 @@ class Ausencia(Base):
     usuario: Mapped[Usuario] = relationship()
 
 
+class Banner(Base):
+    """Banner promocional que o Master publica no topo da tela Hoje de todas as empresas."""
+    __tablename__ = "banners"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(90))
+    texto: Mapped[str] = mapped_column(String(240), default="")
+    link: Mapped[str] = mapped_column(String(300), default="")       # https://... ou /painel/...
+    botao: Mapped[str] = mapped_column(String(40), default="")       # texto do botão do link
+    cor: Mapped[str] = mapped_column(String(12), default="azul")     # azul, verde, roxo, laranja
+    inicio: Mapped[date | None] = mapped_column(Date, nullable=True)
+    fim: Mapped[date | None] = mapped_column(Date, nullable=True)
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True)
+    ordem: Mapped[int] = mapped_column(Integer, default=0)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+
+
 class Sobreaviso(Base):
     """Horas em que a pessoa ficou à disposição fora do expediente, aguardando ser chamada
     (CLT art. 244, §2º; Súmula 428 do TST). Pagas à razão de 1/3 do valor da hora normal."""
@@ -959,6 +976,7 @@ COLUNAS_NOVAS = [
     ("ausencias", "abono_dias", "INTEGER NOT NULL DEFAULT 0"),
     ("fechamento_linhas", "intervalo_suprimido", "INTEGER NOT NULL DEFAULT 0"),
     ("fechamento_linhas", "sobreaviso", "INTEGER NOT NULL DEFAULT 0"),
+    ("plataforma", "nome_curto", "VARCHAR(20) NOT NULL DEFAULT ''"),
     ("historico", "usuario_id", "INTEGER"),
     ("historico", "dia", "DATE"),
 ]

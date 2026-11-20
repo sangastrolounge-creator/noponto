@@ -1,5 +1,33 @@
 {% extends "painel_base.html" %}
+{% macro grafico_barras(g, rotulo_eixo, prefixo='', sufixo='') %}
+<svg class="grafico" viewBox="0 0 {{ g.largura }} {{ g.altura }}" role="img" aria-label="{{ rotulo_eixo }}">
+  {% for l in g.grade %}<line class="grade-linha" x1="40" x2="{{ g.largura }}" y1="{{ l.y }}" y2="{{ l.y }}"/><text class="eixo" x="34" y="{{ l.y + 4 }}" text-anchor="end">{{ prefixo }}{{ '{:,.0f}'.format(l.valor).replace(',', '.') }}{{ sufixo }}</text>{% endfor %}
+  {% for b in g.barras %}
+  <g class="barra-grupo" tabindex="0" data-tip="{{ caller(b) }}">
+    <rect class="alvo" x="{{ b.alvo_x }}" y="0" width="{{ b.alvo_w }}" height="{{ g.base_y }}"/>
+    {% if b.caminho %}<path class="barra{{ ' hoje' if b.destaque }}" d="{{ b.caminho }}"/>{% endif %}
+    {% if b.rotulo_valor %}<text class="valor-barra" x="{{ b.cx }}" y="{{ b.y - 6 }}" text-anchor="middle">{{ b.rotulo_valor }}</text>{% endif %}
+    <text class="eixo{{ ' forte' if b.destaque }}" x="{{ b.cx }}" y="{{ g.altura - 8 }}" text-anchor="middle">{{ b.rotulo|traduz }}</text>
+  </g>
+  {% endfor %}
+  <line class="eixo-linha" x1="40" x2="{{ g.largura }}" y1="{{ g.base_y }}" y2="{{ g.base_y }}"/>
+</svg>
+{% endmacro %}
 {% block conteudo %}
+{% if banners %}
+<section class="banners" aria-label="{{ _('Novidades da plataforma') }}" data-banners>
+  {% for b in banners %}
+  <div class="banner-promo cor-{{ b.cor }}" data-banner="{{ b.id }}-{{ (b.titulo ~ b.texto)|length }}"{% if not loop.first %} hidden{% endif %}>
+    <div><strong>{{ b.titulo }}</strong>{% if b.texto %}<span>{{ b.texto }}</span>{% endif %}</div>
+    <div class="banner-acoes">
+      {% if b.link %}<a class="botao" href="{{ b.link }}"{% if b.link.startswith('https://') %} target="_blank" rel="noopener"{% endif %}>{{ b.botao or _('Saiba mais') }}</a>{% endif %}
+      <button type="button" class="banner-fechar" data-fechar-banner aria-label="{{ _('Fechar') }}">✕</button>
+    </div>
+    {% if banners|length > 1 %}<div class="banner-pontos" aria-hidden="true">{% for x in banners %}<i class="{{ 'ativo' if x.id == b.id }}"></i>{% endfor %}</div>{% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
 <div class="cabecalho">
   <div>
     <h1>{{ _('Hoje, {v1} {v2}', v1=(DIAS[dia.weekday()]|lower), v2=(dia.strftime('%d/%m'))) }}</h1>
@@ -56,92 +84,91 @@
   <div class="numero"><div class="rotulo">{{ _('Custo da equipe hoje') }}</div><div class="valor">{{ r0.custo|dinheiro }}</div><div class="nota">{{ _('{v1} trabalhadas até agora', v1=fmt_min(r0.minutos)) }}</div></div>
   <div class="numero {{ 'atencao' if r0.pct and r0.pct > 35 }}"><div class="rotulo">{{ _('Custo / vendas') }}</div><div class="valor">{{ (r0.pct|string) ~ '%' if r0.pct is not none else '—' }}</div><div class="nota">{{ _('vendas: {v1}', v1=(r0.vendas|dinheiro)) if r0.vendas else _('informe as vendas abaixo') }}</div></div>
   {% endif %}
+  <a class="numero clicavel {{ 'atencao' if alertas }}" href="/painel/avisos"><div class="rotulo">{{ _('Avisos novos') }}</div><div class="valor">{{ alertas|length }}</div><div class="nota">{{ _('ver avisos') }}</div></a>
   <div class="numero"><div class="rotulo">{{ _('Tarefas feitas') }}</div><div class="valor">{{ n.tarefas_feitas }}<span class="suave" style="font-size:1rem;font-weight:500"> {{ _('de {v1}', v1=(tarefas|length)) }}</span></div></div>
 </div>
 
-<div class="duas">
-  <div>
-    <div class="cartao">
-      <h2>{{ _('Equipe de hoje') }}</h2>
-      {% if linhas or soltas %}
-      <div class="rolagem"><table>
-        <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Entrada') }}</th><th>{{ _('Saída') }}</th><th>{{ _('Situação') }}</th></tr></thead>
-        <tbody>
-        {% for l in linhas %}
-        <tr>
-          <td><span class="nome-forte">{{ l.u.nome }}</span>{% if l.u.cargo %}<br><span class="suave pequeno">{{ l.u.cargo }}</span>{% endif %}</td>
-          <td>{{ _('Folga') if l.t.folga else l.t.inicio ~ '–' ~ l.t.fim }}{% if l.t.local %}<br><span class="suave pequeno">{{ l.t.local.nome }}</span>{% endif %}</td>
-          {% set ent = l.batidas|selectattr('tipo', 'equalto', 'entrada')|first %}
-          {% set sai = l.batidas|selectattr('tipo', 'equalto', 'saida')|list|last %}
-          <td>{% if ent %}{% if ent.foto %}<a href="/painel/ponto/foto/{{ ent.id }}" target="_blank" rel="noopener"><img class="mini-foto" src="/painel/ponto/foto/{{ ent.id }}" alt="{{ _('Foto da entrada de {v1}', v1=(l.u.primeiro_nome)) }}" loading="lazy"></a>{% endif %}{{ local(e, ent.momento) }}{% else %}—{% endif %}</td>
-          <td>{{ local(e, sai.momento) if sai and l.batidas[-1].tipo == 'saida' else '—' }}</td>
-          <td><span class="etiqueta {{ l.sit.cor }}">{{ _(l.sit.texto) }}</span>
-            {% if l.sit.cod == 'sem_ponto' and l.u.celular %}<br><a class="pequeno" target="_blank" rel="noopener" href="{{ zap(l.u.celular, _('Oi ') ~ l.u.primeiro_nome ~ _(', seu turno começou às ') ~ l.t.inicio ~ _(' e o ponto ainda não foi batido. Está tudo bem?')) }}">{{ _('Chamar no WhatsApp') }}</a>{% endif %}</td>
-        </tr>
-        {% endfor %}
-        {% for b in soltas %}
-        <tr>
-          <td><span class="nome-forte">{{ b.usuario.nome }}</span></td>
-          <td class="suave">{{ _('fora da escala') }}</td>
-          <td>{{ local(e, b.momento) if b.tipo == 'entrada' else '—' }}</td>
-          <td>{{ local(e, b.momento) if b.tipo == 'saida' else '—' }}</td>
-          <td><span class="etiqueta">{{ _('Sem escala') }}</span></td>
-        </tr>
-        {% endfor %}
-        </tbody>
-      </table></div>
-      {% else %}
-      <div class="vazio">{{ _('Ninguém escalado para hoje.') }} <a href="/painel/escala">{{ _('Montar a escala') }}</a></div>
-      {% endif %}
-    </div>
 
-    <div class="cartao">
-      <h2>{{ _('Checklist de hoje') }}</h2>
-      {% if tarefas %}
-      <ul class="checklist">
-        {% for i in tarefas %}
-        <li class="{{ 'feita' if i.feita }}">
-          <form method="post" action="/app/tarefas/{{ i.t.id }}">
-            <input type="hidden" name="csrf" value="{{ csrf }}">
-            <input type="hidden" name="dia" value="{{ dia.isoformat() }}">
-            <input type="hidden" name="volta" value="/painel">
-            <button type="submit" aria-pressed="{{ 'true' if i.feita else 'false' }}">
-              <span class="caixinha">{{ '✓' if i.feita }}</span>
-              <span><span class="titulo-tarefa">{{ i.t.titulo }}</span>
-              <small>{% if i.feita %}{{ _('{v1} às {v2}', v1=(i.feita.usuario.primeiro_nome), v2=(local(e, i.feita.feito_em))) }}{% elif i.t.usuario %}{{ _('para {v1}', v1=(i.t.usuario.primeiro_nome)) }}{% else %}{{ _('equipe toda') }}{% endif %}</small></span>
-            </button>
-          </form>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <div class="vazio">{{ _('Nenhuma tarefa para hoje.') }} <a href="/painel/tarefas">{{ _('Criar checklist') }}</a></div>
-      {% endif %}
-    </div>
+{% set ATALHOS = [
+  ('escala', '/painel/escala', _('Escala'), '📅'), ('ponto', '/painel/ponto', _('Ponto'), '🕘'),
+  ('ponto', '/painel/ponto/ajuste', _('Ajuste de ponto'), '🛠'), ('ausencias', '/painel/ausencias', _('Ausências'), '🩺'),
+  ('ausencias', '/painel/ferias', _('Férias'), '🏖'), ('equipe', '/painel/equipe', _('Equipe'), '👥'),
+  ('fechamento', '/painel/fechamento', _('Fechamento'), '🔒'), ('pagamento', '/painel/pagamento', _('Folha de pagamento'), '💰'),
+  ('ponto', '/painel/relatorios', _('Relatórios'), '📊'), ('tarefas', '/painel/tarefas', _('Tarefas'), '✅'),
+  ('mural', '/painel/mural', _('Mural'), '📌'), ('hoje', '/painel/avisos', _('Avisos'), '🔔')] %}
+<nav class="atalhos cartao" aria-label="{{ _('Acesso rápido') }}">
+  <h2>{{ _('Acesso rápido') }}</h2>
+  <div class="atalhos-grade">
+    {% for perm, href, nome, ic in ATALHOS %}{% if perm == 'hoje' or pode(u, perm) %}
+    <a class="atalho" href="{{ href }}"><span class="atalho-ic" aria-hidden="true">{{ ic }}</span><span>{{ nome }}</span></a>
+    {% endif %}{% endfor %}
   </div>
+</nav>
 
-  <div class="cartao">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
-      <h2 style="margin:0">{{ _('Avisos') }}{% if alertas %} ({{ alertas|length }}){% endif %}</h2>
-      {% if alertas %}
-      <form method="post" action="/painel/alertas/lidos" class="inline">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button class="botao mini claro" type="submit">{{ _('Marcar como vistos') }}</button>
-      </form>
-      {% endif %}
+<div class="graficos">
+  {% if semana %}
+  <div class="cartao grafico-cartao">
+    <h2>{{ _('Horas trabalhadas · 7 dias') }}</h2>
+    <p class="suave pequeno grafico-sub">{{ _('{v1} no total · {v2} atraso(s)', v1=fmt_min(semana.total_min), v2=semana.atrasos) }}</p>
+    {% call(b) grafico_barras(semana.horas, _('Horas trabalhadas por dia'), '', 'h') %}{{ b.data.strftime('%d/%m') }} · {{ b.texto }} · {{ _('{v1} pessoa(s)', v1=b.pessoas) }}{% if b.atrasos %} · {{ _('{v1} atraso(s)', v1=b.atrasos) }}{% endif %}{% endcall %}
+  </div>
+  {% if semana.custo %}
+  <div class="cartao grafico-cartao">
+    <h2>{{ _('Custo da equipe · 7 dias') }}</h2>
+    <p class="suave pequeno grafico-sub">{{ _('Em cima da barra: % das vendas do dia, quando informadas.') }}</p>
+    {% call(b) grafico_barras(semana.custo, _('Custo da equipe por dia'), 'R$ ') %}{{ b.data.strftime('%d/%m') }} · {{ b.centavos|dinheiro }}{% if b.vendas %} · {{ _('vendas {v1}', v1=(b.vendas|dinheiro)) }} · {{ b.pct|string|replace('.', ',') }}%{% endif %}{% endcall %}
+  </div>
+  {% endif %}
+  {% endif %}
+  {% if agora_sit %}
+  <div class="cartao grafico-cartao">
+    <h2>{{ _('Situação da equipe agora') }}</h2>
+    <p class="suave pequeno grafico-sub">{{ _('{v1} pessoa(s) na escala de hoje', v1=linhas|length) }}</p>
+    <div class="pilha" role="img" aria-label="{{ _('Situação da equipe agora') }}">
+      {% for g in agora_sit %}<span class="pilha-seg sit-{{ g.chave }}" style="flex-grow:{{ g.qtd }}" tabindex="0" data-tip="{{ g.nome|traduz }}: {{ g.qtd }}"></span>{% endfor %}
     </div>
-    {% if alertas %}
-    <ul class="lista-alertas">
-      {% for a in alertas %}
-      <li><span class="ponto-cor {{ a.tipo }}"></span><span>{{ _(a.texto) }}<br><span class="suave pequeno">{{ local(e, a.criado_em, '%d/%m %H:%M') }}</span></span></li>
-      {% endfor %}
+    <ul class="pilha-legenda">
+      {% for g in agora_sit %}<li><i class="sit-{{ g.chave }}"></i><span>{{ g.nome|traduz }}</span><strong>{{ g.qtd }}</strong></li>{% endfor %}
     </ul>
-    {% else %}
-    <div class="vazio">{{ _('Nenhum aviso novo.') }}</div>
-    {% endif %}
-    {% if not alertas_liberados(e) %}<p class="ajuda">{{ _('Os alertas de atraso e de não comparecimento não estão no seu plano.') }} <a href="/painel/assinatura">{{ _('Ver planos') }}</a></p>{% endif %}
   </div>
+  {% endif %}
 </div>
+<div class="dica-grafico" id="dica-grafico" role="status" hidden></div>
+
+<div class="cartao equipe-hoje">
+  <h2>{{ _('Equipe de hoje') }}</h2>
+  {% if linhas or soltas %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Entrada') }}</th><th>{{ _('Saída') }}</th><th>{{ _('Situação') }}</th></tr></thead>
+    <tbody>
+    {% for l in linhas %}
+    <tr>
+      <td><span class="nome-forte">{{ l.u.nome }}</span>{% if l.u.cargo %}<br><span class="suave pequeno">{{ l.u.cargo }}</span>{% endif %}</td>
+      <td>{{ _('Folga') if l.t.folga else l.t.inicio ~ '–' ~ l.t.fim }}{% if l.t.local %}<br><span class="suave pequeno">{{ l.t.local.nome }}</span>{% endif %}</td>
+      {% set ent = l.batidas|selectattr('tipo', 'equalto', 'entrada')|first %}
+      {% set sai = l.batidas|selectattr('tipo', 'equalto', 'saida')|list|last %}
+      <td>{% if ent %}{% if ent.foto %}<a href="/painel/ponto/foto/{{ ent.id }}" target="_blank" rel="noopener"><img class="mini-foto" src="/painel/ponto/foto/{{ ent.id }}" alt="{{ _('Foto da entrada de {v1}', v1=(l.u.primeiro_nome)) }}" loading="lazy"></a>{% endif %}{{ local(e, ent.momento) }}{% else %}—{% endif %}</td>
+      <td>{{ local(e, sai.momento) if sai and l.batidas[-1].tipo == 'saida' else '—' }}</td>
+      <td><span class="etiqueta {{ l.sit.cor }}">{{ _(l.sit.texto) }}</span>
+        {% if l.sit.cod == 'sem_ponto' and l.u.celular %}<br><a class="pequeno" target="_blank" rel="noopener" href="{{ zap(l.u.celular, _('Oi ') ~ l.u.primeiro_nome ~ _(', seu turno começou às ') ~ l.t.inicio ~ _(' e o ponto ainda não foi batido. Está tudo bem?')) }}">{{ _('Chamar no WhatsApp') }}</a>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    {% for b in soltas %}
+    <tr>
+      <td><span class="nome-forte">{{ b.usuario.nome }}</span></td>
+      <td class="suave">{{ _('fora da escala') }}</td>
+      <td>{{ local(e, b.momento) if b.tipo == 'entrada' else '—' }}</td>
+      <td>{{ local(e, b.momento) if b.tipo == 'saida' else '—' }}</td>
+      <td><span class="etiqueta">{{ _('Sem escala') }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="vazio">{{ _('Ninguém escalado para hoje.') }} <a href="/painel/escala">{{ _('Montar a escala') }}</a></div>
+  {% endif %}
+</div>
+
 
 {% if resumo %}
 <div class="cartao" id="vendas">
@@ -176,5 +203,47 @@ document.addEventListener("DOMContentLoaded", function () {
               "{{ push_chave }}", "{{ csrf }}", t("Avisos ativados neste aparelho."));
 });
 {% endif %}
+</script>
+<script>
+(function () {
+  // dica dos gráficos (mouse e teclado)
+  var dica = document.getElementById('dica-grafico');
+  function mostra(el) {
+    if (!dica) return;
+    dica.textContent = el.getAttribute('data-tip'); dica.hidden = false;
+    var r = el.getBoundingClientRect();
+    dica.style.left = Math.max(8, Math.min(window.innerWidth - dica.offsetWidth - 8, r.left + r.width / 2 - dica.offsetWidth / 2)) + 'px';
+    dica.style.top = (r.top + window.scrollY - dica.offsetHeight - 8) + 'px';
+  }
+  function esconde() { if (dica) dica.hidden = true; }
+  document.querySelectorAll('[data-tip]').forEach(function (el) {
+    el.addEventListener('mouseenter', function () { mostra(el); });
+    el.addEventListener('focus', function () { mostra(el); });
+    el.addEventListener('mouseleave', esconde); el.addEventListener('blur', esconde);
+  });
+  // banners: revezam a cada 7 s; fechar esconde aquele banner neste navegador
+  var caixa = document.querySelector('[data-banners]');
+  if (!caixa) return;
+  var fechados = [];
+  try { fechados = JSON.parse(localStorage.getItem('banners_fechados') || '[]'); } catch (e) {}
+  var todos = Array.prototype.slice.call(caixa.querySelectorAll('[data-banner]'));
+  var vivos = todos.filter(function (b) { return fechados.indexOf(b.getAttribute('data-banner')) < 0; });
+  todos.forEach(function (b) { b.hidden = true; });
+  if (!vivos.length) { caixa.hidden = true; return; }
+  var i = 0; vivos[0].hidden = false;
+  if (vivos.length > 1) setInterval(function () {
+    if (caixa.matches(':hover')) return;
+    vivos[i].hidden = true; i = (i + 1) % vivos.length; vivos[i].hidden = false;
+  }, 7000);
+  caixa.addEventListener('click', function (ev) {
+    if (!ev.target.closest('[data-fechar-banner]')) return;
+    var b = ev.target.closest('[data-banner]');
+    fechados.push(b.getAttribute('data-banner'));
+    try { localStorage.setItem('banners_fechados', JSON.stringify(fechados.slice(-50))); } catch (e) {}
+    b.hidden = true; vivos.splice(vivos.indexOf(b), 1);
+    if (!vivos.length) { caixa.hidden = true; return; }
+    i = i % vivos.length; vivos[i].hidden = false;
+  });
+})();
 </script>
 {% endblock %}

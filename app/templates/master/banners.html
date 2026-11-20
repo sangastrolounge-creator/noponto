@@ -1,0 +1,47 @@
+{% extends "master/base.html" %}
+{% macro campos(b=None) %}
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="bid" value="{{ b.id if b else 0 }}">
+  <div class="linha-form" style="grid-template-columns:2fr 1fr">
+    <div><label>{{ _('Título') }}</label><input type="text" name="titulo" maxlength="90" required value="{{ b.titulo if b }}" placeholder="{{ _('Ex.: Folha de pagamento com 20% de desconto') }}"></div>
+    <div><label>{{ _('Cor') }}</label><select name="cor">{% for k, v in CORES.items() %}<option value="{{ k }}" {{ 'selected' if b and b.cor == k }}>{{ v|traduz }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="campo"><label>{{ _('Texto') }}</label><input type="text" name="texto" maxlength="240" value="{{ b.texto if b }}" placeholder="{{ _('Uma frase curta explicando a oferta') }}"></div>
+  <div class="linha-form" style="grid-template-columns:2fr 1fr">
+    <div><label>{{ _('Link (opcional)') }}</label><input type="text" name="link" maxlength="300" value="{{ b.link if b }}" placeholder="/painel/assinatura {{ _('ou') }} https://..."></div>
+    <div><label>{{ _('Texto do botão') }}</label><input type="text" name="botao" maxlength="40" value="{{ b.botao if b }}" placeholder="{{ _('Saiba mais') }}"></div>
+  </div>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+    <div><label>{{ _('Começa em') }}</label><input type="date" name="inicio" value="{{ b.inicio.isoformat() if b and b.inicio }}"></div>
+    <div><label>{{ _('Termina em') }}</label><input type="date" name="fim" value="{{ b.fim.isoformat() if b and b.fim }}"></div>
+    <div><label>{{ _('Ordem') }}</label><input type="number" name="ordem" value="{{ b.ordem if b else 0 }}"></div>
+  </div>
+  <label class="marcar campo"><input type="checkbox" name="ativo" value="1" {{ 'checked' if not b or b.ativo }}><span>{{ _('Ligado') }}</span></label>
+{% endmacro %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Banners') }}</h1><p class="suave" style="margin:0">{{ _('Avisos e ações promocionais no topo da tela Hoje de todas as empresas.') }}</p></div></div>
+
+{% for b in banners %}
+{% set no_ar = b.ativo and (not b.inicio or b.inicio <= hoje) and (not b.fim or hoje <= b.fim) %}
+<div class="cartao">
+  <div class="banner-promo cor-{{ b.cor }}" style="margin-bottom:12px">
+    <div><strong>{{ b.titulo }}</strong>{% if b.texto %}<span>{{ b.texto }}</span>{% endif %}</div>
+    {% if b.link %}<span class="botao">{{ b.botao or _('Saiba mais') }}</span>{% endif %}
+  </div>
+  <p class="pequeno" style="margin-top:0">{% if no_ar %}<span class="etiqueta ok">{{ _('No ar') }}</span>{% elif not b.ativo %}<span class="etiqueta">{{ _('Desligado') }}</span>{% else %}<span class="etiqueta alerta">{{ _('Fora do período') }}</span>{% endif %}
+    {% if b.inicio or b.fim %}<span class="suave">{{ b.inicio.strftime('%d/%m/%Y') if b.inicio else '…' }} – {{ b.fim.strftime('%d/%m/%Y') if b.fim else '…' }}</span>{% endif %}</p>
+  <details><summary>{{ _('Editar') }}</summary>
+    <form method="post" action="/master/banners" style="margin-top:10px">{{ campos(b) }}<button class="botao" type="submit">{{ _('Salvar') }}</button></form>
+  </details>
+  <form method="post" action="/master/banners/{{ b.id }}/remover" class="inline" data-confirma="{{ _('Remover este banner?') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao link" type="submit">{{ _('Remover') }}</button></form>
+</div>
+{% else %}
+<div class="cartao"><div class="vazio">{{ _('Nenhum banner ainda.') }}</div></div>
+{% endfor %}
+
+<form method="post" action="/master/banners" class="cartao">
+  <h2>{{ _('Novo banner') }}</h2>
+  {{ campos() }}
+  <button class="botao" type="submit">{{ _('Publicar banner') }}</button>
+  <p class="ajuda">{{ _('Com mais de um banner no ar, eles se revezam a cada 7 segundos. Cada gestor pode fechar um banner; ele volta se você editar o texto.') }}</p>
+</form>
+{% endblock %}

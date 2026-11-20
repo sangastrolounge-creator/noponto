@@ -283,14 +283,14 @@ def main():
     with SessionLocal() as db:
         novos, _ = regras.verificar_turnos(db)
         assert not [a for a in novos if a.tipo == "sem_ponto"]
-    assert "não estão no seu plano" in g.get("/painel").text
+    assert "não estão no seu plano" in g.get("/painel/avisos").text
     with SessionLocal() as db:
         db.scalar(select(Plano).where(Plano.preco_centavos == 0)).com_alertas = True
         db.commit()
     with SessionLocal() as db:
         novos, _ = regras.verificar_turnos(db)
         assert [a.usuario_id for a in novos if a.tipo == "sem_ponto"] == [ids["Ana"]]
-    assert "não estão no seu plano" not in g.get("/painel").text
+    assert "não estão no seu plano" not in g.get("/painel/avisos").text
     tm = g.get("/master/planos").text
     assert "Inclui alertas de atraso e de não comparecimento" in tm
 
