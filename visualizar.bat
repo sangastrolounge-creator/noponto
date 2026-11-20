@@ -9,6 +9,7 @@ set SECRET_KEY=visualizar-local
 set SEM_AGENDADOR=1
 set IDIOMA_PADRAO=pt
 set PUBLIC_URL=http://localhost:8100
+set APP_NOME=No Ponto
 set ASAAS_API_KEY=
 set ASAAS_WEBHOOK_TOKEN=
 set ANTHROPIC_API_KEY=
