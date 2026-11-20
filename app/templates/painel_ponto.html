@@ -108,50 +108,6 @@
 {% endif %}
 
 <div class="cartao">
-  <h2>{{ _('Dia a dia') }}</h2>
-  {% if linhas %}
-  <div class="rolagem"><table>
-    <thead><tr><th>{{ _('Data') }}</th><th>{{ _('Funcionário') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Batidas') }}</th><th>{{ _('Horas') }}</th><th>{{ _('Observações') }}</th></tr></thead>
-    <tbody>
-    {% for l in linhas %}
-    <tr>
-      <td style="white-space:nowrap">{{ DIAS[l.dia.weekday()] }} {{ l.dia.strftime('%d/%m') }}</td>
-      <td class="nome-forte">{{ l.u.nome }}</td>
-      <td>{% if l.turno %}{{ _('Folga') if l.turno.folga else l.turno.inicio ~ '–' ~ l.turno.fim }}{% else %}<span class="suave">—</span>{% endif %}</td>
-      <td>
-        {% for a, b in l.pares %}
-        <div style="white-space:nowrap">
-          {% for x in (a, b) %}
-            {% if x %}
-            <form method="post" action="/painel/ponto/{{ x.id }}/apagar" class="inline" data-confirma="{{ _('Anular a batida das {v1} de {v2}? Ela sai das contas, mas o registro original fica guardado no histórico.', v1=(local(e, x.momento)), v2=(l.u.primeiro_nome)) }}">
-              <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="/painel/ponto?{{ consulta }}">
-              <button class="botao link" type="submit" style="color:inherit;text-decoration:none" title="{{ _('{v1}. Clique para anular.', v1=(_('Lançada à mão: ') ~ x.obs if x.manual else _('Pelo totem (') ~ x.obs ~ ')' if x.origem else _('A ') ~ x.distancia_m ~ ' m ' ~ (_('do local ') ~ x.local_nome if x.local_nome else _('da empresa')) if x.distancia_m is not none else _('Local não conferido'))) }}">{{ local(e, x.momento) }}{{ '*' if x.manual }}</button>
-            </form>{% if x.foto %}<a class="link-foto" href="/painel/ponto/foto/{{ x.id }}" target="_blank" rel="noopener" data-titulo="{{ l.u.nome }} · {{ _('Entrada') if x.tipo == 'entrada' else _('Saída') }} em {{ local(e, x.momento, '%d/%m/%Y às %H:%M') }}">{{ _('foto') }}</a>{% endif %}
-            {% elif l.andamento and loop.last and loop.index == 2 and a %}<span class="etiqueta ok">{{ _('agora') }}</span>
-            {% else %}<span class="etiqueta erro">?</span>{% endif %}
-            {{ '→' if loop.first }}
-          {% endfor %}
-        </div>
-        {% endfor %}
-      </td>
-      <td>{{ fmt_min(l.minutos) }}</td>
-      <td>
-        {% if l.atraso > e.tolerancia_min %}<span class="etiqueta alerta">{{ _('atraso {v1} min', v1=(l.atraso)) }}</span>{% endif %}
-        {% if l.fora %}<span class="etiqueta erro">{{ _('fora da área') }}</span>{% endif %}
-        {% if l.incompleto %}<span class="etiqueta erro">{{ _('falta batida') }}</span>{% endif %}
-        {% if l.andamento %}<span class="etiqueta ok">{{ _('trabalhando') }}</span>{% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-    </tbody>
-  </table></div>
-  <p class="ajuda">{{ _('* batida lançada à mão pelo gestor. Passe o mouse sobre um horário para ver a distância; clique nele para anular (nada é apagado de verdade: fica no histórico).') }}</p>
-  {% else %}
-  <div class="vazio">{{ _('Nenhuma batida neste período.') }}</div>
-  {% endif %}
-</div>
-
-<div class="cartao">
   <details>
     <summary>{{ _('Lançar batida à mão (funcionário esqueceu de bater)') }}</summary>
     <form method="post" action="/painel/ponto/manual">

@@ -72,7 +72,6 @@
       { a: "form[action='/painel/ponto'][method=get]", t: t("Período e funcionário"), x: t("Escolha as datas e, se quiser, uma pessoa só.") },
       { a: "h2:Pedidos de ajuste", t: t("Pedidos de ajuste"), x: t("Quando alguém esquece de bater o ponto, pede o ajuste pelo aplicativo. Você aceita ou recusa aqui.") },
       { a: "h2:Resumo por funcionário", t: t("Resumo"), x: t("Dias trabalhados, horas e atrasos de cada funcionário no período.") },
-      { a: "h2:Dia a dia", t: t("Dia a dia"), x: t("Cada batida com a hora. Toque em “foto” para ver a foto. Toque na hora para anular uma batida errada: ela sai das contas, mas fica guardada no histórico.") },
       { a: "form[action='/painel/ponto/manual']", t: t("Lançar à mão"), x: t("Para incluir uma batida que faltou. Ela fica marcada como lançada pelo gestor.") },
       { a: "a[href^='/painel/ponto.csv']", t: t("Planilha"), x: t("Baixa as batidas e as horas do período, no idioma da tela, para abrir no Excel.") },
       { a: "a[href='/painel/historico']", t: t("Histórico"), x: t("Tudo o que foi alterado, por quem e quando. Nada é apagado.") }

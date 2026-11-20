@@ -22,7 +22,10 @@
         <td>{{ _('Entrada') if b.tipo == 'entrada' else _('Saída') }}</td>
         <td>{% if b.manual %}{{ _('Lançada pelo gestor') }}<br><span class="suave pequeno">{{ b.obs }}</span>{% elif b.origem == 'totem' %}{{ _('Totem') }}{% elif b.origem == 'codigo' %}{{ _('Código do totem') }}{% elif b.origem == 'auto' %}{{ _('Saída automática') }}{% else %}{{ _('Celular (GPS)') }}{% endif %}</td>
         <td>{% if b.distancia_m is not none %}{{ _('a {v1} m', v1=b.distancia_m) }}{% if b.dentro is false %} <span class="etiqueta erro">{{ _('fora da área') }}</span>{% endif %}{% else %}<span class="suave">—</span>{% endif %}{% if b.foto %} · <a href="/painel/ponto/foto/{{ b.id }}" target="_blank" rel="noopener">{{ _('foto') }}</a>{% endif %}</td>
-        <td>{% if b.anulada %}<span class="etiqueta erro">{{ _('anulada') }}</span><br><span class="suave pequeno">{{ _('por {v1}', v1=b.anulada_por) }}</span>{% else %}<span class="etiqueta ok">{{ _('válida') }}</span>{% endif %}</td>
+        <td>{% if b.anulada %}<span class="etiqueta erro">{{ _('anulada') }}</span><br><span class="suave pequeno">{{ _('por {v1}', v1=b.anulada_por) }}</span>{% else %}<span class="etiqueta ok">{{ _('válida') }}</span>
+          {% if not fechado %}<form method="post" action="/painel/ponto/{{ b.id }}/apagar" class="inline" data-confirma="{{ _('Anular a batida das {v1} de {v2}? Ela sai das contas, mas o registro original fica guardado no histórico.', v1=(local(e, b.momento)), v2=(f.primeiro_nome)) }}">
+            <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}">
+            <button class="botao link" type="submit">{{ _('anular') }}</button></form>{% endif %}{% endif %}</td>
       </tr>
       {% endfor %}
       </tbody>
@@ -32,7 +35,7 @@
     <h3>{{ _('Pedidos de ajuste do colaborador') }}</h3>
     <ul class="lista-simples">{% for p in pedidos %}<li>{{ _('{v1} às {v2}', v1=(_('Entrada') if p.tipo == 'entrada' else _('Saída')), v2=p.hora) }} · {{ p.motivo }} · <strong>{{ p.situacao|traduz }}</strong></li>{% endfor %}</ul>
     {% endif %}
-    <p class="ajuda">{{ _('Estas são as marcações como foram registradas, inclusive as anuladas. Elas nunca são apagadas (Portaria MTP 671/2021).') }}</p>
+    <p class="ajuda">{{ _('Estas são as marcações como foram registradas, inclusive as anuladas. Elas nunca são apagadas (Portaria MTP 671/2021): anular tira a batida das contas, mas o registro continua aqui e no histórico.') }}</p>
 
   {% elif acao == 'historico' %}
     {% if itens %}

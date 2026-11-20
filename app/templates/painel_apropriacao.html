@@ -61,10 +61,12 @@
       <tr class="{{ 'linha-falta' if dd.falta }}{{ ' linha-especial' if dd.feriado or (dd.turno and dd.turno.folga) }}">
         <td style="white-space:nowrap"><strong>{{ dd.dia.strftime('%d/%m') }}</strong> <span class="suave">{{ DIAS[dd.dia.weekday()] }}</span></td>
         <td>{% if dd.turno %}{{ _('Folga') if dd.turno.folga else dd.turno.inicio ~ '–' ~ dd.turno.fim }}{% else %}<span class="suave">—</span>{% endif %}</td>
-        <td class="marcacoes">{% for a, b in dd.pares %}<span class="par">{% for x in (a, b) %}{% if x %}<span class="hora{{ ' manual' if x.manual }}" title="{{ _('Lançada à mão: ') ~ x.obs if x.manual else '' }}">{{ local(e, x.momento) }}</span>{% else %}<span class="hora falta">--:--</span>{% endif %}{% endfor %}</span>{% else %}<span class="suave">—</span>{% endfor %}</td>
+        <td class="marcacoes">{% for a, b in dd.pares %}<span class="par">{% for x in (a, b) %}{% if x %}<span class="hora{{ ' manual' if x.manual }}{{ ' fora' if x.dentro is false }}" title="{{ _('Lançada à mão: ') ~ x.obs if x.manual else '' }}">{{ local(e, x.momento) }}</span>{% else %}<span class="hora falta">--:--</span>{% endif %}{% endfor %}</span>{% else %}<span class="suave">—</span>{% endfor %}</td>
         <td>{{ fmt_min(dd.trabalhado) if dd.trabalhado else '—' }}</td>
         <td>{% if dif > 0 %}<span class="saldo mais">+{{ fmt_min(dif) }}</span>{% elif dif < 0 %}<span class="saldo menos">−{{ fmt_min(-dif) }}</span>{% else %}<span class="suave">0</span>{% endif %}</td>
         <td class="ocorrencias">
+          {% set atr = dd.pares|map('first')|reject('none')|map(attribute='atraso_min')|max %}
+          {% if atr and atr > e.tolerancia_min %}<span class="etiqueta alerta">{{ _('atraso {v1} min', v1=atr) }}</span>{% endif %}
           {% for o in dd.obs %}<span class="etiqueta {{ 'erro' if o in ('falta', 'falta batida') else '' }}">{{ o|traduz }}</span>{% endfor %}
           {% for m in dd.motivos %}<span class="etiqueta azul" title="{{ m.obs }}">{{ m.motivo|traduz }}</span>{% endfor %}
         </td>

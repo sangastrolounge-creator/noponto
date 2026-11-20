@@ -1040,3 +1040,4 @@ b.mini.erro { background: var(--erro-solido); } b.mini.alerta { background: var(
 .linha-tempo li::before { content: ""; position: absolute; left: -21px; top: 9px; width: 10px; height: 10px; border-radius: 50%; background: var(--cor); }
 tr.riscado td { text-decoration: line-through; opacity: .65; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.marcacoes .hora.fora { box-shadow: inset 0 0 0 1.5px var(--erro-solido); }

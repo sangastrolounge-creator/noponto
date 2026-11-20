@@ -195,14 +195,15 @@ def main():
               hora="23:00")
     espelho = g.get(f"/painel/ponto?de={seg}&ate={seg}").text
     assert "no futuro" in espelho
-    assert "8h15" in espelho and "6h30" in espelho and "atraso 90 min" in espelho, espelho
-    assert "16:00*" in espelho
+    assert "8h15" in espelho and "6h30" in espelho, espelho
+    ajuste_b = g.get(f"/painel/ponto/ajuste?de={seg}&ate={seg}&func={bruno_id}").text
+    assert "atraso 90 min" in ajuste_b and '<span class="hora manual" title="Lançada à mão: esqueceu">16:00</span>' in ajuste_b, ajuste_b
     planilha = g.get(f"/painel/ponto.csv?de={seg}&ate={seg}").text
     assert "Ana Souza;16/11/2026;09:00-17:00;08:50 | 17:05;8h15;0" in planilha, planilha
     with SessionLocal() as db:
         bid = db.scalar(select(Batida.id).where(Batida.manual.is_(True)))
     posta(g, f"/painel/ponto/{bid}/apagar", tg)
-    aberto = g.get(f"/painel/ponto?de={seg}&ate={seg}").text
+    aberto = g.get(f"/painel/ponto/ajuste?de={seg}&ate={seg}&func={bruno_id}").text
     assert ">trabalhando<" in aberto and "falta batida" not in aberto  # entrada recente sem saída
 
     # ---- copiar a semana
@@ -224,7 +225,7 @@ def main():
     assert "Atraso" not in bater(ana, ta).json()["mensagem"]
     assert len(alertas("atraso")) == 1
 
-    antigo = g.get(f"/painel/ponto?de={seg}&ate={seg}").text  # um dia depois, virou batida faltando
+    antigo = g.get(f"/painel/ponto/ajuste?de={seg}&ate={seg}&func={bruno_id}").text  # um dia depois, virou batida faltando
     assert "falta batida" in antigo and ">trabalhando<" not in antigo
 
     # ---- isolamento entre empresas

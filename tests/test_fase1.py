@@ -172,7 +172,7 @@ def main():
     assert arquivo.is_file()
     r = g.get(f"/painel/ponto/foto/{bid}")
     assert r.status_code == 200 and r.content[:2] == b"\xff\xd8"
-    assert f"/painel/ponto/foto/{bid}" in g.get(f"/painel/ponto?de={HOJE}&ate={HOJE}").text
+    assert f"/painel/ponto/foto/{bid}" in g.get(f"/painel/ponto/ajuste/{ids['Ana']}/{HOJE}/originais").text
     assert ana.get(f"/painel/ponto/foto/{bid}").status_code == 303  # funcionário não vê
     h = novo()
     posta(h, "/cadastro", csrf(h, "/cadastro"), aceito="1", empresa="Loja B", nome="Hugo", email="hugo@b.com",
@@ -222,7 +222,8 @@ def main():
     posta(g, f"/painel/ajustes/{a2}", tg, acao="recusar", resposta="a escala começa às 8")
     posta(g, f"/painel/ajustes/{a1}", tg, acao="recusar")  # já decidido: não muda
     tela = g.get(f"/painel/ponto?de={HOJE}&ate={HOJE}").text
-    assert "Pedidos de ajuste" not in tela and "7h00" in tela and "16:00*" in tela, tela
+    assert "Pedidos de ajuste" not in tela and "7h00" in tela, tela
+    assert "Ajuste pedido: celular sem bateria" in g.get(f"/painel/ponto/ajuste/{ids['Ana']}/{HOJE}/originais").text
     meus = ana.get("/app/ajustes").text
     assert "Aprovado" in meus and "Recusado" in meus and "a escala começa às 8" in meus
     hist = g.get("/painel/historico").text
