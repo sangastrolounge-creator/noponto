@@ -289,6 +289,8 @@ def apurar(db: Session, e: Empresa, ini: date, fim: date, usuario_id: int | None
                 marcas.append("Sem escala")
             if incompleto:
                 marcas.append("Batida incompleta")
+            if direto and e.intervalo_obrigatorio:
+                marcas.append("Sem intervalo")
             if suprimido:
                 marcas.append("Intervalo suprimido")
             if sob:
