@@ -53,37 +53,72 @@
       <div class="numero {{ 'ruim' if r.faltas }}"><div class="rotulo">{{ _('Faltas') }}</div><div class="valor">{{ r.faltas }}</div></div>
       {% if r.sobreaviso %}<div class="numero"><div class="rotulo">{{ _('Sobreaviso') }}</div><div class="valor">{{ fmt_min(r.sobreaviso) }}</div></div>{% endif %}
     </div>
-    <div class="rolagem"><table class="tabela-dias">
-      <thead><tr><th>{{ _('Dia') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Marcações') }}</th><th>{{ _('Trabalhadas') }}</th><th>{{ _('Saldo') }}</th><th>{{ _('Ocorrências') }}</th><th><span class="sr-only">{{ _('Ações') }}</span></th></tr></thead>
-      <tbody>
+    {% set SEMANA = [_('Segunda'), _('Terça'), _('Quarta'), _('Quinta'), _('Sexta'), _('Sábado'), _('Domingo')] %}
+    <div class="dias-acoes">
+      <a class="botao" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ hoje.isoformat() }}/atraso?volta={{ volta|urlencode }}" data-janela>{{ _('Registrar ponto em atraso') }}</a>
+      <a class="botao claro" href="/painel/folha?func={{ r.u.id }}&de={{ ini.isoformat() }}&ate={{ fim.isoformat() }}" target="_blank" rel="noopener">{{ _('Imprimir folha de ponto') }}</a>
+    </div>
+    <div class="rolagem"><div class="espelho">
+      <div class="esp-cab"><span>{{ _('Situação') }}</span><span>{{ _('Entrada') }}</span><span>{{ _('Saída') }}</span><span>{{ _('Total') }}</span><span>{{ _('Local da entrada') }}</span><span>{{ _('Local da saída') }}</span></div>
       {% for dd in r.dias %}
       {% set dif = dd.extra - dd.debito %}
-      <tr class="{{ 'linha-falta' if dd.falta }}{{ ' linha-especial' if dd.feriado or (dd.turno and dd.turno.folga) }}">
-        <td style="white-space:nowrap"><strong>{{ dd.dia.strftime('%d/%m') }}</strong> <span class="suave">{{ DIAS[dd.dia.weekday()] }}</span></td>
-        <td>{% if dd.turno %}{{ _('Folga') if dd.turno.folga else dd.turno.inicio ~ '–' ~ dd.turno.fim }}{% else %}<span class="suave">—</span>{% endif %}</td>
-        <td class="marcacoes">{% for a, b in dd.pares %}<span class="par">{% for x in (a, b) %}{% if x %}<a class="hora{{ ' manual' if x.manual }}{{ ' fora' if x.dentro is false }}" href="/painel/ponto/ajuste/batida/{{ x.id }}?volta={{ volta|urlencode }}" data-janela title="{{ (_('Lançada à mão: ') ~ x.obs ~ ' · ') if x.manual else '' }}{{ _('Clique para editar') }}">{{ local(e, x.momento) }}</a>{% else %}<a class="hora falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo={{ 'entrada' if loop.first else 'saida' }}&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a>{% endif %}{% endfor %}</span>{% else %}{% if dd.turno and not dd.turno.folga and dd.dia <= hoje %}<a class="hora falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo=entrada&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">+</a>{% else %}<span class="suave">—</span>{% endif %}{% endfor %}</td>
-        <td>{{ fmt_min(dd.trabalhado) if dd.trabalhado else '—' }}</td>
-        <td>{% if dif > 0 %}<span class="saldo mais">+{{ fmt_min(dif) }}</span>{% elif dif < 0 %}<span class="saldo menos">−{{ fmt_min(-dif) }}</span>{% else %}<span class="suave">0</span>{% endif %}</td>
-        <td class="ocorrencias">
-          {% set atr = dd.pares|map('first')|reject('none')|map(attribute='atraso_min')|max %}
-          {% if atr and atr > e.tolerancia_min %}<span class="etiqueta alerta">{{ _('atraso {v1} min', v1=atr) }}</span>{% endif %}
-          {% for o in dd.obs %}<span class="etiqueta {{ 'erro' if o in ('falta', 'falta batida') else '' }}">{{ o|traduz }}</span>{% endfor %}
-          {% for m in dd.motivos %}<span class="etiqueta azul" title="{{ m.obs }}">{{ m.motivo|traduz }}</span>{% endfor %}
-        </td>
-        <td class="col-acoes">
+      {% set atr = dd.pares|map('first')|reject('none')|map(attribute='atraso_min')|max %}
+      <div class="esp-dia{{ ' falta' if dd.falta }}">
+        <div class="esp-barra">
           <div class="menu-acoes">
             <button type="button" class="tres-pontos" aria-haspopup="true" aria-label="{{ _('Ações do dia {v1}', v1=dd.dia.strftime('%d/%m')) }}">⋮</button>
             <div class="menu-lista" role="menu">
               {% for chave, rotulo in ACOES.items() %}
-              <a role="menuitem" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/{{ chave }}?volta={{ volta|urlencode }}"{% if chave != 'escala' %} data-janela{% endif %}>{{ rotulo|traduz }}</a>
+              <a role="menuitem" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/{{ chave }}?volta={{ volta|urlencode }}"{% if chave != 'escala' %} data-janela{% endif %}><span class="ic ic-{{ chave }}" aria-hidden="true"></span>{{ rotulo|traduz }}</a>
               {% endfor %}
             </div>
           </div>
-        </td>
-      </tr>
+          <strong>{{ dd.dia.strftime('%d/%m/%Y') }} – {{ SEMANA[dd.dia.weekday()] }}</strong>
+          {% if dd.feriado %}<span class="esp-tag">{{ _('Feriado') }}: {{ dd.feriado }}</span>{% endif %}
+          {% if dd.turno %}<span class="esp-escala">{{ _('Folga') if dd.turno.folga else _('Escala {v1}', v1=dd.turno.inicio ~ '–' ~ dd.turno.fim) }}</span>{% endif %}
+        </div>
+        {% for a, b in dd.pares %}
+        {% set loop_par = loop %}
+        <div class="esp-linha">
+          <span>{% if a and b %}<span class="esp-status ok">{{ _('Trabalhando') }} ✓</span>{% elif dd.obs and 'trabalhando' in dd.obs and loop.last %}<span class="esp-status agora">{{ _('Em andamento') }}</span>{% else %}<span class="esp-status erro">{{ _('Incompleto') }}</span>{% endif %}</span>
+          {% for x in (a, b) %}
+          <span class="esp-hora">
+            {% if x %}
+              {% if x.foto %}<a class="esp-ic" href="/painel/ponto/foto/{{ x.id }}" target="_blank" rel="noopener" title="{{ _('Ver foto') }}">📷</a>{% else %}<span class="esp-ic vazio"></span>{% endif %}
+              <a class="hora caixa{{ ' manual' if x.manual }}{{ ' fora' if x.dentro is false }}" href="/painel/ponto/ajuste/batida/{{ x.id }}?volta={{ volta|urlencode }}" data-janela title="{{ (_('Lançada à mão: ') ~ x.obs ~ ' · ') if x.manual else '' }}{{ _('Clique para editar') }}">{{ local(e, x.momento) }}</a>
+              {% if not (fechado_ate and dd.dia <= fechado_ate) %}<form method="post" action="/painel/ponto/{{ x.id }}/apagar" class="inline" data-confirma="{{ _('Anular a batida das {v1} de {v2}? Ela sai das contas, mas o registro original fica guardado no histórico.', v1=(local(e, x.momento)), v2=(r.u.primeiro_nome)) }}"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}"><button class="esp-x" type="submit" title="{{ _('Anular') }}" aria-label="{{ _('Anular') }}">✕</button></form>{% endif %}
+            {% else %}
+              <span class="esp-ic vazio"></span><a class="hora caixa falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo={{ 'entrada' if loop.first else 'saida' }}&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a>
+            {% endif %}
+          </span>
+          {% endfor %}
+          <span class="esp-total">{{ fmt_min(((b.momento - a.momento).total_seconds() // 60)|int) if a and b else '—' }}</span>
+          {% for x in (a, b) %}<span class="esp-local suave">{% if x %}{% if x.manual %}{{ _('Lançada pelo gestor') }}{% elif x.local_nome %}{{ x.local_nome }}{% elif x.distancia_m is not none %}{{ _('a {v1} m', v1=x.distancia_m) }}{% if x.dentro is false %} · <span class="texto-erro">{{ _('fora da área') }}</span>{% endif %}{% else %}—{% endif %}{% endif %}</span>{% endfor %}
+        </div>
+        {% else %}
+        <div class="esp-linha vazia">
+          {% if dd.turno and not dd.turno.folga and not dd.feriado and dd.dia <= hoje %}
+          <span><span class="esp-status erro">{{ _('Sem batidas') }}</span></span>
+          <span class="esp-hora"><span class="esp-ic vazio"></span><a class="hora caixa falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo=entrada&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a></span>
+          <span class="esp-hora"><span class="esp-ic vazio"></span><a class="hora caixa falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo=saida&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a></span>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% set ns = namespace(intv=0) %}{% for i in range(dd.pares|length - 1) %}{% if dd.pares[i][1] and dd.pares[i + 1][0] %}{% set ns.intv = ns.intv + ((dd.pares[i + 1][0].momento - dd.pares[i][1].momento).total_seconds() // 60)|int %}{% endif %}{% endfor %}
+        <div class="esp-rodape">
+          <div><small>{{ _('Trabalhadas') }}</small><strong>{{ fmt_min(dd.trabalhado) }}</strong></div>
+          <div><small>{{ _('Total de intervalos') }}</small><strong>{{ fmt_min(ns.intv) }}</strong></div>
+          <div><small>{{ _('Total previsto') }}</small><strong>{{ fmt_min(dd.previsto) }}</strong></div>
+          <div><small>{{ _('Saldo') }}</small>{% if dif > 0 %}<strong class="saldo mais">+{{ fmt_min(dif) }}</strong>{% elif dif < 0 %}<strong class="saldo menos">−{{ fmt_min(-dif) }}</strong>{% else %}<strong>0h00</strong>{% endif %}</div>
+          <div class="ocorrencias">
+            {% if atr and atr > e.tolerancia_min %}<span class="etiqueta alerta">{{ _('atraso {v1} min', v1=atr) }}</span>{% endif %}
+            {% for o in dd.obs %}<span class="etiqueta {{ 'erro' if o in ('falta', 'falta batida') else '' }}">{{ o|traduz }}</span>{% endfor %}
+            {% for m in dd.motivos %}<span class="etiqueta azul" title="{{ m.obs }}">{{ m.motivo|traduz }}</span>{% endfor %}
+          </div>
+        </div>
+      </div>
       {% endfor %}
-      </tbody>
-    </table></div>
+    </div></div>
     <p class="ajuda">{{ _('Clique num horário para corrigir ou anular; clique em --:-- para lançar a batida que falta. Horários em azul foram lançados à mão. As marcações originais do colaborador nunca são apagadas: o que muda fica registrado no histórico.') }}</p>
   </section>
   {% endif %}
