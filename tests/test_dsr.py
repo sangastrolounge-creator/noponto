@@ -69,7 +69,7 @@ def apurado(nome):
 def main():
     as_("07:00", SEG)
     g = novo()
-    posta(g, "/cadastro", csrf(g, "/cadastro"), empresa="Bar A", nome="Gil", email="gil@a.com",
+    posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Bar A", nome="Gil", email="gil@a.com",
           senha="segredo1")
     tg = csrf(g, "/painel/config")
     tela = g.get("/painel/config").text      # empresa nova já nasce com o DSR ligado

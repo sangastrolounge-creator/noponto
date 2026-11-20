@@ -79,7 +79,7 @@ def main():
 
     as_("07:00", INI)
     g = TestClient(app, follow_redirects=False)
-    posta(g, "/cadastro", csrf(g, "/cadastro"), empresa="Bar A", nome="Gil", email="gil@a.com",
+    posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Bar A", nome="Gil", email="gil@a.com",
           senha="segredo1")
     tg = csrf(g, "/painel/config")
     assert posta(g, "/painel/config", tg, nome="Bar A", raio_m="150", tolerancia_min="10",

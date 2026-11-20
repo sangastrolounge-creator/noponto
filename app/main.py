@@ -675,10 +675,10 @@ def ponto_csv(de: str = "", ate: str = "", fid: int = Query(0, alias="func"),
     ini, fim = periodo(e, de, ate)
     linhas, _resto = regras.espelho(db, e, ini, fim, fid or None)
     saida = io.StringIO()
-    # Planilha no idioma da tela, no padrão americano (vírgula separa as colunas).
-    w = csv.writer(saida)
+    # Planilha para o Excel em português: ponto e vírgula separa as colunas.
+    w = csv.writer(saida, delimiter=";")
     w.writerow([i18n._(c) for c in ("Funcionário", "Data", "Escala", "Entradas e saídas", "Horas",
-                               "Horas (decimal)", "Atraso (min)", "Fora da área", "Incompleto")])
+                                    "Atraso (min)", "Fora da área", "Incompleto")])
     sim = i18n._("sim")
     for l in sorted(linhas, key=lambda l: (l["u"].nome.lower(), l["dia"])):
         t = l["turno"]
@@ -688,10 +688,10 @@ def ponto_csv(de: str = "", ate: str = "", fid: int = Query(0, alias="func"),
             for par in l["pares"] for a in par)
         w.writerow([l["u"].nome, l["dia"].strftime("%d/%m/%Y"), esc, pares,
                     regras.fmt_min(l["minutos"]), l["atraso"],
-                    "sim" if l["fora"] else "", "sim" if l["incompleto"] else ""])
+                    sim if l["fora"] else "", sim if l["incompleto"] else ""])
     return Response("﻿" + saida.getvalue(), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition":
-                             f'attachment; filename="{nome}-{ini}-{fim}.csv"'})
+                             f'attachment; filename="ponto-{ini}-{fim}.csv"'})
 
 
 @app.post("/painel/ponto/manual", dependencies=CSRF)

@@ -67,7 +67,7 @@ def main():
     as_("08:00")
     # ---- cadastro do gestor e configuração
     g = novo()
-    r = posta(g, "/cadastro", csrf(g, "/cadastro"), empresa="Padaria A", nome="Gil Gestor",
+    r = posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Padaria A", nome="Gil Gestor",
               email="gil@a.com", senha="segredo1")
     assert r.status_code == 303 and r.headers["location"] == "/painel/config", r.text
     tg = csrf(g, "/painel/config")
@@ -229,7 +229,7 @@ def main():
 
     # ---- isolamento entre empresas
     h = novo()
-    posta(h, "/cadastro", csrf(h, "/cadastro"), empresa="Loja B", nome="Hugo", email="hugo@b.com",
+    posta(h, "/cadastro", csrf(h, "/cadastro"), aceito="1", empresa="Loja B", nome="Hugo", email="hugo@b.com",
           senha="segredo2")
     th = csrf(h, "/painel/config")
     assert "Ana Souza" not in h.get("/painel/equipe").text

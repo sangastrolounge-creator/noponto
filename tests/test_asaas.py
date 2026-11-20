@@ -73,7 +73,7 @@ def csrf(cli, caminho):
 def cadastrar(empresa, email):
     cli = TestClient(app, follow_redirects=False)
     r = cli.post("/cadastro", data={"csrf": csrf(cli, "/cadastro"), "empresa": empresa, "nome": "Fulano",
-                                    "email": email, "senha": "segredo123", "plano": "1"})
+                                    "email": email, "senha": "segredo123", "plano": "1", "aceito": "1"})
     assert r.status_code == 303, r.text
     return cli
 

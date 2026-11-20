@@ -58,9 +58,10 @@ def main():
     with SessionLocal() as db:
         for p in db.scalars(select(Plano)):
             assert not p.ativo
-            p.ativo = True
+            p.ativo = p.preco_centavos > 0      # o plano grátis fica fora de venda neste teste
         db.commit()
-        planos = {p.nome: p for p in db.scalars(select(Plano))}
+        planos = {p.nome: p for p in db.scalars(select(Plano)) if p.preco_centavos > 0}
+        assert db.scalar(select(Plano.nome).where(Plano.preco_centavos == 0)) == "Grátis"
     assert set(planos) == {"Essencial", "Profissional", "Ilimitado"}
 
     # ---- página inicial mostra os planos; a primeira conta é a do dono da plataforma
@@ -68,7 +69,7 @@ def main():
     home = pub.get("/").text
     assert "Essencial" in home and "R$ 49,90" in home and "Testar 7 dias grátis" in home
     m = novo()
-    posta(m, "/cadastro", csrf(m, "/cadastro"), empresa="Minha Casa", nome="Dono",
+    posta(m, "/cadastro", csrf(m, "/cadastro"), aceito="1", empresa="Minha Casa", nome="Dono",
           email="dono@plataforma.com", senha="segredo1")
     tm = csrf(m, "/master")
     with SessionLocal() as db:
@@ -85,7 +86,7 @@ def main():
     # ---- cliente se cadastra escolhendo um plano: entra em teste
     c = novo()
     assert "plano Essencial" in c.get(f"/cadastro?plano={planos['Essencial'].id}").text
-    posta(c, "/cadastro", csrf(c, "/cadastro"), empresa="Bar do Zé", nome="Zé",
+    posta(c, "/cadastro", csrf(c, "/cadastro"), aceito="1", empresa="Bar do Zé", nome="Zé",
           email="ze@bar.com", senha="segredo2", plano=str(planos["Essencial"].id))
     tc = csrf(c, "/painel/config")
     with SessionLocal() as db:
@@ -219,7 +220,7 @@ def main():
     assert "Pix 123" in n.get("/painel/assinatura").text or True
     posta(m, "/master/plataforma", tm, nome="Ponto Fácil", dias_teste="14", cadastro_aberto="1")
     k = novo()
-    posta(k, "/cadastro", csrf(k, "/cadastro"), empresa="Loja K", nome="K", email="k@k.com",
+    posta(k, "/cadastro", csrf(k, "/cadastro"), aceito="1", empresa="Loja K", nome="K", email="k@k.com",
           senha="segredo3")
     with SessionLocal() as db:
         lk = db.scalar(select(Empresa).where(Empresa.nome == "Loja K"))

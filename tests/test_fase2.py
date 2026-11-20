@@ -80,7 +80,7 @@ def main():
     assert apuracao.pascoa(2026) == date(2026, 4, 5) and apuracao.pascoa(2027) == date(2027, 3, 28)
     as_("07:00", SEG)
     g = novo()
-    posta(g, "/cadastro", csrf(g, "/cadastro"), empresa="Padaria A", nome="Gil Gestor",
+    posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Padaria A", nome="Gil Gestor",
           email="gil@a.com", senha="segredo1")
     tg = csrf(g, "/painel/config")
     config(g, tg)
@@ -271,7 +271,7 @@ def main():
 
     # ---- outra empresa não enxerga nada
     hh = novo()
-    posta(hh, "/cadastro", csrf(hh, "/cadastro"), empresa="Loja B", nome="Hugo", email="hugo@b.com",
+    posta(hh, "/cadastro", csrf(hh, "/cadastro"), aceito="1", empresa="Loja B", nome="Hugo", email="hugo@b.com",
           senha="segredo2")
     th = csrf(hh, "/painel/config")
     assert hh.get(f"/painel/fechamento/{fid}/planilha.csv").status_code == 303

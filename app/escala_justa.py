@@ -61,6 +61,8 @@ def descansos_curtos_na_grade(e, turnos: dict, equipe, dias: list[date]) -> set[
 
 def curtos_ao_salvar(db: Session, uid: int, dias: list[date]) -> list[date]:
     """Dias (entre os salvos e o seguinte de cada um) com descanso menor que 11 h."""
+    if not dias:
+        return []
     datas = sorted({x for d in dias for x in (d - timedelta(days=1), d, d + timedelta(days=1))})
     turnos = {t.data: t for t in db.scalars(select(Turno).where(Turno.usuario_id == uid,
                                                                  Turno.data.between(datas[0], datas[-1])))}
