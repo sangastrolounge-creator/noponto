@@ -62,6 +62,13 @@
     <button class="botao" type="submit">{{ _('Ir para o pagamento') }}</button>
     <div class="ajuda">{{ _('Você será levado à página segura do Asaas. A liberação é automática assim que o pagamento é confirmado.') }}</div>
   </form>
+  {% else %}
+  <div class="cartao">
+    <h2>{{ _('Como pagar') }}</h2>
+    {% if plat.instrucoes_pagamento %}<p style="white-space:pre-line">{{ plat.instrucoes_pagamento }}</p>
+    {% else %}<p class="suave">{{ _('Fale com o suporte para assinar ou renovar. A liberação é feita assim que o pagamento é confirmado.') }}</p>{% endif %}
+  </div>
+  {% endif %}
   {% if gratis and not e.asaas_assinatura_id and not (s == 'gratis' and e.plano_id == gratis.id) and s != 'cortesia' %}
   <form method="post" action="/painel/assinatura/gratis" class="cartao" data-confirma="{{ _('Passar para o plano {v1}? Valem os limites do plano.', v1=(gratis.nome)) }}">
     <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -69,13 +76,6 @@
     <p class="suave">{{ _('Plano {v1}: até {v2} funcionários e {v3} local de ponto, sem prazo para acabar.', v1=(gratis.nome), v2=(gratis.limite_funcionarios or '∞'), v3=(gratis.limite_locais or '∞')) }}{% if not gratis.com_pagamento %} {{ _('Não inclui a folha de pagamento nem a revisão do Claude.') }}{% endif %}</p>
     <button class="botao claro" type="submit">{{ _('Usar o plano {v1}', v1=(gratis.nome)) }}</button>
   </form>
-  {% endif %}
-  {% else %}
-  <div class="cartao">
-    <h2>{{ _('Como pagar') }}</h2>
-    {% if plat.instrucoes_pagamento %}<p style="white-space:pre-line">{{ plat.instrucoes_pagamento }}</p>
-    {% else %}<p class="suave">{{ _('Fale com o suporte para assinar ou renovar. A liberação é feita assim que o pagamento é confirmado.') }}</p>{% endif %}
-  </div>
   {% endif %}
   {% if plat.whatsapp %}<p class="pequeno"><a target="_blank" rel="noopener" href="{{ zap(plat.whatsapp, _('Olá! Quero falar sobre a assinatura do ') ~ app_nome ~ _(' da empresa ') ~ e.nome ~ '.') }}">{{ _('Falar com o suporte no WhatsApp') }}</a></p>{% endif %}
 {% endif %}
