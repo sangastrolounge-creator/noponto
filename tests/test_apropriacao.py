@@ -95,7 +95,7 @@ def main():
     t = r.text
     assert "Novembro de 2026" in t and "Proclamação da República" in t and "Consciência Negra" in t
     assert "Black Friday" in t and "Batidas faltando" in t and "Horas trabalhadas" in t
-    assert 'href="/painel/escala?semana=2026-11-16&amp;dia=2026-11-16#dia-destaque"' in t
+    assert 'href="/painel/escala?semana=2026-11-16&dia=2026-11-16#dia-destaque"' in t
     assert "ainda não cadastrado na empresa" in t
     t = g.get("/painel/ponto?de=2026-11-01&ate=2026-11-18&mes=2026-12").text
     assert "Dezembro de 2026" in t and "Natal" in t and "Véspera de Natal" in t
