@@ -56,6 +56,8 @@ atrasos e o DSR sobre extras não são pagos (vão para o banco de horas).
 - intervalo não concedido (art. 71, §4º) = minutos de intervalo_suprimido ÷ 60 × valor da hora × \
 (1 + o maior entre 50% e o percentual da extra em dia normal). É indenizatório: não entra na base \
 de INSS, IRRF e FGTS, e é pago também no controle "banco".
+- sobreaviso (art. 244, §2º) = minutos de sobreaviso ÷ 60 × valor da hora ÷ 3. É salário: entra \
+na base de INSS, IRRF e FGTS.
 - faltas, DSR descontado e atrasos = minutos ÷ 60 × valor da hora; reduzem a base de INSS/IRRF/FGTS.
 - INSS progressivo por faixas até o teto. IRRF: base = tributável − maior entre (INSS + \
 dependentes × dedução) e o desconto simplificado; aplica a tabela; depois o redutor de 2026 \
@@ -109,7 +111,7 @@ def dados_da_folha(f: FolhaPagamento) -> dict:
         horas = {k: getattr(linha, k) for k in (
             "previsto", "trabalhado", "extra_normal", "extra_especial", "noturno", "debito",
             "faltas", "falta_min", "dias_ausencia", "dsr_perdidos", "dsr_perdido_min",
-            "dsr_extras", "intervalo_suprimido")} if linha else {}
+            "dsr_extras", "intervalo_suprimido", "sobreaviso")} if linha else {}
         itens.append(dict(
             funcionario=it.usuario.nome, funcao=it.usuario.cargo,
             salario=it.salario_centavos, jornada_mensal=it.jornada_mensal,

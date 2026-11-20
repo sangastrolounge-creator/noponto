@@ -43,7 +43,7 @@ def _horas(linha: FechamentoLinha | None) -> dict:
         return {}
     return {k: getattr(linha, k) for k in (
         "extra_normal", "extra_especial", "noturno", "debito", "faltas", "falta_min",
-        "dsr_perdidos", "dsr_perdido_min", "dsr_extras", "intervalo_suprimido")}
+        "dsr_perdidos", "dsr_perdido_min", "dsr_extras", "intervalo_suprimido", "sobreaviso")}
 
 
 def recalcular_item(it: FolhaItem, f: FolhaPagamento) -> None:

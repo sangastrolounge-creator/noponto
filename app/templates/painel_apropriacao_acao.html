@@ -1,0 +1,120 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ titulo|traduz }}</h1><p class="suave" style="margin:0">{{ f.nome }} · {{ DIAS[d.weekday()] }} {{ d.strftime('%d/%m/%Y') }}</p></div>
+  <div class="acoes"><a class="botao claro" href="{{ volta }}">{{ _('Voltar ao Ajuste de ponto') }}</a></div>
+</div>
+<div class="cartao">
+<div id="acao-conteudo" data-titulo="{{ titulo|traduz }} · {{ f.primeiro_nome }} · {{ d.strftime('%d/%m/%Y') }}">
+  <p class="suave pequeno" style="margin-top:0">{{ _('Escala do dia: {v1}', v1=(_('Folga') if turno and turno.folga else (turno.inicio ~ '–' ~ turno.fim ~ (_(' · intervalo de {v1} min', v1=turno.intervalo_min) if turno.intervalo_min else '')) if turno else _('sem escala'))) }}</p>
+  {% if fechado and acao not in ('originais', 'historico') %}
+  <div class="aviso erro">{{ _('Este dia está num período de ponto já fechado. Para alterar, reabra o período em Fechamento.') }}</div>
+  {% endif %}
+
+  {% if acao == 'originais' %}
+    {% if batidas %}
+    <div class="rolagem"><table>
+      <thead><tr><th>{{ _('Hora') }}</th><th>{{ _('Tipo') }}</th><th>{{ _('Origem') }}</th><th>{{ _('Local') }}</th><th>{{ _('Situação') }}</th></tr></thead>
+      <tbody>
+      {% for b in batidas %}
+      <tr class="{{ 'riscado' if b.anulada }}">
+        <td><strong>{{ local(e, b.momento, '%H:%M:%S') }}</strong></td>
+        <td>{{ _('Entrada') if b.tipo == 'entrada' else _('Saída') }}</td>
+        <td>{% if b.manual %}{{ _('Lançada pelo gestor') }}<br><span class="suave pequeno">{{ b.obs }}</span>{% elif b.origem == 'totem' %}{{ _('Totem') }}{% elif b.origem == 'codigo' %}{{ _('Código do totem') }}{% elif b.origem == 'auto' %}{{ _('Saída automática') }}{% else %}{{ _('Celular (GPS)') }}{% endif %}</td>
+        <td>{% if b.distancia_m is not none %}{{ _('a {v1} m', v1=b.distancia_m) }}{% if b.dentro is false %} <span class="etiqueta erro">{{ _('fora da área') }}</span>{% endif %}{% else %}<span class="suave">—</span>{% endif %}{% if b.foto %} · <a href="/painel/ponto/foto/{{ b.id }}" target="_blank" rel="noopener">{{ _('foto') }}</a>{% endif %}</td>
+        <td>{% if b.anulada %}<span class="etiqueta erro">{{ _('anulada') }}</span><br><span class="suave pequeno">{{ _('por {v1}', v1=b.anulada_por) }}</span>{% else %}<span class="etiqueta ok">{{ _('válida') }}</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<div class="vazio">{{ _('Nenhuma marcação registrada neste dia.') }}</div>{% endif %}
+    {% if pedidos %}
+    <h3>{{ _('Pedidos de ajuste do colaborador') }}</h3>
+    <ul class="lista-simples">{% for p in pedidos %}<li>{{ _('{v1} às {v2}', v1=(_('Entrada') if p.tipo == 'entrada' else _('Saída')), v2=p.hora) }} · {{ p.motivo }} · <strong>{{ p.situacao|traduz }}</strong></li>{% endfor %}</ul>
+    {% endif %}
+    <p class="ajuda">{{ _('Estas são as marcações como foram registradas, inclusive as anuladas. Elas nunca são apagadas (Portaria MTP 671/2021).') }}</p>
+
+  {% elif acao == 'historico' %}
+    {% if itens %}
+    <ul class="linha-tempo">
+      {% for h in itens %}<li><span class="suave pequeno">{{ local(e, h.criado_em, '%d/%m/%Y %H:%M') }} · {{ h.autor }}</span><br><strong>{{ h.acao|traduz }}</strong> — {{ h.detalhe }}</li>{% endfor %}
+    </ul>
+    {% else %}<div class="vazio">{{ _('Nenhuma alteração neste dia.') }}</div>{% endif %}
+
+  {% elif acao == 'atraso' %}
+    <form method="post" action="/painel/ponto/manual">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}">
+      <input type="hidden" name="usuario_id" value="{{ f.id }}"><input type="hidden" name="data" value="{{ d.isoformat() }}">
+      <div class="linha-form">
+        <div><label for="a-tipo">{{ _('Tipo') }}</label><select id="a-tipo" name="tipo"><option value="entrada">{{ _('Entrada') }}</option><option value="saida">{{ _('Saída') }}</option></select></div>
+        <div><label for="a-hora">{{ _('Hora') }}</label><input type="time" id="a-hora" name="hora" required></div>
+        <div style="flex:2"><label for="a-obs">{{ _('Motivo') }}</label><input type="text" id="a-obs" name="obs" maxlength="200" required placeholder="{{ _('Ex.: celular sem bateria') }}"></div>
+      </div>
+      <button class="botao" type="submit" {{ 'disabled' if fechado }}>{{ _('Lançar ponto') }}</button>
+    </form>
+    <p class="ajuda">{{ _('A batida fica marcada como lançada pelo gestor, com o motivo, e entra no histórico.') }}</p>
+
+  {% elif acao == 'preencher' %}
+    {% if plano.erro %}<div class="alerta">{{ plano.erro|traduz }}</div>
+    {% else %}
+    <p>{{ _('Vamos lançar estas batidas, tiradas da escala do dia:') }}</p>
+    <ul class="lista-simples">{% for tipo, quando in plano.novas %}<li><strong>{{ quando.strftime('%H:%M') }}</strong> — {{ _('Entrada') if tipo == 'entrada' else _('Saída') }}</li>{% endfor %}</ul>
+    <form method="post" action="/painel/ponto/ajuste/{{ f.id }}/{{ d.isoformat() }}/preencher">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}">
+      <label for="p-motivo">{{ _('Motivo (obrigatório)') }}</label>
+      <input type="text" id="p-motivo" name="motivo" maxlength="150" required placeholder="{{ _('Ex.: trabalhou normalmente, mas o totem estava desligado') }}">
+      <button class="botao" type="submit" style="margin-top:10px" {{ 'disabled' if fechado }}>{{ _('Preencher pela escala') }}</button>
+    </form>
+    <p class="ajuda">{{ _('Só completa o que falta: batidas que já existem não mudam.') }}</p>
+    {% endif %}
+
+  {% elif acao == 'motivo' %}
+    {% if motivos %}
+    <ul class="lista-simples">{% for m in motivos %}<li><strong>{{ m.motivo|traduz }}</strong>{% if m.obs %} — {{ m.obs }}{% endif %} <span class="suave pequeno">({{ m.criado_por }})</span>
+      <form method="post" action="/painel/ponto/ajuste/motivo/{{ m.id }}/remover" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}"><button class="botao link" type="submit" {{ 'disabled' if fechado }}>{{ _('remover') }}</button></form></li>{% endfor %}</ul>
+    {% endif %}
+    <form method="post" action="/painel/ponto/ajuste/{{ f.id }}/{{ d.isoformat() }}/motivo">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}">
+      <div class="linha-form">
+        <div><label for="m-motivo">{{ _('Motivo') }}</label><select id="m-motivo" name="motivo" required>{% for m in MOTIVOS %}<option value="{{ m }}">{{ m|traduz }}</option>{% endfor %}</select></div>
+        <div style="flex:2"><label for="m-obs">{{ _('Observação') }}</label><input type="text" id="m-obs" name="obs" maxlength="300"></div>
+      </div>
+      <label class="marcar"><input type="checkbox" name="abonar" value="1"><span>{{ _('Abonar o dia (não conta como falta nem atraso)') }}</span></label>
+      <button class="botao" type="submit" style="margin-top:10px" {{ 'disabled' if fechado }}>{{ _('Lançar motivo') }}</button>
+    </form>
+
+  {% elif acao == 'ausencia' %}
+    {% if ausencias %}<ul class="lista-simples">{% for a in ausencias %}<li><strong>{{ TIPOS[a.tipo]|traduz if a.tipo in TIPOS else a.tipo }}</strong> {{ a.inicio.strftime('%d/%m') }}–{{ a.fim.strftime('%d/%m') }}{% if a.obs %} · {{ a.obs }}{% endif %}</li>{% endfor %}</ul>{% endif %}
+    <form method="post" action="/painel/ausencias" enctype="multipart/form-data">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}">
+      <input type="hidden" name="usuario_id" value="{{ f.id }}">
+      <div class="linha-form">
+        <div><label for="u-tipo">{{ _('Tipo') }}</label><select id="u-tipo" name="tipo">{% for k, v in TIPOS.items() %}<option value="{{ k }}">{{ v|traduz }}</option>{% endfor %}</select></div>
+        <div><label for="u-ini">{{ _('De') }}</label><input type="date" id="u-ini" name="inicio" value="{{ d.isoformat() }}" required></div>
+        <div><label for="u-fim">{{ _('Até') }}</label><input type="date" id="u-fim" name="fim" value="{{ d.isoformat() }}" required></div>
+      </div>
+      <div class="linha-form">
+        <div style="flex:2"><label for="u-obs">{{ _('Observação (CID, nº do benefício...)') }}</label><input type="text" id="u-obs" name="obs" maxlength="300"></div>
+        <div><label for="u-anexo">{{ _('Anexo (foto ou PDF)') }}</label><input type="file" id="u-anexo" name="anexo" accept="image/*,application/pdf"></div>
+      </div>
+      <button class="botao" type="submit" {{ 'disabled' if fechado }}>{{ _('Lançar') }}</button>
+    </form>
+    <p class="ajuda">{{ _('Nos dias lançados o ponto não é cobrado. Afastamento pelo INSS: a empresa paga os 15 primeiros dias.') }}</p>
+
+  {% elif acao == 'sobreaviso' %}
+    {% if sobreavisos %}<ul class="lista-simples">{% for s in sobreavisos %}<li><strong>{{ s.inicio }}–{{ s.fim }}</strong> ({{ fmt_min(s.minutos) }}){% if s.obs %} · {{ s.obs }}{% endif %}
+      <form method="post" action="/painel/ponto/ajuste/sobreaviso/{{ s.id }}/remover" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}"><button class="botao link" type="submit" {{ 'disabled' if fechado }}>{{ _('remover') }}</button></form></li>{% endfor %}</ul>{% endif %}
+    <form method="post" action="/painel/ponto/ajuste/{{ f.id }}/{{ d.isoformat() }}/sobreaviso">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}">
+      <div class="linha-form">
+        <div><label for="s-ini">{{ _('Início') }}</label><input type="time" id="s-ini" name="inicio" required></div>
+        <div><label for="s-fim">{{ _('Fim') }}</label><input type="time" id="s-fim" name="fim" required></div>
+        <div style="flex:2"><label for="s-obs">{{ _('Observação') }}</label><input type="text" id="s-obs" name="obs" maxlength="200" placeholder="{{ _('Ex.: plantão de manutenção pelo celular') }}"></div>
+      </div>
+      <button class="botao" type="submit" {{ 'disabled' if fechado }}>{{ _('Lançar sobreaviso') }}</button>
+    </form>
+    <p class="ajuda">{{ _('Sobreaviso é o tempo em que a pessoa fica à disposição fora do expediente, esperando ser chamada (CLT art. 244, §2º; Súmula 428 do TST). É pago a 1/3 do valor da hora normal e entra no fechamento e na folha. Se ela for chamada, as horas trabalhadas são batidas normalmente no ponto.') }}</p>
+  {% endif %}
+</div>
+</div>
+{% endblock %}

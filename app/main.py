@@ -24,7 +24,7 @@ from . import core
 from . import db as banco
 from . import (apuracao, asaas, cobranca, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
-               ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias)
+               ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
                    SECRET_KEY, Redirecionar, avisar, base_url, celular_limpo,
                    da_empresa, data_iso, ir,
@@ -115,6 +115,7 @@ app.include_router(importar.rota)
 app.include_router(perguntas.rota)
 app.include_router(cerca.rota)
 app.include_router(ferias.rota)
+app.include_router(apropriacao.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 
 templates.env.globals.update(
@@ -423,7 +424,7 @@ def equipe_da_escala(db: Session, e: Empresa) -> list[Usuario]:
 
 
 @app.get("/painel/escala")
-def escala(request: Request, semana: str = "", u: Usuario = Depends(gestor_logado),
+def escala(request: Request, semana: str = "", dia: str = "", u: Usuario = Depends(gestor_logado),
            db: Session = Depends(get_db)):
     e = u.empresa
     hoje = regras.hoje(e)
@@ -447,6 +448,7 @@ def escala(request: Request, semana: str = "", u: Usuario = Depends(gestor_logad
     custo = {(f.id, d): custos.custo_previsto(turnos.get((f.id, d)), f, e) for f in equipe for d in dias} if ver_custo else {}
     publicar_ids, publicacao = custos.mudados(db, e, seg, custos.assinaturas(turnos, equipe, dias))
     return render(request, "painel_escala.html", u=u, e=e, aba="escala", dias=dias,
+                  destaque=data_iso(dia, None),
                   locais=fase3.locais_da(db, e.id), zaps=zaps, fixas=fixas,
                   hoje=hoje, equipe=equipe, turnos=turnos, horas=horas, seg=seg,
                   ant=seg - timedelta(days=7), prox=seg + timedelta(days=7),
@@ -654,10 +656,27 @@ def periodo(e: Empresa, de: str, ate: str) -> tuple[date, date]:
 
 @app.get("/painel/ponto")
 def ponto(request: Request, de: str = "", ate: str = "", fid: int = Query(0, alias="func"),
-          u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
+          mes: str = "", u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     e = u.empresa
     ini, fim = periodo(e, de, ate)
     linhas, totais = regras.espelho(db, e, ini, fim, fid or None)
+    # Calendário: o mês escolhido (?mes=AAAA-MM) ou o do fim do período.
+    try:
+        ano_m, mes_m = (int(x) for x in mes.split("-")) if mes else (fim.year, fim.month)
+        date(ano_m, mes_m, 1)
+    except ValueError:
+        ano_m, mes_m = fim.year, fim.month
+    ini_m = date(ano_m, mes_m, 1)
+    fim_m = (ini_m + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    linhas_m = linhas if (ini <= ini_m and fim_m <= fim) else regras.espelho(
+        db, e, ini_m - timedelta(days=7), fim_m + timedelta(days=7), fid or None)[0]
+    cal = calendario.mes(db, e, ano_m, mes_m, linhas_m, regras.hoje(e))
+    resumo = dict(pessoas=len(totais), minutos=sum(t["minutos"] for t in totais),
+                  previsto=sum(t["previsto"] for t in totais),
+                  atrasos=sum(t["atrasos"] for t in totais),
+                  faltando=sum(1 for l in linhas if l["incompleto"]),
+                  fora=sum(1 for l in linhas if l["fora"]),
+                  manuais=sum(1 for l in linhas for p in l["pares"] for x in p if x and x.manual))
     equipe = list(db.scalars(select(Usuario).where(Usuario.empresa_id == e.id)
                              .order_by(Usuario.nome)))
     ajustes = list(db.scalars(select(Ajuste).where(
@@ -665,7 +684,7 @@ def ponto(request: Request, de: str = "", ate: str = "", fid: int = Query(0, ali
     return render(request, "painel_ponto.html", u=u, e=e, aba="ponto", ini=ini, fim=fim,
                   n_problemas=len(ponto_problemas.problemas(db, e)),
                   func=fid, linhas=linhas, totais=totais, equipe=equipe,
-                  hoje=regras.hoje(e), ajustes=ajustes)
+                  hoje=regras.hoje(e), ajustes=ajustes, cal=cal, resumo=resumo)
 
 
 @app.get("/painel/ponto.csv")
@@ -714,10 +733,11 @@ def ponto_manual(request: Request, usuario_id: int = Form(...), tipo: str = Form
     if apuracao.esta_fechado(db, e, regras.dia_de(local)):
         avisar(request, apuracao.MSG_FECHADO, "erro")
         return ir(volta)
-    regras.lancar_manual(db, f, tipo, local, obs.strip() or f"Lançada por {u.nome}")
+    b = regras.lancar_manual(db, f, tipo, local, obs.strip() or f"Lançada por {u.nome}")
     regras.registrar(db, e.id, u.nome, "batida manual",
                      f"Lançou {'entrada' if tipo == 'entrada' else 'saída'} de {f.nome} em "
-                     f"{local:%d/%m/%Y %H:%M}. Motivo: {obs.strip() or 'não informado'}")
+                     f"{local:%d/%m/%Y %H:%M}. Motivo: {obs.strip() or 'não informado'}",
+                     usuario_id=f.id, dia=b.dia)
     db.commit()
     avisar(request, f"Batida de {f.primeiro_nome} lançada.")
     return ir(volta)
@@ -737,7 +757,8 @@ def ponto_apagar(request: Request, bid: int, volta: str = Form("/painel/ponto"),
         regras.registrar(db, u.empresa_id, u.nome, "batida anulada",
                          f"Anulou a {'entrada' if b.tipo == 'entrada' else 'saída'} de "
                          f"{b.usuario.nome} de {regras.para_local(u.empresa, b.momento):%d/%m/%Y %H:%M} "
-                         f"({origem}). O registro original continua guardado.")
+                         f"({origem}). O registro original continua guardado.",
+                         usuario_id=b.usuario_id, dia=b.dia)
         db.commit()
     avisar(request, "Batida anulada. O registro original fica guardado no histórico.")
     return ir(volta if volta.startswith("/painel/ponto") else "/painel/ponto")
@@ -774,7 +795,8 @@ def ajuste_decidir(request: Request, tarefas_bg: BackgroundTasks, aid: int,
     a.resposta, a.decidido_por, a.decidido_em = resposta.strip()[:300], u.nome, banco.agora()
     regras.registrar(db, u.empresa_id, u.nome, f"ajuste {a.situacao}",
                      f"Pedido de {a.usuario.nome}: {tipo} em {quando}. Motivo: {a.motivo}"
-                     + (f" Resposta: {a.resposta}" if a.resposta else ""))
+                     + (f" Resposta: {a.resposta}" if a.resposta else ""),
+                     usuario_id=a.usuario_id, dia=a.data)
     db.commit()
     tarefas_bg.add_task(push.avisar_usuarios, [(
         a.usuario_id, f"Ajuste de ponto {a.situacao}",

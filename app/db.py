@@ -503,6 +503,9 @@ class Historico(Base):
     acao: Mapped[str] = mapped_column(String(40))
     detalhe: Mapped[str] = mapped_column(String(500))
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora, index=True)
+    # Pessoa e dia afetados (quando a alteração é num dia de ponto): o Ajuste de ponto filtra por eles.
+    usuario_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    dia: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
 
 
 class Feriado(Base):
@@ -531,6 +534,36 @@ class Ausencia(Base):
     decidido_por: Mapped[str] = mapped_column(String(120), default="")
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
     usuario: Mapped[Usuario] = relationship()
+
+
+class Sobreaviso(Base):
+    """Horas em que a pessoa ficou à disposição fora do expediente, aguardando ser chamada
+    (CLT art. 244, §2º; Súmula 428 do TST). Pagas à razão de 1/3 do valor da hora normal."""
+    __tablename__ = "sobreavisos"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), index=True)
+    dia: Mapped[date] = mapped_column(Date, index=True)
+    inicio: Mapped[str] = mapped_column(String(5))      # HH:MM
+    fim: Mapped[str] = mapped_column(String(5))         # menor que o início = vai até o dia seguinte
+    minutos: Mapped[int] = mapped_column(Integer, default=0)
+    obs: Mapped[str] = mapped_column(String(200), default="")
+    criado_por: Mapped[str] = mapped_column(String(120), default="")
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    usuario: Mapped[Usuario] = relationship()
+
+
+class MotivoAjuste(Base):
+    """Justificativa do gestor para um dia de ponto (por que foi ajustado ou abonado)."""
+    __tablename__ = "motivos_ajuste"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), index=True)
+    dia: Mapped[date] = mapped_column(Date, index=True)
+    motivo: Mapped[str] = mapped_column(String(60))
+    obs: Mapped[str] = mapped_column(String(300), default="")
+    criado_por: Mapped[str] = mapped_column(String(120), default="")
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
 
 
 class FeriasAjuste(Base):
@@ -595,6 +628,7 @@ class FechamentoLinha(Base):
     dsr_perdido_min: Mapped[int] = mapped_column(Integer, default=0)
     dsr_extras: Mapped[int] = mapped_column(Integer, default=0)      # reflexo das extras, em horas normais
     intervalo_suprimido: Mapped[int] = mapped_column(Integer, default=0)  # art. 71, §4º (indenizado +50%)
+    sobreaviso: Mapped[int] = mapped_column(Integer, default=0)   # minutos (art. 244, §2º: 1/3 da hora)
     debito: Mapped[int] = mapped_column(Integer, default=0)          # atrasos e saídas antecipadas
     faltas: Mapped[int] = mapped_column(Integer, default=0)          # dias
     falta_min: Mapped[int] = mapped_column(Integer, default=0)
@@ -924,6 +958,9 @@ COLUNAS_NOVAS = [
     ("empresas", "intervalo_minimo_min", "INTEGER NOT NULL DEFAULT 60"),
     ("ausencias", "abono_dias", "INTEGER NOT NULL DEFAULT 0"),
     ("fechamento_linhas", "intervalo_suprimido", "INTEGER NOT NULL DEFAULT 0"),
+    ("fechamento_linhas", "sobreaviso", "INTEGER NOT NULL DEFAULT 0"),
+    ("historico", "usuario_id", "INTEGER"),
+    ("historico", "dia", "DATE"),
 ]
 
 

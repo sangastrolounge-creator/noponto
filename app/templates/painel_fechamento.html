@@ -16,6 +16,7 @@
 
 {% set sem_intervalo = resultado|sum(attribute='sem_intervalo') %}
 {% set tem_int = resultado|sum(attribute='intervalo_suprimido') %}
+{% set tem_sob = resultado|sum(attribute='sobreaviso') %}
 {% if incompletos or pendentes or sem_intervalo or sem_escala or tem_int %}
 <div class="alerta">
   {% if sem_escala %}{{ _('Há {v1} dia(s) trabalhado(s) sem escala. Eles não contam como hora extra até você definir o dia: ponha o horário na Escala (dia normal) ou marque Folga (extra de folga).', v1=(sem_escala)) }} <a href="/painel/escala">{{ _('Abrir a Escala') }}</a>. {% endif %}
@@ -30,7 +31,7 @@
   <h2>{{ _('{v1} a {v2}', v1=(ini.strftime('%d/%m/%Y')), v2=(fim.strftime('%d/%m/%Y'))) }}</h2>
   {% if resultado %}
   <div class="rolagem"><table>
-    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Previsto') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Extras ({v1}%)', v1=(e.pct_extra_normal)) }}</th><th>{{ _('Extras em folga/feriado ({v1}%)', v1=(e.pct_extra_especial)) }}</th><th>{{ _('Extras com acréscimo') }}</th><th>{{ _('Noturnas ({v1}%)', v1=(e.pct_noturno)) }}</th><th>{{ _('Atrasos e saídas') }}</th><th>{{ _('Faltas') }}</th><th>{{ _('Ausências') }}</th><th>{{ _('DSR') }}</th>{% if tem_int %}<th>{{ _('Intervalo não concedido') }}</th>{% endif %}
+    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Previsto') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Extras ({v1}%)', v1=(e.pct_extra_normal)) }}</th><th>{{ _('Extras em folga/feriado ({v1}%)', v1=(e.pct_extra_especial)) }}</th><th>{{ _('Extras com acréscimo') }}</th><th>{{ _('Noturnas ({v1}%)', v1=(e.pct_noturno)) }}</th><th>{{ _('Atrasos e saídas') }}</th><th>{{ _('Faltas') }}</th><th>{{ _('Ausências') }}</th><th>{{ _('DSR') }}</th>{% if tem_int %}<th>{{ _('Intervalo não concedido') }}</th>{% endif %}{% if tem_sob %}<th>{{ _('Sobreaviso (1/3)') }}</th>{% endif %}
       {% if banco %}<th>{{ _('Saldo anterior') }}</th><th>{{ _('Saldo do banco') }}</th>{% else %}<th>{{ _('Saldo do período') }}</th>{% endif %}<th></th></tr></thead>
     <tbody>
     {% for r in resultado %}
@@ -46,6 +47,7 @@
       <td>{{ r.dias_ausencia ~ ' dia(s)' if r.dias_ausencia else '—' }}</td>
       <td class="pequeno">{% if r.dsr_perdidos %}<span class="etiqueta erro">{{ _('−{v1} dia(s)', v1=(r.dsr_perdidos)) }}</span>{% endif %}{% if r.dsr_extras %}{{ '<br>'|safe if r.dsr_perdidos }}{{ _('+{v1} s/ extras', v1=(fmt_min(r.dsr_extras))) }}{% endif %}{% if not r.dsr_perdidos and not r.dsr_extras %}—{% endif %}</td>
       {% if tem_int %}<td>{% if r.intervalo_suprimido %}<span class="etiqueta alerta">{{ fmt_min(r.intervalo_suprimido) }}</span>{% else %}—{% endif %}</td>{% endif %}
+      {% if tem_sob %}<td>{{ fmt_min(r.sobreaviso) if r.sobreaviso else '—' }}</td>{% endif %}
       {% if banco %}<td>{{ fmt_saldo(r.saldo_anterior) }}</td>
       <td><strong class="{{ 'saldo-neg' if r.saldo_final < 0 else 'saldo-pos' if r.saldo_final > 0 }}">{{ fmt_saldo(r.saldo_final) }}</strong>{% if r.ajustes %}<br><span class="suave pequeno">{{ _('inclui ajuste de {v1}', v1=(fmt_saldo(r.ajustes))) }}</span>{% endif %}</td>
       {% else %}<td><strong class="{{ 'saldo-neg' if r.saldo_periodo < 0 else 'saldo-pos' if r.saldo_periodo > 0 }}">{{ fmt_saldo(r.saldo_periodo) }}</strong></td>{% endif %}

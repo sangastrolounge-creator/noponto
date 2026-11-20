@@ -138,6 +138,11 @@ def calcular(salario: int, jornada: int, dependentes: int, vt: int, lancamentos:
     pct_int = max(pct_normal, 50)
     p("intervalo_suprimido", f"Intervalo não concedido (art. 71, §4º) {pct_int}% · indenizatório",
       fmt_horas(sup), horas_valor(sup, 1 + Decimal(pct_int) / 100), trib=False)
+    # Sobreaviso (CLT art. 244, §2º; Súmula 428 do TST): 1/3 do valor da hora normal.
+    # Tem natureza salarial: entra na base de INSS, FGTS e IRRF.
+    sob = horas.get("sobreaviso", 0)
+    p("sobreaviso", "Sobreaviso (art. 244, §2º) 1/3 da hora", fmt_horas(sob),
+      horas_valor(sob, Decimal(1) / 3))
     for i, l in enumerate(lancamentos):
         if l.get("tipo") == "p":
             p(f"lanc{i}", l["descricao"], "", int(l["centavos"]), bool(l.get("tributavel", True)))

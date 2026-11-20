@@ -4,6 +4,7 @@
 <div class="cabecalho">
   <div><h1>{{ _('Ponto') }}</h1><p class="suave" style="margin:0">{{ _('Batidas, horas trabalhadas e atrasos por período.') }}</p></div>
   <div class="acoes">
+    <a class="botao" href="/painel/ponto/ajuste">{{ _('Ajuste de ponto') }}</a>
     <a class="botao {{ '' if n_problemas else 'claro' }}" href="/painel/ponto/problemas">{{ _('Problemas') }}{% if n_problemas %} ({{ n_problemas }}){% endif %}</a>
     <a class="botao claro" href="/painel/historico">{{ _('Histórico de alterações') }}</a>
     <a class="botao claro" href="/painel/ponto.csv?{{ consulta }}">{{ _('Baixar planilha (CSV)') }}</a>
@@ -43,9 +44,56 @@
   </div>
 </form>
 
+{% set saldo = resumo.minutos - resumo.previsto %}
+<div class="grade resumo-ponto">
+  <div class="numero"><div class="rotulo">{{ _('Horas trabalhadas') }}</div><div class="valor">{{ fmt_min(resumo.minutos) }}</div><div class="nota">{{ _('{v1} pessoa(s) · {v2} a {v3}', v1=resumo.pessoas, v2=ini.strftime('%d/%m'), v3=fim.strftime('%d/%m')) }}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Horas na escala') }}</div><div class="valor">{{ fmt_min(resumo.previsto) if resumo.previsto else '—' }}</div><div class="nota">{{ _('previstas para quem bateu ponto') }}</div></div>
+  <div class="numero {{ 'atencao' if saldo < 0 }}"><div class="rotulo">{{ _('Saldo') }}</div><div class="valor">{{ ('+' if saldo > 0 else '−' if saldo < 0 else '') ~ fmt_min(saldo|abs) }}</div><div class="nota">{{ _('trabalhadas menos previstas') }}</div></div>
+  <div class="numero {{ 'atencao' if resumo.atrasos }}"><div class="rotulo">{{ _('Atrasos') }}</div><div class="valor">{{ resumo.atrasos }}</div><div class="nota">{{ _('acima da tolerância de {v1} min', v1=e.tolerancia_min) }}</div></div>
+  <div class="numero {{ 'ruim' if resumo.faltando }}"><div class="rotulo">{{ _('Batidas faltando') }}</div><div class="valor">{{ resumo.faltando }}</div><div class="nota">{% if resumo.faltando %}<a href="/painel/ponto/ajuste">{{ _('Resolver no Ajuste de ponto') }}</a>{% else %}{{ _('dias completos') }}{% endif %}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Lançadas à mão') }}</div><div class="valor">{{ resumo.manuais }}</div><div class="nota">{{ _('{v1} fora da área', v1=resumo.fora) }}</div></div>
+</div>
+
+{% set MESES_T = [_('Janeiro'), _('Fevereiro'), _('Março'), _('Abril'), _('Maio'), _('Junho'), _('Julho'), _('Agosto'), _('Setembro'), _('Outubro'), _('Novembro'), _('Dezembro')] %}
+{% set base_cal = '/painel/ponto?' ~ consulta ~ '&mes=' %}
+<div class="cartao calendario">
+  <div class="cal-topo">
+    <a class="cal-nav" href="{{ base_cal ~ cal.anterior }}#calendario" aria-label="{{ _('Mês anterior') }}">‹</a>
+    <h2 id="calendario">{{ _('{v1} de {v2}', v1=MESES_T[cal.mes - 1], v2=cal.ano) }}</h2>
+    <a class="cal-nav" href="{{ base_cal ~ cal.seguinte }}#calendario" aria-label="{{ _('Próximo mês') }}">›</a>
+  </div>
+  <div class="cal-legenda pequeno">
+    <span><i class="ponto-cor feriado"></i>{{ _('Feriado') }}</span>
+    <span><i class="ponto-cor facultativo"></i>{{ _('Ponto facultativo') }}</span>
+    <span><i class="ponto-cor comemorativa"></i>{{ _('Data comemorativa') }}</span>
+    <span class="suave">{{ _('Clique num dia para abrir a escala.') }}</span>
+  </div>
+  <div class="cal-grade" role="grid">
+    {% for n in [_('Seg'), _('Ter'), _('Qua'), _('Qui'), _('Sex'), _('Sáb'), _('Dom')] %}<div class="cal-semana" role="columnheader">{{ n }}</div>{% endfor %}
+    {% for semana in cal.semanas %}{% for c in semana %}
+    {% set tipos = c.datas|map(attribute=0)|list %}
+    <a role="gridcell" href="/painel/escala?semana={{ c.dia.isoformat() }}&dia={{ c.dia.isoformat() }}#dia-destaque"
+       class="cal-dia{{ ' fora' if c.fora }}{{ ' hoje' if c.hoje }}{{ ' fds' if c.fim_de_semana }}{{ ' tem-feriado' if 'feriado' in tipos or 'nacional' in tipos }}{{ ' tem-facultativo' if 'facultativo' in tipos }}{{ ' tem-comemorativa' if 'comemorativa' in tipos }}"
+       title="{% for t, nome in c.datas %}{{ nome|traduz }}{{ ' · ' if not loop.last }}{% endfor %}">
+      <span class="cal-num">{{ c.dia.day }}</span>
+      {% for t, nome in c.datas[:2] %}<span class="cal-evento {{ 'feriado' if t in ('feriado', 'nacional') else t }}">{{ nome|traduz }}</span>{% endfor %}
+      {% if c.ponto %}<span class="cal-ponto">{{ _('{v1} pessoa(s) · {v2}', v1=c.ponto.pessoas, v2=fmt_min(c.ponto.minutos)) }}{% if c.ponto.atrasos %} <b class="cal-alerta" title="{{ _('Atrasos') }}">{{ c.ponto.atrasos }}</b>{% endif %}{% if c.ponto.faltando %} <b class="cal-erro" title="{{ _('Batidas faltando') }}">{{ c.ponto.faltando }}</b>{% endif %}</span>{% endif %}
+    </a>
+    {% endfor %}{% endfor %}
+  </div>
+  {% if cal.lista %}
+  <ul class="cal-lista">
+    {% for d, itens in cal.lista %}{% for t, nome in itens %}
+    <li><span class="ponto-cor {{ 'feriado' if t in ('feriado', 'nacional') else t }}"></span><strong>{{ d.strftime('%d/%m') }}</strong> {{ DIAS[d.weekday()] }} · {{ nome|traduz }}{% if t == 'nacional' %} <span class="suave pequeno">{{ _('(nacional, ainda não cadastrado na empresa)') }}</span>{% elif t == 'facultativo' %} <span class="suave pequeno">{{ _('(ponto facultativo)') }}</span>{% endif %}</li>
+    {% endfor %}{% endfor %}
+  </ul>
+  <p class="ajuda">{{ _('No ponto só contam os feriados cadastrados em Ausências → Feriados. Os nacionais podem ser cadastrados de uma vez por lá.') }} <a href="/painel/ausencias#feriados">{{ _('Ver feriados') }}</a></p>
+  {% endif %}
+</div>
+
 {% if totais %}
 <div class="cartao">
-  <h2>{{ _('Resumo do período') }}</h2>
+  <h2>{{ _('Resumo por funcionário') }}</h2>
   <div class="rolagem"><table>
     <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Dias') }}</th><th>{{ _('Horas trabalhadas') }}</th><th>{{ _('Horas na escala') }}</th><th>{{ _('Atrasos') }}</th></tr></thead>
     <tbody>

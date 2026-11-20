@@ -209,10 +209,13 @@ def _alerta(db: Session, u: Usuario, tipo: str, texto: str, turno_id: int | None
     return a
 
 
-def registrar(db: Session, empresa_id: int, autor: str, acao: str, detalhe: str):
-    """Anota no histórico (trilha de auditoria). Quem chama faz o commit."""
-    db.add(Historico(empresa_id=empresa_id, autor=autor[:120], acao=acao,
-                     detalhe=detalhe[:500], criado_em=banco.agora()))
+def registrar(db: Session, empresa_id: int, autor: str, acao: str, detalhe: str,
+              usuario_id: int | None = None, dia: date | None = None):
+    """Anota no histórico (trilha de auditoria). Quem chama faz o commit.
+    `usuario_id` e `dia`: a pessoa e o dia de ponto afetados, quando houver."""
+    db.add(Historico(empresa_id=empresa_id, autor=autor[:120], acao=acao[:40],
+                     detalhe=detalhe[:500], criado_em=banco.agora(),
+                     usuario_id=usuario_id, dia=dia))
 
 
 def nome_aparelho(ua: str) -> str:

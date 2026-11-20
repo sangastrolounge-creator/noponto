@@ -140,7 +140,7 @@
   <div class="rolagem"><table class="tabela-escala">
     <thead><tr>
       <th>{{ _('Funcionário') }}</th>
-      {% for d in dias %}<th class="{{ 'hoje' if d == hoje }}">{{ DIAS[loop.index0] }}<small>{{ d.strftime('%d/%m') }}</small>{% if feriados.get(d) %}<span class="etiqueta azul" title="{{ feriados[d] }}">{{ _('Feriado') }}</span>{% endif %}</th>{% endfor %}
+      {% for d in dias %}<th class="{{ 'hoje' if d == hoje }}{{ ' destaque' if d == destaque }}"{% if d == destaque %} id="dia-destaque"{% endif %}>{{ DIAS[loop.index0] }}<small>{{ d.strftime('%d/%m') }}</small>{% if feriados.get(d) %}<span class="etiqueta azul" title="{{ feriados[d] }}">{{ _('Feriado') }}</span>{% endif %}</th>{% endfor %}
     </tr></thead>
     <tbody>
     {% for f in equipe %}
@@ -155,7 +155,7 @@
       {% set lim_menor = menor.dia.get((f.id, d)) %}
       {% set janela = fw and fw.publicada and fw.regra.muda and hoje <= d <= fw.janela_ate %}
       {% set dp_txt = (_('Não pode') if dp.tipo == 'nao' else _('Pode {v1}–{v2}', v1=dp.inicio, v2=dp.fim)) if dp else '' %}
-      <td><button type="button" class="celula {{ 'ausente' if aus else 'folga' if t and t.folga else 'trabalho' if t }}{{ ' conflito' if conflito }}{{ ' curto' if curto }}{{ ' conflito' if lim_menor }}" title="{{ lim_menor|map('traduz')|join('; ') if lim_menor }}" data-janela="{{ '1' if janela }}" data-disp="{{ dp_txt }}{{ ' · ' ~ dp.obs if dp and dp.obs }}" {{ 'disabled' if (fechado and d <= fechado) or (travado and d <= travado) }}
+      <td class="{{ 'destaque' if d == destaque }}"><button type="button" class="celula {{ 'ausente' if aus else 'folga' if t and t.folga else 'trabalho' if t }}{{ ' conflito' if conflito }}{{ ' curto' if curto }}{{ ' conflito' if lim_menor }}" title="{{ lim_menor|map('traduz')|join('; ') if lim_menor }}" data-janela="{{ '1' if janela }}" data-disp="{{ dp_txt }}{{ ' · ' ~ dp.obs if dp and dp.obs }}" {{ 'disabled' if (fechado and d <= fechado) or (travado and d <= travado) }}
             data-intervalo="{{ t.intervalo_min if t and not t.folga else e.intervalo_padrao_min }}"
             data-saidaint="{{ t.intervalo_inicio if t and not t.folga else '' }}"
             data-uid="{{ f.id }}" data-nome="{{ f.nome }}" data-data="{{ d.isoformat() }}"

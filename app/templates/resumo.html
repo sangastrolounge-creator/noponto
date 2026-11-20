@@ -8,6 +8,7 @@
 {% set tem_dsr_f = total.dsr_perdidos > 0 %}
 {% set tem_dsr_e = total.dsr_extras > 0 %}
 {% set tem_int = total.intervalo_suprimido > 0 %}
+{% set tem_sob = total.sobreaviso > 0 %}
 <div class="folha">
   <div class="folha-barra nao-imprime">
     {{ seletor() }}
@@ -39,6 +40,7 @@
       {% if tem_dsr_f %}<th>{{ _('DSR descontado') }}</th>{% endif %}
       {% if tem_dsr_e %}<th>{{ _('DSR sobre extras') }}</th>{% endif %}
       {% if tem_int %}<th>{{ _('Intervalo não concedido') }}</th>{% endif %}
+      {% if tem_sob %}<th>{{ _('Sobreaviso') }}</th>{% endif %}
     </tr></thead>
     <tbody>
     {% for r in resultado %}
@@ -53,6 +55,7 @@
       {% if tem_dsr_f %}<td>{% if r.dsr_perdidos %}{{ _('{v1} dia(s) · {v2}', v1=(r.dsr_perdidos), v2=(fmt_min(r.dsr_perdido_min))) }}{% else %}—{% endif %}</td>{% endif %}
       {% if tem_dsr_e %}<td>{{ fmt_min(r.dsr_extras) if r.dsr_extras else '—' }}</td>{% endif %}
       {% if tem_int %}<td>{{ fmt_min(r.intervalo_suprimido) if r.intervalo_suprimido else '—' }}</td>{% endif %}
+      {% if tem_sob %}<td>{{ fmt_min(r.sobreaviso) if r.sobreaviso else '—' }}</td>{% endif %}
     </tr>
     {% endfor %}
     </tbody>
@@ -65,6 +68,7 @@
       {% if tem_dsr_f %}<td><strong>{{ _('{v1} dia(s) · {v2}', v1=(total.dsr_perdidos), v2=(fmt_min(total.dsr_perdido_min))) }}</strong></td>{% endif %}
       {% if tem_dsr_e %}<td><strong>{{ fmt_min(total.dsr_extras) }}</strong></td>{% endif %}
       {% if tem_int %}<td><strong>{{ fmt_min(total.intervalo_suprimido) }}</strong></td>{% endif %}
+      {% if tem_sob %}<td><strong>{{ fmt_min(total.sobreaviso) }}</strong></td>{% endif %}
     </tr></tfoot>
   </table></div>
   <p class="ajuda">
@@ -74,6 +78,7 @@
     {% if tem_dsr_f %}{{ _('DSR descontado: descanso semanal remunerado perdido em cada semana com falta sem justificativa.') }} {% endif %}
     {% if tem_dsr_e %}{{ _('DSR sobre extras: horas extras com acréscimo ÷ dias úteis × folgas da escala e feriados de cada funcionário, em horas normais.') }} {% endif %}
     {% if tem_int %}{{ _('Intervalo não concedido: tempo de intervalo para refeição que faltou no dia (CLT art. 71, §4º), pago com 50% a mais e sem incidência de INSS, FGTS e IRRF.') }} {% endif %}
+    {% if tem_sob %}{{ _('Sobreaviso: horas à disposição fora do expediente (CLT art. 244, §2º), pagas a 1/3 da hora normal.') }} {% endif %}
     {% if not (tem_not or tem_extra or tem_falta) %}{{ _('Neste período não houve horas noturnas, horas extras nem faltas.') }} {% endif %}
     {{ _('Valores em horas e minutos.') }}
   </p>

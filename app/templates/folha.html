@@ -61,6 +61,7 @@
     {% if r.dsr_perdidos %}<div><span>{{ _('DSR descontado (semana com falta)') }}</span><strong>{{ _('{v1} dia(s) · {v2}', v1=(r.dsr_perdidos), v2=(fmt_min(r.dsr_perdido_min))) }}</strong></div>{% endif %}
     {% if r.dsr_extras %}<div><span>{{ _('DSR sobre horas extras') }}</span><strong>{{ fmt_min(r.dsr_extras) }}</strong></div>{% endif %}
     {% if r.intervalo_suprimido %}<div><span>{{ _('Intervalo não concedido (art. 71, §4º)') }}</span><strong>{{ fmt_min(r.intervalo_suprimido) }}</strong></div>{% endif %}
+    {% if r.sobreaviso %}<div><span>{{ _('Sobreaviso (art. 244, §2º)') }}</span><strong>{{ fmt_min(r.sobreaviso) }}</strong></div>{% endif %}
     {% if r.ajustes %}<div><span>{{ _('Ajustes manuais') }}</span><strong>{{ fmt_saldo(r.ajustes) }}</strong></div>{% endif %}
     {% if banco %}
     <div><span>{{ _('Saldo anterior do banco') }}</span><strong>{{ fmt_saldo(r.saldo_anterior) }}</strong></div>

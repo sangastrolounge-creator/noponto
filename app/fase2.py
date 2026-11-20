@@ -85,30 +85,32 @@ def ausencias(request: Request, ano: int = 0, u: Usuario = Depends(gestor_logado
 @rota.post("/painel/ausencias", dependencies=CSRF)
 async def ausencia_nova(request: Request, usuario_id: int = Form(...), tipo: str = Form(...),
                         inicio: str = Form(""), fim: str = Form(""), obs: str = Form(""),
-                        anexo: UploadFile | None = File(None),
+                        anexo: UploadFile | None = File(None), volta: str = Form(""),
                         u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     f = da_empresa(db, Usuario, usuario_id, u)
+    destino = volta if volta.startswith("/painel/ponto/ajuste") else "/painel/ausencias"
     datas = datas_da_ausencia(inicio, fim)
     if tipo not in TIPOS_AUSENCIA or not datas:
         avisar(request, "Confira o tipo e as datas (o fim não pode ser antes do início).", "erro")
-        return ir("/painel/ausencias")
+        return ir(destino)
     if apuracao.esta_fechado(db, u.empresa, datas[0]):
         avisar(request, MSG_FECHADO, "erro")
-        return ir("/painel/ausencias")
+        return ir(destino)
     try:
         arquivo = await guardar_anexo(u.empresa_id, anexo)
     except ValueError as ex:
         avisar(request, str(ex), "erro")
-        return ir("/painel/ausencias")
+        return ir(destino)
     a = Ausencia(empresa_id=u.empresa_id, usuario_id=f.id, tipo=tipo, inicio=datas[0],
                  fim=datas[1], obs=obs.strip()[:300], anexo=arquivo, situacao="aprovado",
                  criado_por=u.nome, decidido_por=u.nome, criado_em=banco.agora())
     db.add(a)
     db.flush()
-    regras.registrar(db, u.empresa_id, u.nome, "ausência lançada", rotulo_ausencia(a) + ".")
+    regras.registrar(db, u.empresa_id, u.nome, "ausência lançada", rotulo_ausencia(a) + ".",
+                     usuario_id=f.id, dia=a.inicio)
     db.commit()
     avisar(request, "Ausência lançada. Nesses dias o ponto não é cobrado.")
-    return ir("/painel/ausencias")
+    return ir(destino)
 
 
 @rota.post("/painel/ausencias/{aid}", dependencies=CSRF)
@@ -343,7 +345,7 @@ def fechamento_resumo(request: Request, de: str = "", ate: str = "",
     fechado = db.scalar(select(Fechamento).where(
         Fechamento.empresa_id == e.id, Fechamento.inicio == ini, Fechamento.fim == fim))
     chaves = ("trabalhado", "noturno", "extra_normal", "extra_especial", "falta_min", "faltas",
-              "dsr_perdidos", "dsr_perdido_min", "dsr_extras", "intervalo_suprimido")
+              "dsr_perdidos", "dsr_perdido_min", "dsr_extras", "intervalo_suprimido", "sobreaviso")
     total = {k: sum(r[k] for r in resultado) for k in chaves}
     return render(request, "resumo.html", u=u, e=e, ini=ini, fim=fim, resultado=resultado,
                   total=total, fechado=fechado, emitido=regras.agora_local(e),

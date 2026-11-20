@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from . import clt, regras
 from .db import (AjusteBanco, Ausencia, Batida, Empresa, Fechamento, FechamentoLinha,
-                 Feriado, Turno, Usuario)
+                 Feriado, MotivoAjuste, Sobreaviso, Turno, Usuario)
 from .regras import VALIDA
 
 TIPOS_AUSENCIA = {
@@ -141,8 +141,18 @@ def apurar(db: Session, e: Empresa, ini: date, fim: date, usuario_id: int | None
             AjusteBanco.empresa_id == e.id, AjusteBanco.data.between(ini, fim))
             .order_by(AjusteBanco.data)):
         ajustes.setdefault(a.usuario_id, []).append(a)
+    sobreavisos: dict[tuple[int, date], list[Sobreaviso]] = {}
+    for s in db.scalars(select(Sobreaviso).where(
+            Sobreaviso.empresa_id == e.id, Sobreaviso.dia.between(ini, fim)).order_by(Sobreaviso.inicio)):
+        sobreavisos.setdefault((s.usuario_id, s.dia), []).append(s)
+    motivos: dict[tuple[int, date], list[MotivoAjuste]] = {}
+    for m in db.scalars(select(MotivoAjuste).where(
+            MotivoAjuste.empresa_id == e.id, MotivoAjuste.dia.between(ini, fim))
+            .order_by(MotivoAjuste.criado_em)):
+        motivos.setdefault((m.usuario_id, m.dia), []).append(m)
 
-    com_movimento = {uid for uid, _ in list(turnos) + list(batidas) + list(ausencias)} | set(ajustes)
+    com_movimento = ({uid for uid, _ in list(turnos) + list(batidas) + list(ausencias)
+                      + list(sobreavisos)} | set(ajustes))
     resultado = []
     for uid, u in pessoas.items():
         if uid not in com_movimento and not (u.ativo and u.na_escala):
@@ -150,7 +160,7 @@ def apurar(db: Session, e: Empresa, ini: date, fim: date, usuario_id: int | None
         tot = dict(previsto=0, trabalhado=0, extra_normal=0, extra_especial=0, debito=0,
                    faltas=0, falta_min=0, dias_ausencia=0, incompletos=0, noturno=0,
                    sem_intervalo=0, dsr_perdidos=0, dsr_perdido_min=0, dsr_extras=0,
-                   sem_escala=0, sem_escala_min=0, intervalo_suprimido=0,
+                   sem_escala=0, sem_escala_min=0, intervalo_suprimido=0, sobreaviso=0,
                    ajustes=sum(a.minutos for a in ajustes.get(uid, [])))
         # DSR: o descanso de cada um é a Folga marcada na escala dele, mais os feriados.
         # Sábado e domingo são dias como os outros.
@@ -250,6 +260,12 @@ def apurar(db: Session, e: Empresa, ini: date, fim: date, usuario_id: int | None
                 obs.append("trabalhando")
             if any(b.manual for b in bats):
                 obs.append("batida lançada à mão")
+            # Sobreaviso (art. 244, §2º): à disposição fora do expediente, pago a 1/3 da hora.
+            sob = sum(s.minutos for s in sobreavisos.get((uid, d), []))
+            if sob:
+                obs.append(f"sobreaviso: {regras.fmt_min(sob)}")
+                tot["sobreaviso"] += sob
+            mots = motivos.get((uid, d), [])
             if not falta:
                 tot["previsto"] += previsto
             tot["trabalhado"] += trabalhado
@@ -259,7 +275,9 @@ def apurar(db: Session, e: Empresa, ini: date, fim: date, usuario_id: int | None
                              trabalhado=trabalhado, previsto=previsto, extra=extra,
                              debito=debito, falta=falta, obs=obs,
                              especial=not trabalha and not sem_escala, sem_escala=sem_escala,
-                             noturno=noturno, intervalo_suprimido=suprimido))
+                             noturno=noturno, intervalo_suprimido=suprimido,
+                             sobreaviso=sob, sobreavisos=sobreavisos.get((uid, d), []),
+                             motivos=mots))
             d += timedelta(days=1)
         if e.dsr_faltas:  # falta sem justificativa: perde o descanso remunerado daquela semana
             tot["dsr_perdidos"] = len(semanas_com_falta)
@@ -288,7 +306,7 @@ def fechar(db: Session, e: Empresa, ini: date, fim: date, autor: str) -> Fechame
             **{k: r[k] for k in ("previsto", "trabalhado", "extra_normal", "extra_especial", "noturno",
                                  "debito", "faltas", "falta_min", "dias_ausencia", "ajustes",
                                  "dsr_perdidos", "dsr_perdido_min", "dsr_extras", "intervalo_suprimido",
-                                 "saldo_anterior", "saldo_final")}))
+                                 "sobreaviso", "saldo_anterior", "saldo_final")}))
     db.add(f)
     return f
 

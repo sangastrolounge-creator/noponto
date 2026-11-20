@@ -1,0 +1,123 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Ajuste de ponto') }}</h1><p class="suave" style="margin:0">{{ _('O dia a dia de cada colaborador. Passe o mouse nos três pontinhos de um dia para ajustar.') }}</p></div>
+  <div class="acoes">
+    <a class="botao claro" href="/painel/ponto">{{ _('Batidas e horas') }}</a>
+    <a class="botao claro" href="/painel/fechamento">{{ _('Fechamento') }}</a>
+  </div>
+</div>
+
+<form class="cartao" method="get" action="/painel/ponto/ajuste">
+  <div class="linha-form">
+    <div><label for="de">{{ _('De') }}</label><input type="date" id="de" name="de" value="{{ ini.isoformat() }}"></div>
+    <div><label for="ate">{{ _('Até') }}</label><input type="date" id="ate" name="ate" value="{{ fim.isoformat() }}"></div>
+    {% if atual %}<input type="hidden" name="func" value="{{ atual.u.id }}">{% endif %}
+    <div><button class="botao" type="submit">{{ _('Ver período') }}</button></div>
+  </div>
+  {% if fechado_ate %}<p class="ajuda" style="margin-bottom:0">{{ _('Ponto fechado até {v1}: esses dias só mudam reabrindo o período em Fechamento.', v1=fechado_ate.strftime('%d/%m/%Y')) }}</p>{% endif %}
+</form>
+
+{% if not resultado %}
+<div class="cartao"><div class="vazio">{{ _('Ninguém com escala ou ponto neste período.') }}</div></div>
+{% else %}
+<div class="apropriacao">
+  <aside class="cartao colaboradores" aria-label="{{ _('Colaboradores') }}">
+    <h2>{{ _('Colaboradores') }} <span class="suave pequeno" style="font-weight:400">{{ resultado|length }}</span></h2>
+    <ul>
+      {% for r in resultado %}
+      {% set saldo_r = r.trabalhado - r.previsto %}
+      <li><a href="/painel/ponto/ajuste?de={{ ini.isoformat() }}&ate={{ fim.isoformat() }}&func={{ r.u.id }}" class="colab{{ ' ativo' if atual and atual.u.id == r.u.id }}"{% if atual and atual.u.id == r.u.id %} aria-current="true"{% endif %}>
+        <span class="avatar">{{ r.u.nome[:1]|upper }}</span>
+        <span class="colab-txt"><strong>{{ r.u.nome }}</strong><small class="suave">{{ r.u.cargo or '—' }}</small>
+          <small>{{ fmt_min(r.trabalhado) }} / {{ fmt_min(r.previsto) }}
+          {% if r.faltas %}<b class="mini erro">{{ _('{v1} falta(s)', v1=r.faltas) }}</b>{% endif %}
+          {% if r.incompletos %}<b class="mini alerta">{{ _('{v1} incompleto(s)', v1=r.incompletos) }}</b>{% endif %}</small></span>
+      </a></li>
+      {% endfor %}
+    </ul>
+  </aside>
+
+  {% if atual %}
+  {% set r = atual %}
+  <section class="cartao dias-colab">
+    <div class="dias-topo">
+      <div><h2 style="margin:0">{{ r.u.nome }}</h2><span class="suave pequeno">{{ r.u.cargo }} · {{ ini.strftime('%d/%m/%Y') }} a {{ fim.strftime('%d/%m/%Y') }}</span></div>
+      <a class="botao claro pequeno" href="/painel/ponto?de={{ ini.isoformat() }}&ate={{ fim.isoformat() }}&func={{ r.u.id }}">{{ _('Ver batidas') }}</a>
+    </div>
+    <div class="grade mini-numeros">
+      <div class="numero"><div class="rotulo">{{ _('Trabalhadas') }}</div><div class="valor">{{ fmt_min(r.trabalhado) }}</div></div>
+      <div class="numero"><div class="rotulo">{{ _('Previstas') }}</div><div class="valor">{{ fmt_min(r.previsto) }}</div></div>
+      <div class="numero"><div class="rotulo">{{ _('Extras') }}</div><div class="valor">{{ fmt_min(r.extra_normal + r.extra_especial) }}</div></div>
+      <div class="numero {{ 'atencao' if r.debito }}"><div class="rotulo">{{ _('Atrasos e saídas') }}</div><div class="valor">{{ fmt_min(r.debito) }}</div></div>
+      <div class="numero {{ 'ruim' if r.faltas }}"><div class="rotulo">{{ _('Faltas') }}</div><div class="valor">{{ r.faltas }}</div></div>
+      {% if r.sobreaviso %}<div class="numero"><div class="rotulo">{{ _('Sobreaviso') }}</div><div class="valor">{{ fmt_min(r.sobreaviso) }}</div></div>{% endif %}
+    </div>
+    <div class="rolagem"><table class="tabela-dias">
+      <thead><tr><th>{{ _('Dia') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Marcações') }}</th><th>{{ _('Trabalhadas') }}</th><th>{{ _('Saldo') }}</th><th>{{ _('Ocorrências') }}</th><th><span class="sr-only">{{ _('Ações') }}</span></th></tr></thead>
+      <tbody>
+      {% for dd in r.dias %}
+      {% set dif = dd.extra - dd.debito %}
+      <tr class="{{ 'linha-falta' if dd.falta }}{{ ' linha-especial' if dd.feriado or (dd.turno and dd.turno.folga) }}">
+        <td style="white-space:nowrap"><strong>{{ dd.dia.strftime('%d/%m') }}</strong> <span class="suave">{{ DIAS[dd.dia.weekday()] }}</span></td>
+        <td>{% if dd.turno %}{{ _('Folga') if dd.turno.folga else dd.turno.inicio ~ '–' ~ dd.turno.fim }}{% else %}<span class="suave">—</span>{% endif %}</td>
+        <td class="marcacoes">{% for a, b in dd.pares %}<span class="par">{% for x in (a, b) %}{% if x %}<span class="hora{{ ' manual' if x.manual }}" title="{{ _('Lançada à mão: ') ~ x.obs if x.manual else '' }}">{{ local(e, x.momento) }}</span>{% else %}<span class="hora falta">--:--</span>{% endif %}{% endfor %}</span>{% else %}<span class="suave">—</span>{% endfor %}</td>
+        <td>{{ fmt_min(dd.trabalhado) if dd.trabalhado else '—' }}</td>
+        <td>{% if dif > 0 %}<span class="saldo mais">+{{ fmt_min(dif) }}</span>{% elif dif < 0 %}<span class="saldo menos">−{{ fmt_min(-dif) }}</span>{% else %}<span class="suave">0</span>{% endif %}</td>
+        <td class="ocorrencias">
+          {% for o in dd.obs %}<span class="etiqueta {{ 'erro' if o in ('falta', 'falta batida') else '' }}">{{ o|traduz }}</span>{% endfor %}
+          {% for m in dd.motivos %}<span class="etiqueta azul" title="{{ m.obs }}">{{ m.motivo|traduz }}</span>{% endfor %}
+        </td>
+        <td class="col-acoes">
+          <div class="menu-acoes">
+            <button type="button" class="tres-pontos" aria-haspopup="true" aria-label="{{ _('Ações do dia {v1}', v1=dd.dia.strftime('%d/%m')) }}">⋮</button>
+            <div class="menu-lista" role="menu">
+              {% for chave, rotulo in ACOES.items() %}
+              <a role="menuitem" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/{{ chave }}?volta={{ volta|urlencode }}"{% if chave != 'escala' %} data-janela{% endif %}>{{ rotulo|traduz }}</a>
+              {% endfor %}
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="ajuda">{{ _('Horários em azul foram lançados à mão. As marcações originais do colaborador nunca são alteradas: o que muda fica registrado no histórico.') }}</p>
+  </section>
+  {% endif %}
+</div>
+{% endif %}
+
+<dialog id="janela-acao" class="janela-acao" aria-labelledby="janela-titulo">
+  <div class="janela-topo"><h2 id="janela-titulo"></h2><button type="button" class="botao link" data-fechar aria-label="{{ _('Fechar') }}">✕</button></div>
+  <div id="janela-corpo"></div>
+</dialog>
+<script>
+(function () {
+  var dlg = document.getElementById('janela-acao');
+  if (!dlg || !dlg.showModal) return;
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest && ev.target.closest('a[data-janela]');
+    if (a) {
+      ev.preventDefault();
+      fetch(a.href, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var corpo = doc.getElementById('acao-conteudo');
+        if (!corpo) { location.href = a.href; return; }
+        document.getElementById('janela-titulo').textContent = corpo.getAttribute('data-titulo') || '';
+        document.getElementById('janela-corpo').innerHTML = corpo.innerHTML;
+        dlg.showModal();
+        var campo = dlg.querySelector('input:not([type=hidden]), select, textarea');
+        if (campo) campo.focus();
+      }).catch(function () { location.href = a.href; });
+      return;
+    }
+    if (ev.target.closest && ev.target.closest('[data-fechar]')) dlg.close();
+    var tp = ev.target.closest && ev.target.closest('.tres-pontos');
+    document.querySelectorAll('.menu-acoes.aberto').forEach(function (m) { if (!tp || m !== tp.parentNode) m.classList.remove('aberto'); });
+    if (tp) tp.parentNode.classList.toggle('aberto');
+  });
+  dlg.addEventListener('click', function (ev) { if (ev.target === dlg) dlg.close(); });
+})();
+</script>
+{% endblock %}
