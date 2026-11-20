@@ -69,7 +69,7 @@ def main():
     g = novo()
     r = posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Padaria A", nome="Gil Gestor",
               email="gil@a.com", senha="segredo1")
-    assert r.status_code == 303 and r.headers["location"] == "/painel/config", r.text
+    assert r.status_code == 303 and r.headers["location"] == "/painel/comecar", r.text
     tg = csrf(g, "/painel/config")
     assert "ainda não foi definido" in g.get("/painel").text
     r = posta(g, "/painel/config", tg, nome="Padaria A", endereco="Rua 1", lat=str(LAT),

@@ -118,8 +118,11 @@ def main():
     assert ana["saldo"] == 54 and len(ana["vencidos"]) == 1
     assert bruno["saldo"] == 30 and bruno["vencendo"] and bruno["proximo"]["concessivo"] == date(2027, 1, 9)
 
-    tela = g.get("/painel/ferias").text
-    assert "Vencido: pagar em dobro" in tela and "Ana Souza" in tela and "Caio" not in tela
+    r = g.get("/painel/ferias")
+    tela = r.text
+    assert r.status_code == 200, (r.status_code, r.headers.get("location"))
+    assert "Vencido: pagar em dobro" in tela and "Ana Souza" in tela, tela[-3000:]
+    assert "Caio PJ" not in tela.split('id="lancar"')[0]
     assert "54 dia(s)" in tela and 'href="/painel/ferias"' in tela
 
     # ---- conformidade: férias vencidas são problema

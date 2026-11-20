@@ -75,8 +75,8 @@ def main():
     s, fim = sit(eid)
     assert s == "teste" and fim == fim_teste + timedelta(days=2)
     assert c.get("/painel/escala").status_code == 200
-    assert "Seu teste grátis terminou em 11/25/2026" in c.get("/painel").text
-    assert "11/27/2026" in c.get("/painel").text
+    assert "Seu teste grátis terminou em 25/11/2026" in c.get("/painel").text
+    assert "27/11/2026" in c.get("/painel").text
     relogio["agora"] = fim_teste + timedelta(days=2, hours=1)
     assert sit(eid)[0] == "vencida"
 

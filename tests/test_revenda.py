@@ -75,7 +75,7 @@ def main():
     with SessionLocal() as db:
         dono = db.scalar(select(Usuario).where(Usuario.email == "dono@plataforma.com"))
         assert dono.is_admin and dono.empresa.isenta
-    assert sit(1) == "cortesia" and ">Master<" in m.get("/painel").text
+    assert sit(1) == "cortesia" and 'href="/master"' in m.get("/painel").text
     # guia: o convite aparece até o gestor responder; o botão Guia fica em todas as telas
     assert 'id="convite-guia"' in m.get("/painel").text and 'id="abrir-guia"' in m.get("/painel/escala").text
     assert 'id="convite-guia"' not in m.get("/painel/escala").text

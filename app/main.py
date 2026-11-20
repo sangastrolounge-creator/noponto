@@ -119,7 +119,7 @@ app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 
 templates.env.globals.update(
     local=lambda e, dt, f="%H:%M": regras.para_local(e, dt).strftime(f) if dt else "",
-    fmt_min=regras.fmt_min, fmt_min_raw=regras.minutos_turno, DIAS=i18n.DIAS, fmt_saldo=apuracao.fmt_saldo,
+    fmt_min=regras.fmt_min, fmt_min_raw=regras.minutos_turno, DIAS=i18n.DIAS, fmt_saldo=apuracao.fmt_saldo, com_acrescimo=apuracao.com_acrescimo,
     TIPOS_AUSENCIA=i18n.Traduzido(apuracao.TIPOS_AUSENCIA), zap=fase3.zap,
     mural_novas=mural.novas, SITUACOES_OFERTA=i18n.Traduzido(trocas.SITUACOES),
     alertas_liberados=core.alertas_liberados, contadores_menu=menu.contadores, gps_liberado=core.gps_liberado,

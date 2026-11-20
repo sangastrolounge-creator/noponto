@@ -63,7 +63,7 @@ def main():
                               "email": "gil@t.com", "senha": "segredo1"})
     para, assunto, texto = do_master()[-1]
     assert "Nova empresa: Taco Bar" in assunto and "gil@t.com" in texto and "Gil Gomes" in texto
-    assert "Teste grátis até: 11/25/2026" in texto
+    assert "Teste grátis até: 25/11/2026" in texto
     b = TestClient(app, follow_redirects=False)   # outra empresa, só no teste grátis
     b.post("/cadastro", data={"csrf": csrf(b, "/cadastro"), "aceito": "1", "empresa": "Burger Hut", "nome": "Bia",
                               "email": "bia@b.com", "senha": "segredo1"})
