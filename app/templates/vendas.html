@@ -6,10 +6,14 @@
 <title>{{ app_nome }} — {{ c.topo.titulo }}</title>
 <meta name="description" content="{{ c.topo.subtitulo|truncate(155) }}">
 {% if previa %}<meta name="robots" content="noindex">{% endif %}
-<meta name="theme-color" content="#0b1530">
+<meta name="theme-color" content="#f5f7fc">
 <link rel="icon" href="/static/favicon.png?v=3" type="image/png">
 <link rel="stylesheet" href="/static/style.css?v=51">
 <link rel="stylesheet" href="/static/vendas.css?v=1">
+<link rel="stylesheet" href="/static/tema.css?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap">
 <script>window.T = {{ textos_js()|tojson }}; window.t = function (s) { return window.T[s] || s; };</script>
 <script>
 /* Comportamento de app nativo: bloqueia o zoom de pinça e o de duplo toque (reforço para o Safari do iPhone). */
