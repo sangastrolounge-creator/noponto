@@ -927,6 +927,27 @@ COLUNAS_NOVAS = [
 ]
 
 
+def _definicao(col, dialeto) -> str:
+    """Tipo e valor padrão de uma coluna nova, aceitos pelo ALTER TABLE do SQLite."""
+    tipo = col.type.compile(dialect=dialeto)
+    padrao = col.default.arg if col.default is not None and col.default.is_scalar else None
+    if padrao is None:
+        try:
+            py = col.type.python_type
+        except NotImplementedError:
+            py = None
+        padrao = {bool: False, int: 0, float: 0.0, str: ""}.get(py)
+    if padrao is None:
+        return tipo
+    if isinstance(padrao, bool):
+        literal = "1" if padrao else "0"
+    elif isinstance(padrao, (int, float)):
+        literal = str(padrao)
+    else:
+        literal = "'" + str(padrao).replace("'", "''") + "'"
+    return f"{tipo} NOT NULL DEFAULT {literal}" if not col.nullable else f"{tipo} DEFAULT {literal}"
+
+
 def criar_tabelas():
     Base.metadata.create_all(engine)
     insp = inspect(engine)
@@ -936,6 +957,15 @@ def criar_tabelas():
             if coluna not in {c["name"] for c in insp.get_columns(tabela)}:
                 con.execute(text(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {definicao}"))
                 acrescentadas.add((tabela, coluna))
+        # Rede de segurança: qualquer coluna do modelo que ainda falte no banco é criada
+        # (com um valor padrão seguro), para o app nunca subir com "no such column".
+        for tabela in Base.metadata.sorted_tables:
+            existentes = {c["name"] for c in inspect(con).get_columns(tabela.name)}
+            for col in tabela.columns:
+                if col.name not in existentes:
+                    con.execute(text(f"ALTER TABLE {tabela.name} ADD COLUMN {col.name} "
+                                     f"{_definicao(col, con.dialect)}"))
+                    acrescentadas.add((tabela.name, col.name))
         if ("usuarios", "dono") in acrescentadas:
             # Antes só existia um gestor por empresa: o que criou a conta. Ele vira o dono.
             con.execute(text("UPDATE usuarios SET dono = 1 WHERE papel = 'gestor'"))
