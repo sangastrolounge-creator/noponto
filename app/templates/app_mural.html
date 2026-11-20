@@ -1,0 +1,13 @@
+{% extends "app_base.html" %}
+{% from "_mural.html" import lista %}
+{% block saudacao %}{{ _('Mural da equipe') }}{% endblock %}
+{% block conteudo %}
+{% if pode_postar %}
+<form method="post" action="/app/mural" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="campo"><label for="texto">{{ _('Escrever para a equipe') }}</label><textarea id="texto" name="texto" maxlength="1000" required style="min-height:70px"></textarea></div>
+  <button class="botao" type="submit" style="width:100%">{{ _('Publicar') }}</button>
+</form>
+{% endif %}
+<section class="cartao">{{ lista(mensagens, u, visto, False, leituras) }}</section>
+{% endblock %}

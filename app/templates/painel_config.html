@@ -1,0 +1,143 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>{{ _('Configurações') }}</h1><p class="suave" style="margin:0">{{ _('Onde fica a empresa e as regras do ponto.') }}</p></div>
+  <div class="acoes"><button class="botao claro" type="button" onclick="iniciarGuia()">{{ _('Ver o guia de primeiros passos') }}</button>
+  <a class="botao claro" href="/painel/assinatura">{{ _('Assinatura e plano') }}</a></div></div>
+
+<form method="post" action="/painel/config">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="duas">
+    <div class="cartao">
+      <h2>{{ _('Empresa e local do ponto') }}</h2>
+      <div class="campo"><label for="nome">{{ _('Nome da empresa') }}</label><input id="nome" type="text" name="nome" value="{{ e.nome }}" required maxlength="120"></div>
+      <div class="campo"><label for="endereco">{{ _('Endereço (só para referência)') }}</label><input id="endereco" type="text" name="endereco" value="{{ e.endereco }}" maxlength="300"></div>
+      <div class="campo">
+        <label>{{ _('Localização') }}</label>
+        <button class="botao claro" type="button" id="usar-local">{{ _('Usar minha localização atual') }}</button>
+        <div class="ajuda" id="local-estado">{{ _('Toque no botão estando dentro da empresa, de preferência pelo celular (o GPS é mais preciso que o do computador).') }}</div>
+      </div>
+      <div class="linha-form" style="grid-template-columns:1fr 1fr">
+        <div class="campo"><label for="lat">{{ _('Latitude') }}</label><input id="lat" type="text" name="lat" value="{{ e.lat if e.lat is not none }}" inputmode="decimal" placeholder="-2.5307"></div>
+        <div class="campo"><label for="lng">{{ _('Longitude') }}</label><input id="lng" type="text" name="lng" value="{{ e.lng if e.lng is not none }}" inputmode="decimal" placeholder="-44.3068"></div>
+      </div>
+      <p class="ajuda" style="margin-top:-6px">{{ _('Também dá para copiar do Google Maps: toque e segure no ponto da empresa e copie os dois números.') }}
+        <a id="ver-mapa" href="#" target="_blank" rel="noopener" {{ 'hidden' if e.lat is none }}>{{ _('Conferir no mapa') }}</a></p>
+    </div>
+
+    <div class="cartao">
+      <h2>{{ _('Regras do ponto') }}</h2>
+      {% if not gps_liberado(e) %}<p class="alerta">{{ _('O ponto pelo celular com GPS não está no seu plano: a equipe bate o ponto no totem (em Locais → Totens).') }} <a href="/painel/assinatura">{{ _('Ver planos') }}</a></p>{% endif %}
+      <div class="campo"><label for="raio_m">{{ _('Raio aceito (metros)') }}</label><input id="raio_m" type="number" name="raio_m" value="{{ e.raio_m }}" min="30" max="5000" required>
+        <div class="ajuda">{{ _('Distância máxima da empresa para o ponto valer. 150 m cobre a imprecisão normal do GPS.') }}</div></div>
+      <label class="marcar campo"><input type="checkbox" name="bloquear_fora" value="1" {{ 'checked' if e.bloquear_fora }}>
+        <span>{{ _('Bloquear o ponto fora do raio') }}<br><span class="ajuda">{{ _('Desmarcado, o ponto é aceito e marcado como “fora da área”. Nos dois casos você é avisado.') }}</span></span></label>
+      <div class="campo"><label for="tolerancia_min">{{ _('Tolerância de atraso (minutos)') }}</label><input id="tolerancia_min" type="number" name="tolerancia_min" value="{{ e.tolerancia_min }}" min="0" max="120" required>
+        <div class="ajuda">{{ _('Depois disso sem bater a entrada, você recebe o aviso.') }}</div></div>
+      <div class="campo"><label for="fuso">{{ _('Fuso horário') }}</label><select id="fuso" name="fuso">
+        {% for cod, nome in fusos %}<option value="{{ cod }}" {{ 'selected' if e.fuso == cod }}>{{ _(nome) }}</option>{% endfor %}</select></div>
+    </div>
+  </div>
+  <div class="cartao">
+    <h2>{{ _('Confiança no ponto') }}</h2>
+    <div class="duas" style="grid-template-columns:1fr 1fr">
+      <div>
+        <label class="marcar campo"><input type="checkbox" name="exigir_foto" value="1" {{ 'checked' if e.exigir_foto }}>
+          <span>{{ _('Exigir foto ao bater o ponto') }}{% if not foto_liberada(e) %} <span class="etiqueta">{{ _('Fora do seu plano') }}</span>{% endif %}<br><span class="ajuda">{{ _('O funcionário tira uma selfie na hora. Você vê a foto ao lado da batida. Avise a equipe antes de ligar: a foto é um dado pessoal.') }}</span></span></label>
+        <label class="marcar campo"><input type="checkbox" name="aparelho_unico" value="1" {{ 'checked' if e.aparelho_unico }}>
+          <span>{{ _('Um aparelho por funcionário') }}<br><span class="ajuda">{{ _('O primeiro celular em que ele bater o ponto fica autorizado. Em outro aparelho, ou no celular de um colega, o ponto é bloqueado e você decide se libera.') }}</span></span></label>
+      </div>
+      <div>
+        <div class="campo"><label for="ajuste_dias">{{ _('Pedido de ajuste: até quantos dias atrás') }}</label><input id="ajuste_dias" type="number" name="ajuste_dias" value="{{ e.ajuste_dias }}" min="0" max="60" required>
+          <div class="ajuda">{{ _('O funcionário pede o ajuste com justificativa e você aprova ou recusa. 0 desliga os pedidos.') }}</div></div>
+        <div class="campo"><label for="fotos_dias">{{ _('Guardar as fotos por (dias)') }}</label><input id="fotos_dias" type="number" name="fotos_dias" value="{{ e.fotos_dias }}" min="1" max="45" required>
+          <div class="ajuda">{{ _('Depois desse prazo a foto é apagada sozinha; a batida continua registrada. O máximo é 45 dias.') }}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="cartao">
+    <h2>{{ _('Jornada e banco de horas') }}</h2>
+    <div class="duas" style="grid-template-columns:1fr 1fr">
+      <div>
+        <div class="campo"><label for="controle">{{ _('O que fazer com as horas a mais e a menos') }}</label><select id="controle" name="controle">
+          <option value="banco" {{ 'selected' if e.controle == 'banco' }}>{{ _('Banco de horas (o saldo passa de um período para o outro)') }}</option>
+          <option value="extra" {{ 'selected' if e.controle == 'extra' }}>{{ _('Hora extra (o saldo zera a cada fechamento)') }}</option></select></div>
+        <div class="campo"><label for="tolerancia_dia_min">{{ _('Tolerância por dia (minutos)') }}</label><input id="tolerancia_dia_min" type="number" name="tolerancia_dia_min" value="{{ e.tolerancia_dia_min }}" min="0" max="60" required>
+          <div class="ajuda">{{ _('Diferença de até esse tanto no dia não vira extra nem atraso. A CLT fala em 10 minutos.') }}</div></div>
+        <div class="linha-form" style="grid-template-columns:1fr 1fr">
+          <div class="campo"><label for="pct_extra_normal">{{ _('Hora extra em dia normal (%)') }}</label><input id="pct_extra_normal" type="number" name="pct_extra_normal" value="{{ e.pct_extra_normal }}" min="0" max="300" required></div>
+          <div class="campo"><label for="pct_extra_especial">{{ _('Em folga ou feriado (%)') }}</label><input id="pct_extra_especial" type="number" name="pct_extra_especial" value="{{ e.pct_extra_especial }}" min="0" max="300" required></div>
+        </div>
+        <div class="ajuda">{{ _('Acréscimo sobre a hora normal. O mínimo da lei é 50% em dia normal; em folga ou feriado o costume é 100%. Confira a convenção coletiva da sua categoria.') }}</div>
+        <div class="campo" style="margin-top:14px"><label for="pct_noturno">{{ _('Adicional noturno (%)') }}</label><input id="pct_noturno" type="number" name="pct_noturno" value="{{ e.pct_noturno }}" min="0" max="300" required>
+          <div class="ajuda">{{ _('Vale para o trabalho entre 22h e 5h. O mínimo da lei é 20%.') }}</div></div>
+        <label class="marcar campo"><input type="checkbox" name="noturno_reduzida" value="1" {{ 'checked' if e.noturno_reduzida }}>
+          <span>{{ _('Hora noturna reduzida') }}<br><span class="ajuda">{{ _('Cada 52 min 30 s trabalhados entre 22h e 5h contam como 1 hora (7 horas de relógio valem 8), como manda a CLT.') }}</span></span></label>
+      </div>
+      <div>
+        <div class="campo"><label for="intervalo_padrao_min">{{ _('Intervalo padrão (minutos)') }}</label><input id="intervalo_padrao_min" type="number" name="intervalo_padrao_min" value="{{ e.intervalo_padrao_min }}" min="0" max="240" required>
+          <div class="ajuda">{{ _('Já vem preenchido ao criar um turno na escala; dá para mudar em cada turno.') }}</div></div>
+        <div class="campo"><label for="intervalo_minimo_min">{{ _('Intervalo mínimo para mais de 6 horas (minutos)') }}</label><input id="intervalo_minimo_min" type="number" name="intervalo_minimo_min" value="{{ e.intervalo_minimo_min }}" min="30" max="60" required>
+          <div class="ajuda">{{ _('A CLT pede 1 hora (art. 71). A convenção ou o acordo coletivo pode reduzir até 30 minutos. O tempo de intervalo que faltar no dia é pago com 50% a mais, como indenização (art. 71, §4º).') }}</div></div>
+        <label class="marcar campo"><input type="checkbox" name="intervalo_obrigatorio" value="1" {{ 'checked' if e.intervalo_obrigatorio }}>
+          <span>{{ _('O funcionário precisa bater o intervalo') }}<br><span class="ajuda">{{ _('Saída ao parar e entrada ao voltar. Quem trabalhar mais de 6 horas direto gera um aviso para você e fica marcado na folha como “intervalo não batido”.') }}</span></span></label>
+        <label class="marcar campo"><input type="checkbox" name="dsr_faltas" value="1" {{ 'checked' if e.dsr_faltas }}>
+          <span>{{ _('Descontar o DSR na semana com falta') }}<br><span class="ajuda">{{ _('Quem falta sem justificativa perde o descanso semanal remunerado daquela semana. Atestado e falta abonada não contam.') }}</span></span></label>
+        <label class="marcar campo"><input type="checkbox" name="dsr_extras" value="1" {{ 'checked' if e.dsr_extras }}>
+          <span>{{ _('Calcular o DSR sobre as horas extras') }}<br><span class="ajuda">{{ _('Reflexo das extras pagas no descanso: extras ÷ dias úteis × folgas da escala e feriados do período. Só vale no controle por hora extra; no banco de horas as extras não são pagas.') }}</span></span></label>
+        <label class="marcar campo"><input type="checkbox" name="intervalo_auto" value="1" {{ 'checked' if e.intervalo_auto }}>
+          <span>{{ _('Descontar o intervalo sozinho') }}<br><span class="ajuda">{{ _('Para quem trabalhou mais de 6 horas e não bateu a saída e a volta do intervalo.') }}</span></span></label>
+      </div>
+    </div>
+  </div>
+  <button class="botao" type="submit">{{ _('Salvar configurações') }}</button>
+</form>
+
+<form method="post" action="/painel/config/escala-regras" class="cartao" id="escala-regras">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Regras da escala') }}</h2>
+  <label class="marcar campo"><input type="checkbox" name="confirmar_turno" value="1" {{ 'checked' if e.confirmar_turno }}>
+    <span>{{ _('Pedir para a equipe confirmar os turnos publicados') }}<br><span class="ajuda">{{ _('O funcionário toca em “Vou estar lá” no app. Quem não confirmar recebe um lembrete, e você um aviso.') }}</span></span></label>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <div class="campo"><label for="conf-h">{{ _('Cobrar a confirmação quantas horas antes do turno') }}</label><input id="conf-h" type="number" name="confirmar_antes_h" min="1" max="168" value="{{ e.confirmar_antes_h }}"></div>
+    <div class="campo"><label for="trava">{{ _('Travar a escala depois de quantos dias') }}</label><input id="trava" type="number" name="travar" min="0" max="60" value="{{ e.travar_escala_dias }}">
+      <div class="ajuda">{{ _('Dias que já passaram há mais tempo que isso não podem mais ser mudados na escala. 0 = sem trava.') }}</div></div>
+  </div>
+  <label class="marcar campo"><input type="checkbox" name="oferecer" value="1" {{ 'checked' if e.oferecer_sem_confirmacao }}>
+    <span>{{ _('Oferecer à equipe o turno que não for confirmado') }}<br><span class="ajuda">{{ _('Na metade do prazo, o turno vai para “Turnos abertos e trocas”. Ele continua da pessoa até alguém pegar e você aprovar.') }}</span></span></label>
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+
+<form method="post" action="/painel/config/salario-minimo" class="cartao" id="salario-minimo">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Salário mínimo e piso') }}</h2>
+  <p class="suave pequeno" style="margin-top:-4px">{{ _('O sistema avisa quando o salário de alguém fica abaixo do mínimo proporcional à jornada. Tabela atualizada em {v1}.', v1=sm_atualizado.strftime('%d/%m/%Y')) }}</p>
+  <div class="aviso">{{ _('Em uso agora: {v1} por mês para 220 horas ({v2}), ou {v3} por hora.', v1=(sm.normal.centavos|dinheiro), v2=(sm.normal.fonte|traduz), v3=(sm.normal.hora|dinheiro)) }}{% if sm.proxima %}<br>{{ _('A partir de {v1}: {v2} por mês.', v1=sm.proxima.data.strftime('%d/%m/%Y'), v2=(sm.proxima.normal.centavos|dinheiro)) }}{% endif %}</div>
+  <div class="campo"><label for="sm-proprio">{{ _('Piso salarial da categoria ou estadual (por mês, 220 h)') }}</label><input type="text" inputmode="decimal" id="sm-proprio" name="proprio" value="{{ ('%.2f'|format(e.minimo_proprio_centavos / 100)).replace('.', ',') if e.minimo_proprio_centavos else '' }}" placeholder="0,00" style="max-width:220px">
+    <div class="ajuda">{{ _('Veja na convenção coletiva do seu sindicato ou na lei do piso do seu estado. Vale o maior valor. Em branco, vale o mínimo nacional.') }}</div></div>
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+
+<script>
+(function () {
+  var lat = document.getElementById("lat"), lng = document.getElementById("lng"),
+      estado = document.getElementById("local-estado"), mapa = document.getElementById("ver-mapa");
+  function link() {
+    var a = lat.value.replace(",", "."), b = lng.value.replace(",", ".");
+    mapa.hidden = !(a && b);
+    mapa.href = "https://www.google.com/maps?q=" + encodeURIComponent(a + "," + b);
+  }
+  lat.addEventListener("input", link); lng.addEventListener("input", link); link();
+  document.getElementById("usar-local").addEventListener("click", function () {
+    if (!navigator.geolocation) { estado.textContent = t("Este navegador não informa a localização."); return; }
+    estado.textContent = t("Obtendo a localização…");
+    navigator.geolocation.getCurrentPosition(function (p) {
+      lat.value = p.coords.latitude.toFixed(6); lng.value = p.coords.longitude.toFixed(6); link();
+      estado.textContent = t("Localização preenchida (precisão de cerca de ") + Math.round(p.coords.accuracy) + t(" m). Confira no mapa e salve.");
+    }, function (err) {
+      estado.textContent = err.code === 1 ? t("Permissão de localização negada. Libere nas configurações do navegador e tente de novo.")
+        : t("Não foi possível obter a localização. Tente de novo.");
+    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "app_base.html" %}
+{% block saudacao %}{{ _('Minha escala') }}{% endblock %}
+{% block conteudo %}
+{% if of.disponiveis %}
+<section class="cartao" id="disponiveis">
+  <h2>{{ _('Turnos disponíveis') }}</h2>
+  <ul class="lista-dias">
+    {% for o in of.disponiveis %}
+    <li><span>{{ DIAS[o.data.weekday()] }} {{ o.data.strftime('%d/%m') }} · {{ _('{v1} às {v2}', v1=(o.inicio), v2=(o.fim)) }}
+        <br><span class="suave pequeno">{% if o.tipo == 'repasse' %}{{ _('Cobrir {v1}', v1=(o.de.primeiro_nome)) }}{% else %}{{ _('Turno aberto') }}{% endif %}{% if o.cargo %} · {{ o.cargo }}{% endif %}{% if o.local %} · {{ o.local.nome }}{% endif %}{% if o.obs %} · {{ o.obs }}{% endif %}</span></span>
+      <form method="post" action="/app/ofertas/{{ o.id }}" class="inline" data-confirma="{{ _('Pedir este turno?') }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="pedir">
+        <button class="botao mini" type="submit">{{ _('Quero') }}</button>
+      </form></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if of.meus_pedidos %}
+<section class="cartao">
+  <h2>{{ _('Meus pedidos de turno') }}</h2>
+  <ul class="lista-dias">
+    {% for o in of.meus_pedidos %}
+    <li><span>{{ DIAS[o.data.weekday()] }} {{ o.data.strftime('%d/%m') }} · {{ _('{v1} às {v2}', v1=(o.inicio), v2=(o.fim)) }}<br><span class="etiqueta alerta">{{ _('Aguardando o gestor') }}</span></span>
+      <form method="post" action="/app/ofertas/{{ o.id }}" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="desistir">
+        <button class="botao mini claro" type="submit">{{ _('Desistir') }}</button>
+      </form></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if pendentes %}
+<section class="cartao conf-app">
+  <h2>{{ _('Confirme os seus turnos') }}</h2>
+  <p class="suave pequeno" style="margin-top:0">{{ _('O gestor publicou a escala. Confirme que vai trabalhar nos turnos abaixo.') }}</p>
+  <form method="post" action="/app/escala/confirmar-todos"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao" type="submit">{{ _('Confirmar todos ({v1})', v1=pendentes|length) }}</button></form>
+</section>
+{% endif %}
+{% for bloco in dias|batch(7) %}
+<section class="cartao">
+  <h2>{{ _('Esta semana') if loop.first else _('Próxima semana') }} <span class="suave pequeno" style="font-weight:400">{{ _('· {v1} a {v2}', v1=(bloco[0].strftime('%d/%m')), v2=(bloco[-1].strftime('%d/%m'))) }}</span></h2>
+  <ul class="lista-dias">
+    {% for d in bloco %}
+    {% set t = turnos.get(d) %}
+    {% set minha = of.minhas.get(t.id) if t else none %}
+    <li class="{{ 'hoje' if d == hoje }}"><span>{{ DIAS[d.weekday()] }} {{ d.strftime('%d/%m') }}{{ _(' · hoje') if d == hoje }}</span>
+      <span style="text-align:right">{% if t and t.folga %}<span class="etiqueta">{{ _('Folga') }}</span>{% if t.obs %}<br><span class="suave pequeno">{{ t.obs }}</span>{% endif %}{% elif t %}{{ _('{v1} às {v2}', v1=(t.inicio), v2=(t.fim)) }}{% if t.local %} · {{ t.local.nome }}{% endif %}{% if t.intervalo_inicio %}<br><span class="suave pequeno">{{ _('intervalo às {v1}', v1=(t.intervalo_inicio)) }}</span>{% endif %}
+        {% if precisa_confirmar(t) %}<br><form method="post" action="/app/turnos/{{ t.id }}/confirmar" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao mini" type="submit">{{ _('Vou estar lá') }}</button></form>{% elif t.confirmado_em and e.confirmar_turno %}<br><span class="conf-sim pequeno">{{ _('✓ confirmado') }}</span>{% endif %}
+        {% if minha %}
+        <br><span class="etiqueta alerta">{{ _('Oferecido') if minha.situacao == 'aberta' else _('{v1} pediu', v1=(minha.candidato.primeiro_nome)) }}</span>
+        <form method="post" action="/app/ofertas/{{ minha.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="cancelar"><button class="botao link pequeno" type="submit">{{ _('Cancelar oferta') }}</button></form>
+        {% elif not comecou(t) %}
+        <br><form method="post" action="/app/turnos/{{ t.id }}/oferecer" class="inline" data-confirma="{{ _('Oferecer este turno para a equipe? Ele continua seu até alguém pegar e o gestor aprovar.') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao link pequeno" type="submit">{{ _('Não posso ir: oferecer') }}</button></form>
+        {% endif %}
+      {% else %}<span class="suave">—</span>{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+<section class="cartao" id="disponibilidade">
+  <h2>{{ _('Minha disponibilidade') }}</h2>
+  <p class="suave pequeno" style="margin-top:0">{{ _('Diga ao gestor em quais dias e horários você pode trabalhar. Ele vê isso ao montar a escala.') }}</p>
+  <form method="post" action="/app/disponibilidade" class="form-disp">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% for i in range(7) %}
+    {% set dp = disp.get(i) %}
+    {% set tp = dp.tipo if dp else 'livre' %}
+    <div class="disp-linha" data-tipo="{{ tp }}">
+      <strong>{{ DIAS[i] }}</strong>
+      <select name="tipo_{{ i }}" aria-label="{{ DIAS[i] }}">
+        <option value="livre" {{ 'selected' if tp == 'livre' }}>{{ _('Posso o dia todo') }}</option>
+        <option value="parcial" {{ 'selected' if tp == 'parcial' }}>{{ _('Só neste horário') }}</option>
+        <option value="nao" {{ 'selected' if tp == 'nao' }}>{{ _('Não posso') }}</option>
+      </select>
+      <span class="disp-horas"><input type="time" name="ini_{{ i }}" value="{{ dp.inicio if dp else '' }}" aria-label="{{ _('De') }}"> {{ _('às') }} <input type="time" name="fim_{{ i }}" value="{{ dp.fim if dp else '' }}" aria-label="{{ _('Até') }}"></span>
+      <input type="text" name="obs_{{ i }}" maxlength="120" class="disp-obs" value="{{ dp.obs if dp else '' }}" placeholder="{{ _('Motivo (opcional)') }}">
+    </div>
+    {% endfor %}
+    <button class="botao" type="submit" style="margin-top:10px">{{ _('Salvar disponibilidade') }}</button>
+  </form>
+</section>
+<script>
+document.querySelectorAll(".disp-linha select").forEach(function (sel) {
+  function ver() { sel.parentNode.dataset.tipo = sel.value; }
+  sel.addEventListener("change", ver); ver();
+});
+</script>
+{% endblock %}

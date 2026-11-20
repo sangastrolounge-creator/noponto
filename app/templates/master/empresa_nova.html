@@ -1,0 +1,19 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><a href="/master" class="suave pequeno">{{ _('← Empresas') }}</a><h1>{{ _('Nova empresa') }}</h1><p class="suave" style="margin:0">{{ _('O sistema gera uma senha provisória para você enviar ao responsável.') }}</p></div></div>
+{% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+<form method="post" action="/master/empresas" class="cartao" style="max-width:560px">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="campo"><label for="empresa">{{ _('Nome da empresa') }}</label><input id="empresa" type="text" name="empresa" value="{{ dados.empresa }}" maxlength="120" required autofocus></div>
+  <div class="campo"><label for="nome">{{ _('Nome do responsável') }}</label><input id="nome" type="text" name="nome" value="{{ dados.nome }}" maxlength="120" required></div>
+  <div class="campo"><label for="email">{{ _('E-mail do responsável') }}</label><input id="email" type="email" name="email" value="{{ dados.email }}" required></div>
+  <div class="campo"><label for="plano">{{ _('Plano') }}</label>
+    <select id="plano" name="plano">
+      <option value="0">{{ _('Sem plano (funcionários ilimitados)') }}</option>
+      {% for p in planos %}<option value="{{ p.id }}" {{ 'selected' if dados.plano == p.id }}>{{ p.nome }} · {{ p.preco_centavos|dinheiro }}</option>{% endfor %}
+    </select>
+    <div class="ajuda">{{ _('A empresa começa com {v1} dias de teste. Registre o pagamento na tela seguinte para liberar por mais tempo.', v1=(plat.dias_teste)) }}</div>
+  </div>
+  <button class="botao" type="submit">{{ _('Criar empresa') }}</button>
+</form>
+{% endblock %}

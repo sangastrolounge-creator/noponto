@@ -1,0 +1,1 @@
+{% macro estrelas(n) %}<span class="estrelas-txt" title="{{ _('{v1} de 5', v1=(n)) }}">{{ "★" * n }}<span class="vazia">{{ "★" * (5 - n) }}</span></span>{% endmacro %}

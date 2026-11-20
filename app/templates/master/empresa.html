@@ -1,0 +1,114 @@
+{% extends "master/base.html" %}
+{% from "master/_sit.html" import etiqueta %}
+{% block master %}
+<div class="cabecalho">
+  <div>
+    <a href="/master" class="suave pequeno">{{ _('← Empresas') }}</a>
+    <h1>{{ alvo.nome }} {{ etiqueta(alvo) }}</h1>
+    <p class="suave" style="margin:0">{% if dono %}{{ dono.nome }} · {{ dono.email }} · {% endif %}{{ _('desde {v1}', v1=(alvo.criado_em|data('%d/%m/%Y'))) }}</p>
+  </div>
+  {% if alvo.id != e.id %}
+  <form method="post" action="/master/empresas/{{ alvo.id }}/entrar" class="inline">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="botao claro" type="submit">{{ _('Entrar no painel dela') }}</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if senha_temp %}
+<div class="alerta">
+  <strong>{{ _('Senha provisória (aparece só agora):') }}</strong>
+  <input type="text" readonly value="{{ senha_temp }}" onclick="this.select()" style="margin-top:8px;max-width:260px" aria-label="{{ _('Senha provisória') }}">
+  <div class="pequeno" style="margin-top:8px">{{ _('Envie ao responsável: acesso em {v1} com o e-mail {v2}.', v1=(entrar_url), v2=(dono.email)) }}</div>
+</div>
+{% endif %}
+
+<div class="grade">
+  <div class="numero"><div class="rotulo">{{ _('Validade') }}</div><div class="valor" style="font-size:1.4rem">{{ validade(alvo)|data('%d/%m/%Y') or '—' }}</div><div class="nota">{% if alvo.isenta %}{{ _('cortesia, nunca vence') }}{% elif alvo.pago_ate %}{{ _('pago até {v1}', v1=(alvo.pago_ate|data('%d/%m/%Y'))) }}{% elif alvo.teste_ate %}{{ _('teste até {v1}', v1=(alvo.teste_ate|data('%d/%m/%Y'))) }}{% endif %}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Funcionários ativos') }}</div><div class="valor" style="font-size:1.4rem">{{ numeros.equipe }}{% if numeros.limite %}<span class="suave" style="font-size:1rem"> {{ _('de {v1}', v1=(numeros.limite)) }}</span>{% endif %}</div><div class="nota">{{ _('limite do plano') if numeros.limite else _('sem limite') }}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Batidas em 30 dias') }}</div><div class="valor" style="font-size:1.4rem">{{ numeros.batidas }}</div><div class="nota">{{ _('mostra se a empresa está usando') }}</div></div>
+</div>
+
+{% if alvo.asaas_assinatura_id %}<div class="aviso">{{ _('Cobrança automática mensal ativa no Asaas.') }}{% if not alvo.ativo %} {{ _('A empresa está bloqueada, mas a cobrança continua: encerre em “Outras ações” se for o caso.') }}{% endif %}</div>{% endif %}
+<div class="duas" style="grid-template-columns:1fr 1fr">
+  <div class="cartao">
+    <h2>{{ _('Registrar pagamento') }}</h2>
+    <form method="post" action="/master/empresas/{{ alvo.id }}/pagamento">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="linha-form" style="grid-template-columns:1fr 1fr">
+        <div class="campo"><label for="valor">{{ _('Valor (R$)') }}</label><input id="valor" type="text" name="valor" inputmode="decimal" value="{{ ('%.2f'|format((alvo.plano.preco_centavos if alvo.plano else 0) / 100))|replace('.', ',') }}" required></div>
+        <div class="campo"><label for="dias">{{ _('Libera por (dias)') }}</label><input id="dias" type="number" name="dias" min="1" max="3660" value="30" required></div>
+      </div>
+      <div class="linha-form" style="grid-template-columns:1fr 1fr">
+        <div class="campo"><label for="forma">{{ _('Forma') }}</label><select id="forma" name="forma"><option value="pix">{{ _('Pix') }}</option><option value="boleto">{{ _('Boleto') }}</option><option value="cartao">{{ _('Cartão') }}</option><option value="dinheiro">{{ _('Dinheiro') }}</option><option value="outro">{{ _('Outro') }}</option></select></div>
+        <div class="campo"><label for="pobs">{{ _('Observação') }}</label><input id="pobs" type="text" name="obs" maxlength="300"></div>
+      </div>
+      <button class="botao" type="submit">{{ _('Registrar e liberar') }}</button>
+      <div class="ajuda">{{ _('Os dias são somados a partir do vencimento atual (ou de hoje, se já venceu).') }}</div>
+    </form>
+  </div>
+
+  <div class="cartao">
+    <h2>{{ _('Plano e anotações') }}</h2>
+    <form method="post" action="/master/empresas/{{ alvo.id }}/dados">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label for="plano">{{ _('Plano') }}</label>
+        <select id="plano" name="plano">
+          <option value="0">{{ _('Sem plano (funcionários ilimitados)') }}</option>
+          {% for p in planos %}<option value="{{ p.id }}" {{ 'selected' if alvo.plano_id == p.id }}>{{ p.nome }} · {{ p.preco_centavos|dinheiro }}{{ '' if p.ativo else _(' (fora de venda)') }}</option>{% endfor %}
+        </select>
+      </div>
+      <label class="marcar campo"><input type="checkbox" name="isenta" value="1" {{ 'checked' if alvo.isenta }} {{ 'disabled' if alvo.id == e.id }}><span>{{ _('Cortesia: não vence e não tem limite de funcionários') }}{% if alvo.id == e.id %} {{ _('(a sua empresa é sempre cortesia)') }}{% endif %}</span></label>
+      <div class="campo"><label for="obs">{{ _('Anotações internas') }}</label><textarea id="obs" name="obs" maxlength="2000">{{ alvo.obs_master }}</textarea></div>
+      <button class="botao" type="submit">{{ _('Salvar') }}</button>
+    </form>
+  </div>
+</div>
+
+{% if alvo.id != e.id %}
+<div class="cartao">
+  <h2>{{ _('Outras ações') }}</h2>
+  <div class="acoes" style="align-items:center">
+    <form method="post" action="/master/empresas/{{ alvo.id }}/teste" class="inline" style="display:flex;gap:6px;align-items:center">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="number" name="dias" value="7" min="1" max="365" style="width:84px" aria-label="{{ _('Dias de teste') }}">
+      <button class="botao claro" type="submit">{{ _('Estender teste (dias)') }}</button>
+    </form>
+    <form method="post" action="/master/empresas/{{ alvo.id }}/senha" class="inline" data-confirma="{{ _('Gerar uma senha provisória? A senha atual do responsável deixa de funcionar.') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="botao claro" type="submit">{{ _('Redefinir senha') }}</button>
+    </form>
+    <form method="post" action="/master/empresas/{{ alvo.id }}/bloqueio" class="inline" {% if alvo.ativo %}data-confirma="Bloquear {{ alvo.nome }}? Ninguém dela entra mais e o ponto para de ser registrado."{% endif %}>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="botao {{ 'perigo' if alvo.ativo else 'claro' }}" type="submit">{{ _('Bloquear') if alvo.ativo else _('Desbloquear') }}</button>
+    </form>
+    {% if alvo.asaas_assinatura_id %}
+    <form method="post" action="/master/empresas/{{ alvo.id }}/cancelar-assinatura" class="inline" data-confirma="{{ _('Encerrar a cobrança automática de {v1} no Asaas?', v1=(alvo.nome)) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="botao claro" type="submit">{{ _('Encerrar cobrança automática') }}</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="cartao">
+  <h2>{{ _('Pagamentos') }}</h2>
+  {% if pagamentos %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Data') }}</th><th>{{ _('Valor') }}</th><th>{{ _('Situação') }}</th><th>{{ _('Origem') }}</th><th>{{ _('Forma') }}</th><th>{{ _('Plano') }}</th><th>{{ _('Observação') }}</th></tr></thead>
+    <tbody>
+    {% for p in pagamentos %}
+    <tr><td class="pequeno">{{ (p.pago_em or p.criado_em)|data }}</td><td>{{ p.valor_centavos|dinheiro }}</td>
+      <td><span class="etiqueta {{ {'pago': 'ok', 'pendente': 'alerta', 'vencido': 'erro', 'estornado': 'erro'}.get(p.status, '') }}">{{ p.status }}</span></td>
+      <td class="pequeno">{{ {'manual': _('registrado à mão'), 'avulso': _('Asaas · avulso'), 'assinatura': _('Asaas · mensal')}.get(p.tipo, p.tipo) }}</td>
+      <td>{{ p.forma }}</td><td>{{ p.plano_nome or '—' }}</td>
+      <td class="suave pequeno">{{ p.obs }}{% if p.fatura_url and p.status != 'pago' %} <a href="{{ p.fatura_url }}" target="_blank" rel="noopener">{{ _('cobrança') }}</a>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="vazio">{{ _('Nenhum pagamento registrado.') }}</div>
+  {% endif %}
+</div>
+{% endblock %}

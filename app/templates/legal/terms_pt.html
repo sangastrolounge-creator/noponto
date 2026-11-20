@@ -1,0 +1,77 @@
+{% extends "legal/_base.html" %}
+{% block nome_doc %}Termos de Uso{% endblock %}
+{% block texto %}
+<h1>Termos de Uso</h1>
+<p class="suave">Última atualização: {{ L.versao.strftime('%d/%m/%Y') }}</p>
+
+<p>Estes Termos de Uso (os “Termos”) são um contrato entre {{ L.empresa }} (“{{ L.marca }}”, “nós”) e a empresa que cria uma conta (o “Cliente”, “você”). Eles valem para o uso do site, do aplicativo web e do aplicativo de celular do {{ L.marca }} (o “Serviço”) pelo Cliente e por todas as pessoas que o Cliente convidar, incluindo gerentes e funcionários (“Usuários”). Ao criar uma conta ou usar o Serviço, você aceita estes Termos e a nossa <a href="/privacy">Política de Privacidade</a>. Se aceitar em nome de uma empresa, você confirma que pode representá-la.</p>
+
+<h2>1. O Serviço</h2>
+<p>O {{ L.marca }} ajuda empresas a organizar a equipe: escala, registro de ponto (pelo celular com localização ou num totem com PIN), intervalos, banco de horas, ausências e atestados, trocas de turno, mural da equipe, tarefas, estimativa do custo da equipe, avisos de hora extra, fechamento do mês, folha de ponto, planilha para o contador e cálculo de apoio da folha de pagamento. As funções disponíveis dependem do plano.</p>
+<p>O {{ L.marca }} é uma ferramenta de gestão. <strong>Não somos escritório de contabilidade, departamento pessoal nem advogados.</strong> Não pagamos salários, não recolhemos INSS, FGTS ou IRRF, não enviamos informações ao eSocial e não damos orientação jurídica, contábil ou trabalhista.</p>
+<p><strong>Registro de ponto:</strong> o {{ L.marca }} é um registro de ponto por programa, mas <strong>não é um REP-P certificado</strong> nos termos da Portaria MTP nº 671/2021 e não emite o AFD nem os comprovantes no formato dessa portaria. Cabe ao Cliente verificar, com o seu contador ou advogado, se essa forma de controle atende à sua situação (por exemplo, empresas com mais de 20 empregados, CLT art. 74, § 2º) e à convenção coletiva da sua categoria.</p>
+
+<h2>2. Contas</h2>
+<ul>
+  <li>Quem cria a conta é o dono da conta. Ele pode convidar gerentes com permissões limitadas e responde pelo que é feito na conta do Cliente.</li>
+  <li>Mantenha senhas e PINs do totem em sigilo e avise-nos se suspeitar de acesso indevido.</li>
+  <li>Informe dados corretos e mantenha-os atualizados, incluindo o nome, o endereço e o fuso horário da empresa.</li>
+  <li>Os funcionários usam o Serviço a convite do Cliente. A relação de trabalho deles é com o Cliente, não conosco.</li>
+</ul>
+
+<h2>3. Teste grátis, planos e cobrança</h2>
+<ul>
+  <li>Contas novas podem ter um período de teste grátis. Quando ele acaba, a conta fica limitada até você escolher um plano.</li>
+  <li>Os planos pagos são cobrados antecipadamente, por mês, pelo nosso intermediador de pagamentos, o Asaas, por Pix, boleto ou cartão. Na cobrança automática, a assinatura se renova todo mês até ser encerrada. Nos planos por pessoa, o valor do mês acompanha o número de pessoas que bateram o ponto nos últimos 30 dias, como mostrado na tela Assinatura.</li>
+  <li>Você pode encerrar a cobrança automática a qualquer momento na tela Assinatura. O acesso continua até o fim do período já pago. Valores já pagos não são devolvidos, salvo nos casos previstos em lei.</li>
+  <li>Se a cobrança vencer sem pagamento, a conta continua aberta por uma carência curta e depois fica limitada até o pagamento. Os registros de ponto continuam guardados.</li>
+  <li>Podemos mudar os preços com pelo menos 30 dias de aviso. O novo preço vale a partir da cobrança seguinte ao aviso.</li>
+</ul>
+
+<h2>4. Responsabilidades do Cliente como empregador</h2>
+<p>Você é o único responsável pelas decisões trabalhistas da sua empresa e por cumprir a CLT, a Constituição, as normas do Ministério do Trabalho e a convenção ou acordo coletivo da sua categoria. Em especial, você é responsável por:</p>
+<ul>
+  <li>pagar salários, horas extras, adicional noturno, DSR, férias, 13º e demais verbas corretamente e no prazo;</li>
+  <li>escolher corretamente o tipo de contrato de cada pessoa (CLT, aprendiz, intermitente, estágio ou prestador PJ) e cadastrar salário, jornada e dependentes corretos;</li>
+  <li>ter acordo individual ou coletivo válido para o banco de horas e para a compensação de jornada;</li>
+  <li>conferir e aprovar os registros de ponto antes de usá-los na folha, e guardá-los pelo prazo que a lei exige;</li>
+  <li>informar os funcionários sobre o uso de localização e de foto no ponto e obter a autorização que a lei exigir;</li>
+  <li>respeitar as regras de trabalho de menores, de intervalo, de descanso entre jornadas e de descanso semanal.</li>
+</ul>
+<p>Os cálculos e as conferências mostrados pelo Serviço (horas, extras, banco de horas, adicional noturno, DSR, faltas, custo da equipe, folha de apoio, INSS, IRRF e FGTS estimados e a central de conformidade) são ajudas baseadas nos dados e nas configurações que você informa. Eles podem não refletir todas as regras que valem para você. <strong>Confira com o seu contador antes de usar.</strong></p>
+
+<h2>5. Revisão com inteligência artificial</h2>
+<p>Alguns planos permitem que um gerente peça uma revisão automática da folha de apoio, feita por um provedor externo de inteligência artificial. Ela pode estar incompleta ou errada, não é orientação jurídica ou contábil e não substitui a sua conferência nem a de um profissional. Só roda quando um gerente pede, e só envia os dados necessários daquele período.</p>
+
+<h2>6. Dados e proteção de dados (LGPD)</h2>
+<ul>
+  <li>Os dados que você e seus Usuários colocam no Serviço (“Dados do Cliente”) pertencem a você.</li>
+  <li>Para os dados pessoais dos seus funcionários, <strong>você é o controlador</strong> e nós somos o <strong>operador</strong> (Lei nº 13.709/2018, art. 5º): tratamos esses dados só para prestar o Serviço, conforme as suas instruções e a <a href="/privacy">Política de Privacidade</a>. Não vendemos os Dados do Cliente nem os usamos para publicidade.</li>
+  <li>Você confirma que tem base legal para tratar os dados que coloca no Serviço (por exemplo, o cumprimento de obrigação legal de controle de jornada) e que informou os titulares.</li>
+  <li>Você pode exportar os registros de ponto e os fechamentos a qualquer momento enquanto a conta estiver ativa. Depois do encerramento da conta, guardamos os Dados do Cliente por 90 dias para você pedir uma cópia, e depois os apagamos.</li>
+</ul>
+
+<h2>7. Uso permitido</h2>
+<p>Você e seus Usuários não podem: usar o Serviço para algo ilegal; falsificar registros de ponto ou ajudar alguém a fazer isso; tentar enganar as conferências de localização, totem ou aparelho; acessar contas ou dados de terceiros; testar, varrer, sobrecarregar ou atrapalhar o Serviço; copiar, revender ou fazer engenharia reversa do Serviço; nem enviar código malicioso. Podemos suspender o acesso que coloque em risco o Serviço, outros clientes ou pessoas.</p>
+
+<h2>8. Disponibilidade e mudanças</h2>
+<p>Trabalhamos para manter o Serviço no ar e os dados seguros, mas não garantimos funcionamento sem interrupções ou erros. A localização e a foto dependem do aparelho, do navegador e da internet do Usuário, e a localização de um celular pode ser imprecisa ou falsificada. Podemos melhorar, mudar ou retirar funções. Se uma mudança reduzir muito uma função paga de que você depende, você pode cancelar e devolvemos a parte não usada do período pago.</p>
+
+<h2>9. Propriedade intelectual</h2>
+<p>O Serviço (software, marca, visual e conteúdo, menos os Dados do Cliente) é nosso. Enquanto você for assinante, tem o direito limitado, não exclusivo e intransferível de usá-lo no seu negócio.</p>
+
+<h2>10. Suspensão e encerramento</h2>
+<p>Você pode encerrar a conta quando quiser. Podemos suspender ou encerrar uma conta por falta de pagamento, por descumprimento grave ou repetido destes Termos, ou por determinação legal. Quando for razoável, avisaremos antes.</p>
+
+<h2>11. Responsabilidade</h2>
+<p>Na medida permitida pela lei, não respondemos por lucros cessantes, perda de dados causada por terceiros ou danos indiretos, e a nossa responsabilidade total por reclamações ligadas ao Serviço fica limitada ao valor pago por você nos 12 meses anteriores ao fato. Salários, verbas trabalhistas, multas, tributos e condenações que a sua empresa deva à equipe ou ao governo são de responsabilidade da sua empresa. Nada nestes Termos afasta direitos que a lei não permite afastar, inclusive os do Código de Defesa do Consumidor quando ele se aplicar.</p>
+
+<h2>12. Lei aplicável e foro</h2>
+<p>Estes Termos seguem as leis do Brasil. Antes de levar uma disputa à Justiça, as partes tentarão resolvê-la de forma amigável por escrito, por 30 dias. Fica eleito o foro {% if L.foro %}da comarca de {{ L.foro }}{% else %}da comarca da sede de {{ L.empresa }}{% endif %}, ressalvado o direito do consumidor de propor a ação no seu domicílio.</p>
+
+<h2>13. Mudanças nestes Termos</h2>
+<p>Podemos atualizar estes Termos. Se a mudança for importante, avisaremos os donos das contas por e-mail ou no aplicativo pelo menos 15 dias antes de ela valer. Continuar usando o Serviço depois dessa data significa aceitar a nova versão.</p>
+
+<h2>14. Contato</h2>
+{% include "legal/_contato.html" %}
+{% endblock %}

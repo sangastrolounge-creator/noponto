@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="{{ IDIOMAS[idioma()][2] }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>{{ app_nome }} — {{ c.topo.titulo }}</title>
+<meta name="description" content="{{ c.topo.subtitulo|truncate(155) }}">
+{% if previa %}<meta name="robots" content="noindex">{% endif %}
+<meta name="theme-color" content="#0b1530">
+<link rel="icon" href="/static/favicon.png" type="image/png">
+<link rel="stylesheet" href="/static/style.css?v=44">
+<link rel="stylesheet" href="/static/vendas.css?v=1">
+<script>window.T = {{ textos_js()|tojson }}; window.t = function (s) { return window.T[s] || s; };</script>
+<script>
+/* Comportamento de app nativo: bloqueia o zoom de pinça e o de duplo toque (reforço para o Safari do iPhone). */
+(function () {
+  function bloquear(e) { e.preventDefault(); }
+  ["gesturestart", "gesturechange", "gestureend"].forEach(function (n) {
+    document.addEventListener(n, bloquear, { passive: false });
+  });
+  var ultimoToque = 0;
+  document.addEventListener("touchend", function (e) {
+    var agora = Date.now();
+    // campos de digitação ficam de fora, para o duplo toque ainda selecionar palavras
+    if (agora - ultimoToque <= 300 && !e.target.closest("input, textarea, select, [contenteditable]")) e.preventDefault();
+    ultimoToque = agora;
+  }, { passive: false });
+})();
+</script>
+</head>
+<body class="vendas">
+{% from "_idioma.html" import seletor %}
+{% from "_planos.html" import cartoes %}
+{% from "_estrelas.html" import estrelas %}
+
+{% macro video(v) %}
+  {% set info = video_info(v) %}
+  {% if info and info.tipo == 'arquivo' %}
+  <video class="v-midia" controls preload="metadata" playsinline src="{{ info.src }}"></video>
+  {% elif info %}
+  <div class="v-quadro"><iframe src="{{ info.src }}" title="{{ _('Vídeo') }}" loading="lazy" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+  {% endif %}
+{% endmacro %}
+{% macro midia(s) %}{% if s.video %}{{ video(s.video) }}{% elif s.imagem %}<img class="v-midia" src="{{ s.imagem }}" alt="" loading="lazy">{% endif %}{% endmacro %}
+{% macro botao(texto, classe='') %}<a class="botao v-cta {{ classe }}" href="{{ cta }}">{{ texto or _('Começar agora') }}</a>{% endmacro %}
+
+{% if previa %}<div class="barra-master">{{ _('Prévia do rascunho. Os visitantes só veem isto depois de você publicar.') }} <a class="botao mini claro" href="/master/pagina?lang={{ previa_lang or 'pt' }}">{{ _('Voltar ao editor') }}</a></div>{% endif %}
+
+<header class="v-topo">
+  <div class="v-dentro v-topo-linha">
+    <a class="marca" href="/"><img src="/static/logo.png" alt="">{{ app_nome }}</a>
+    <nav class="v-menu">
+      {% if c.beneficios.ativo %}<a href="#beneficios">{{ _('Benefícios') }}</a>{% endif %}
+      {% if c.depoimentos.ativo and c.depoimentos.itens %}<a href="#depoimentos">{{ _('Depoimentos') }}</a>{% endif %}
+      {% if c.planos.ativo and planos %}<a href="#planos">{{ _('Planos') }}</a>{% endif %}
+      {% if c.faq.ativo and c.faq.itens %}<a href="#duvidas">{{ _('Dúvidas') }}</a>{% endif %}
+    </nav>
+    <div class="v-acoes">{{ seletor() }}<a href="/entrar">{{ _('Entrar') }}</a>{{ botao(c.topo.botao, 'mini') }}</div>
+  </div>
+</header>
+
+<main>
+{% if c.topo.ativo %}
+<section class="v-heroi {{ 'com-midia' if c.topo.imagem or c.topo.video }}">
+  <div class="v-dentro v-heroi-grade">
+    <div>
+      {% if c.topo.selo %}<div class="v-selo">{{ c.topo.selo }}</div>{% endif %}
+      <h1>{{ c.topo.titulo }}</h1>
+      {% if c.topo.subtitulo %}<p class="v-sub">{{ c.topo.subtitulo }}</p>{% endif %}
+      {{ botao(c.topo.botao, 'grande') }}
+      {% if c.topo.nota %}<div class="v-nota">{{ c.topo.nota }}</div>{% endif %}
+    </div>
+    {% if c.topo.imagem or c.topo.video %}<div class="v-heroi-midia">{{ midia(c.topo) }}</div>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if c.dor.ativo %}
+<section class="v-secao v-escura">
+  <div class="v-dentro">
+    <h2>{{ c.dor.titulo }}</h2>
+    {% if c.dor.texto %}<p class="v-lead">{{ c.dor.texto }}</p>{% endif %}
+    {% if c.dor.itens %}
+    <div class="v-cartoes">
+      {% for i in c.dor.itens %}<div class="v-cartao"><div class="v-x">✕</div><h3>{{ i.titulo }}</h3><p>{{ i.texto }}</p></div>{% endfor %}
+    </div>
+    {% endif %}
+    {% if c.dor.fecho %}<p class="v-fecho">{{ c.dor.fecho }}</p>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if c.solucao.ativo %}
+<section class="v-secao">
+  <div class="v-dentro {{ 'v-duas' if c.solucao.imagem or c.solucao.video }}">
+    <div>
+      <div class="v-rotulo">{{ _('A solução') }}</div>
+      <h2 class="esq">{{ c.solucao.titulo }}</h2>
+      {% if c.solucao.texto %}<p class="v-texto">{{ c.solucao.texto }}</p>{% endif %}
+      {% if c.solucao.pontos %}<ul class="v-pontos">{% for p in c.solucao.pontos %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+      {{ botao(c.topo.botao) }}
+    </div>
+    {% if c.solucao.imagem or c.solucao.video %}<div>{{ midia(c.solucao) }}</div>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if c.passos.ativo and c.passos.itens %}
+<section class="v-secao v-clara">
+  <div class="v-dentro">
+    <h2>{{ c.passos.titulo }}</h2>
+    <div class="v-passos">
+      {% for i in c.passos.itens %}<div class="v-passo"><div class="v-n">{{ loop.index }}</div><h3>{{ i.titulo }}</h3><p>{{ i.texto }}</p></div>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if c.beneficios.ativo and c.beneficios.itens %}
+<section class="v-secao" id="beneficios">
+  <div class="v-dentro">
+    <h2>{{ c.beneficios.titulo }}</h2>
+    {% if c.beneficios.texto %}<p class="v-lead">{{ c.beneficios.texto }}</p>{% endif %}
+    <div class="v-cartoes tres">
+      {% for i in c.beneficios.itens %}<div class="v-cartao"><div class="v-ok">✓</div><h3>{{ i.titulo }}</h3><p>{{ i.texto }}</p></div>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if c.demo.ativo and c.demo.video %}
+<section class="v-secao v-clara">
+  <div class="v-dentro v-estreita">
+    <h2>{{ c.demo.titulo }}</h2>
+    {% if c.demo.texto %}<p class="v-lead">{{ c.demo.texto }}</p>{% endif %}
+    {{ video(c.demo.video) }}
+  </div>
+</section>
+{% endif %}
+
+{% if c.depoimentos.ativo and c.depoimentos.itens %}
+<section class="v-secao" id="depoimentos">
+  <div class="v-dentro">
+    <h2>{{ c.depoimentos.titulo }}</h2>
+    {% if c.depoimentos.texto %}<p class="v-lead">{{ c.depoimentos.texto }}</p>{% endif %}
+    <div class="v-cartoes tres">
+      {% for i in c.depoimentos.itens %}
+      <figure class="v-cartao v-depo">
+        <div>{{ estrelas(i.nota|int) }}</div>
+        <blockquote>{{ i.texto }}</blockquote>
+        <figcaption>
+          {% if i.foto %}<img src="{{ i.foto }}" alt="" loading="lazy">{% else %}<span class="v-inicial">{{ i.nome[:1]|upper }}</span>{% endif %}
+          <span><strong>{{ i.nome }}</strong>{% if i.empresa %}<br><span class="suave pequeno">{{ i.empresa }}</span>{% endif %}</span>
+        </figcaption>
+      </figure>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if c.planos.ativo and planos %}
+<section class="v-secao v-clara" id="planos">
+  <div class="v-dentro">
+    <h2>{{ c.planos.titulo }}</h2>
+    {% if c.planos.texto %}<p class="v-lead">{{ c.planos.texto }}</p>{% endif %}
+    {% if plat.cadastro_aberto %}{{ cartoes(planos, 'venda', dias_teste=plat.dias_teste) }}
+    {% else %}{{ cartoes(planos, 'mostra') }}<p style="text-align:center;margin-top:20px">{{ botao(_('Falar com a gente')) }}</p>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if c.garantia.ativo %}
+<section class="v-secao">
+  <div class="v-dentro v-estreita">
+    <div class="v-garantia">
+      <div class="v-escudo">✓</div>
+      <div><h2 class="esq">{{ c.garantia.titulo }}</h2><p class="v-texto">{{ c.garantia.texto }}</p></div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if c.faq.ativo and c.faq.itens %}
+<section class="v-secao v-clara" id="duvidas">
+  <div class="v-dentro v-estreita">
+    <h2>{{ c.faq.titulo }}</h2>
+    {% for i in c.faq.itens %}<details class="v-faq"><summary>{{ i.pergunta }}</summary><p>{{ i.resposta }}</p></details>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if c.final.ativo %}
+<section class="v-final">
+  <div class="v-dentro v-estreita">
+    <h2>{{ c.final.titulo }}</h2>
+    {% if c.final.texto %}<p>{{ c.final.texto }}</p>{% endif %}
+    {{ botao(c.final.botao, 'grande inverso') }}
+  </div>
+</section>
+{% endif %}
+</main>
+
+<footer class="v-rodape">
+  <div class="v-dentro">
+    <strong>{{ app_nome }}</strong>
+    {% if c.rodape.ativo and c.rodape.texto %}<span>{{ c.rodape.texto }}</span>{% endif %}
+    <span><a href="/entrar">{{ _('Entrar') }}</a> · <a href="/terms">{{ _('Termos de Uso') }}</a> · <a href="/privacy">{{ _('Política de Privacidade') }}</a>{% if plat.whatsapp %} · <a href="https://wa.me/55{{ plat.whatsapp }}" target="_blank" rel="noopener">{{ _('WhatsApp') }}</a>{% endif %}</span>
+  </div>
+</footer>
+</body>
+</html>

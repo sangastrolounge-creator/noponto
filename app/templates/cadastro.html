@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Criar conta — {v1}', v1=(app_nome)) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<div class="centro"><div class="caixa">
+  {{ seletor("caixa-idiomas") }}
+  <a class="marca" href="/"><img src="/static/logo.png" alt="">{{ app_nome }}</a>
+  <div class="cartao">
+    <h1>{{ _('Criar conta da empresa') }}</h1>
+    <p class="suave">{{ _('Você será o gestor. Depois é só cadastrar a equipe.') }}{% if plat.dias_teste %} {{ _('São {v1} dias grátis para testar', v1=(plat.dias_teste)) }}{% if plano %} {{ _('o plano {v1}', v1=(plano.nome)) }}{% endif %}{{ _(', sem cartão.') }}{% endif %}</p>
+    {% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+    <form method="post" action="/cadastro">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="plano" value="{{ plano.id if plano else 0 }}">
+      <div class="campo"><label for="empresa">{{ _('Nome da empresa') }}</label><input id="empresa" type="text" name="empresa" value="{{ v.empresa }}" required maxlength="120" autofocus></div>
+      <div class="campo"><label for="nome">{{ _('Seu nome') }}</label><input id="nome" type="text" name="nome" value="{{ v.nome }}" required maxlength="120" autocomplete="name"></div>
+      <div class="campo"><label for="email">{{ _('E-mail') }}</label><input id="email" type="email" name="email" value="{{ v.email }}" required autocomplete="username"></div>
+      <div class="campo"><label for="senha">{{ _('Senha') }}</label><input id="senha" type="password" name="senha" required minlength="6" autocomplete="new-password"><div class="ajuda">{{ _('Pelo menos 6 caracteres.') }}</div></div>
+      <label class="marcar campo"><input type="checkbox" name="aceito" value="1" required>
+        <span>{{ _('Li e aceito os') }} <a href="/terms" target="_blank">{{ _('Termos de Uso') }}</a> {{ _('e a') }} <a href="/privacy" target="_blank">{{ _('Política de Privacidade') }}</a>.</span></label>
+      <button class="botao" type="submit" style="width:100%">{{ _('Criar conta') }}</button>
+    </form>
+  </div>
+  <p class="suave pequeno" style="text-align:center">{{ _('Já tem conta?') }} <a href="/entrar">{{ _('Entrar') }}</a></p>
+  <p class="suave pequeno legal-links"><a href="/terms">{{ _('Termos de Uso') }}</a> · <a href="/privacy">{{ _('Política de Privacidade') }}</a></p>
+</div></div>
+{% endblock %}

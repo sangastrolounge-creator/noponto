@@ -1,0 +1,23 @@
+{# Cartões de plano. modo: 'venda' (leva ao cadastro) ou 'mostra' (só exibe e marca o atual) #}
+{% macro cartoes(planos, modo='venda', atual=None, dias_teste=0) %}
+<div class="planos">
+  {% for p in planos %}
+  <div class="plano {{ 'destaque' if p.destaque }} {{ 'atual' if atual == p.id }}">
+    {% if atual == p.id %}<div class="selo">{{ _('Seu plano') }}</div>{% elif p.destaque %}<div class="selo">{{ _('Mais escolhido') }}</div>{% endif %}
+    <h3>{{ p.nome }}</h3>
+    {% if p.por_pessoa %}
+    <div class="preco">{{ p.por_pessoa_centavos|dinheiro }}<span>{{ _('/pessoa/mês') }}</span></div>
+    <div class="suave pequeno">{% if p.base_centavos %}{{ _('+ {v1}/mês de base', v1=(p.base_centavos|dinheiro)) }}{% endif %}{% if p.base_centavos and p.minimo_centavos %} · {% endif %}{% if p.minimo_centavos %}{{ _('mínimo {v1}/mês', v1=(p.minimo_centavos|dinheiro)) }}{% endif %}</div>
+    <div class="suave pequeno">{{ _('Só conta quem trabalhou nos últimos 30 dias.') }}</div>
+    {% else %}
+    <div class="preco">{% if p.gratis %}{{ _('Grátis') }}{% else %}{{ p.preco_centavos|dinheiro }}<span>{{ _('/mês') }}</span>{% endif %}</div>
+    {% endif %}
+    <div class="suave pequeno">{{ _('Funcionários ilimitados') if p.limite_funcionarios == 0 else _('Até ') ~ p.limite_funcionarios ~ _(' funcionários') }}{% if p.limite_locais %} · {{ _('1 local') if p.limite_locais == 1 else _('{v1} locais', v1=(p.limite_locais)) }}{% endif %}</div>
+    <ul>{% for linha in p.descricao.splitlines() if linha.strip() %}<li>{{ linha }}</li>{% endfor %}</ul>
+    {% if modo == 'venda' %}
+    <a class="botao {{ '' if p.destaque else 'claro' }}" href="/cadastro?plano={{ p.id }}">{{ _('Começar grátis') if p.gratis else (_('Testar ') ~ dias_teste ~ _(' dias grátis') if dias_teste else _('Começar')) }}</a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}

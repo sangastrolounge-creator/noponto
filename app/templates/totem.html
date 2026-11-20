@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Totem de ponto — {v1}', v1=(app_nome)) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+{% if not t %}
+<main class="totem"><div class="cartao" style="max-width:480px;margin:15vh auto;text-align:center">
+  <h1>{{ _('Totem não ativado') }}</h1>
+  <p class="suave">{{ _('Este aparelho não está ativado como totem, ou o totem foi removido. Peça ao gestor o endereço de ativação em Locais → Totens.') }}</p>
+</div></main>
+{% else %}
+<main class="totem">
+  <header class="totem-topo">
+    <div><strong>{{ e.nome }}</strong><br><span class="suave">{{ t.local.nome if t.local else t.nome }}</span></div>
+    <div style="display:flex;gap:14px;align-items:center">{{ seletor() }}<div class="relogio" id="relogio">{{ estado.hora }}</div></div>
+  </header>
+  <div class="totem-grade">
+    <section class="cartao totem-codigo">
+      <h2>{{ _('Pelo celular') }}</h2>
+      <p class="suave">{{ _('Abra o aplicativo, toque em “Usar o código do totem” e digite:') }}</p>
+      <div class="codigo" id="codigo" aria-live="polite">{{ estado.codigo[:3] }} {{ estado.codigo[3:] }}</div>
+      <div class="suave pequeno">{{ _('Muda em') }} <span id="resta">{{ estado.resta }}</span> {{ _('s') }}</div>
+      {% if tem_qr %}<img id="qr" src="/totem/qr.svg?c={{ estado.codigo }}" alt="{{ _('QR code para abrir o aplicativo com o código') }}" width="220" height="220">
+      <div class="suave pequeno">{{ _('Ou aponte a câmera do celular para o QR code.') }}</div>{% endif %}
+    </section>
+    <section class="cartao">
+      <h2>{{ _('Sem celular') }}</h2>
+      <p class="suave">{{ _('Toque no seu nome e digite o seu PIN.') }}</p>
+      <div class="totem-nomes">
+        {% for p in pessoas %}<button type="button" class="botao claro" data-uid="{{ p.id }}" data-nome="{{ p.nome }}">{{ p.nome }}</button>{% endfor %}
+      </div>
+      <div id="retorno" class="retorno" role="status" hidden></div>
+    </section>
+  </div>
+</main>
+<dialog id="dlg-pin">
+  <h2 id="pin-nome" style="margin-bottom:4px"></h2>
+  <p class="suave pequeno">{{ _('Digite o seu PIN.') }}</p>
+  <input type="password" id="pin" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="{{ _('PIN') }}">
+  <div class="acoes" style="justify-content:flex-end;margin-top:12px">
+    <button class="botao claro" type="button" id="pin-cancelar">{{ _('Cancelar') }}</button>
+    <button class="botao" type="button" id="pin-ok">{{ _('Bater ponto') }}</button>
+  </div>
+</dialog>
+<script>
+(function () {
+  function g(id) { return document.getElementById(id); }
+  var resta = {{ estado.resta }}, dlg = g("dlg-pin"), uid = null, ret = g("retorno"), some = null;
+  function mostrar(tipo, texto) {
+    ret.hidden = false; ret.className = "retorno " + tipo; ret.textContent = texto;
+    clearTimeout(some); some = setTimeout(function () { ret.hidden = true; }, 8000);
+  }
+  function atualizar() {
+    fetch("/totem/estado").then(function (r) { if (r.status === 403) location.reload(); return r.json(); }).then(function (j) {
+      if (!j.codigo) return;
+      g("codigo").textContent = j.codigo.slice(0, 3) + " " + j.codigo.slice(3);
+      g("relogio").textContent = j.hora; resta = j.resta;
+      if (g("qr")) g("qr").src = "/totem/qr.svg?c=" + j.codigo;
+    }).catch(function () {});
+  }
+  setInterval(function () {
+    resta -= 1;
+    if (resta <= 0) { resta = 60; atualizar(); }
+    g("resta").textContent = resta;
+  }, 1000);
+  setInterval(atualizar, 20000);
+  document.querySelectorAll(".totem-nomes button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      uid = b.dataset.uid; g("pin-nome").textContent = b.dataset.nome; g("pin").value = "";
+      dlg.showModal(); g("pin").focus();
+    });
+  });
+  g("pin-cancelar").addEventListener("click", function () { dlg.close(); });
+  function bater() {
+    var pin = g("pin").value; dlg.close();
+    fetch("/totem/ponto", {
+      method: "POST", headers: { "Content-Type": "application/json", "X-CSRF": "{{ csrf }}" },
+      body: JSON.stringify({ uid: uid, pin: pin })
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) { mostrar(x.ok ? "ok" : "erro", x.ok ? x.j.mensagem : (x.j.erro || x.j.detail || t("Não foi possível registrar."))); })
+      .catch(function () { mostrar("erro", t("Sem conexão. Confira a internet do tablet.")); });
+  }
+  g("pin-ok").addEventListener("click", bater);
+  g("pin").addEventListener("keydown", function (ev) { if (ev.key === "Enter") bater(); });
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "master/base.html" %}
+
+{% macro campo_imagem(nome, valor, rotulo='Imagem') %}
+<div class="campo">
+  <label>{{ rotulo }}</label>
+  {% if valor %}
+  <div class="ed-atual">
+    <img src="{{ valor }}" alt="" class="ed-mini">
+    <input type="hidden" name="{{ nome }}_atual" value="{{ valor }}">
+    <label class="marcar"><input type="checkbox" name="{{ nome }}_remover" value="1"><span>{{ _('Remover') }}</span></label>
+  </div>
+  {% endif %}
+  <input type="file" name="{{ nome }}" accept="image/png,image/jpeg,image/webp,image/gif">
+  <div class="ajuda">{{ _('PNG, JPG, WEBP ou GIF, até 5 MB.') }}{% if valor %} {{ _('Escolha um arquivo para trocar.') }}{% endif %}</div>
+</div>
+{% endmacro %}
+
+{% macro campo_video(nome, valor) %}
+{% set arquivo = valor and valor.startswith('/midia/') %}
+<div class="campo">
+  <label>{{ _('Vídeo') }}</label>
+  {% if arquivo %}
+  <div class="ed-atual">
+    <video src="{{ valor }}" class="ed-mini" controls preload="metadata"></video>
+    <input type="hidden" name="{{ nome }}_atual" value="{{ valor }}">
+    <label class="marcar"><input type="checkbox" name="{{ nome }}_remover" value="1"><span>{{ _('Remover') }}</span></label>
+  </div>
+  {% endif %}
+  <input type="url" name="{{ nome }}_link" value="{{ '' if arquivo else valor }}" placeholder="{{ _('Link do YouTube ou do Vimeo (https://...)') }}" maxlength="300">
+  <div class="ajuda" style="margin-bottom:8px">{{ _('Ou envie o arquivo do vídeo (MP4 ou WEBM, até 100 MB):') }}</div>
+  <input type="file" name="{{ nome }}" accept="video/mp4,video/webm">
+  <div class="ajuda">{{ _('Se a seção tiver imagem e vídeo, o vídeo é o que aparece.') }}</div>
+</div>
+{% endmacro %}
+
+{% macro linha(sec, esq, item, chave) %}
+<div class="ed-linha">
+  <input type="hidden" name="{{ sec }}__chave" value="{{ chave }}">
+  <div class="ed-linha-campos">
+    {% for c, lim in esq.lista.items() %}
+      {% if c == 'nota' %}
+      <div class="campo"><label>{{ _('Estrelas') }}</label><select name="{{ sec }}__nota__{{ chave }}">{% for n in ['5', '4', '3', '2', '1'] %}<option value="{{ n }}" {{ 'selected' if (item.nota or '5') == n }}>{{ n }}</option>{% endfor %}</select></div>
+      {% elif c in longos %}
+      <div class="campo larga"><label>{{ _(rotulos[c]) }}</label><textarea name="{{ sec }}__{{ c }}__{{ chave }}" maxlength="{{ lim }}" rows="2">{{ item[c] }}</textarea></div>
+      {% else %}
+      <div class="campo {{ 'larga' if c == 'pergunta' }}"><label>{{ _(rotulos[c]) }}</label><input type="text" name="{{ sec }}__{{ c }}__{{ chave }}" value="{{ item[c] }}" maxlength="{{ lim }}"></div>
+      {% endif %}
+    {% endfor %}
+    {% if esq.foto %}<div class="larga">{{ campo_imagem(sec ~ '__foto__' ~ chave, item.foto, _('Foto (opcional)')) }}</div>{% endif %}
+  </div>
+  <div class="ed-linha-acoes">
+    <button type="button" class="botao claro mini js-sobe" title="{{ _('Subir') }}">↑</button>
+    <button type="button" class="botao claro mini js-desce" title="{{ _('Descer') }}">↓</button>
+    <button type="button" class="botao claro mini js-tira" title="{{ _('Remover') }}">{{ _('Remover') }}</button>
+  </div>
+</div>
+{% endmacro %}
+
+{% block master %}
+<div class="cabecalho">
+  <div>
+    <h1>{{ _('Página de vendas') }}</h1>
+    <p class="suave" style="margin:0">{{ _('A página que o visitante vê ao abrir o site. Edite os textos, envie imagens e vídeos, veja a prévia e publique.') }}</p>
+  </div>
+  <div>
+    {% if publicada and pendente %}<span class="etiqueta alerta">{{ _('No ar, com alterações não publicadas') }}</span>
+    {% elif publicada %}<span class="etiqueta ok">{{ _('No ar desde {v1}', v1=(publicado_em|data('%d/%m/%Y %H:%M'))) }}</span>
+    {% else %}<span class="etiqueta">{{ _('Ainda não publicada: o site mostra a página simples') }}</span>{% endif %}
+  </div>
+</div>
+
+<nav class="subabas" aria-label="{{ _('Idioma da página') }}" style="margin-bottom:14px">
+  {% for cod, d in IDIOMAS.items() %}
+  <a href="/master/pagina?lang={{ cod }}" class="{{ 'ativa' if cod == lang }}">{{ d[0] }}
+    <span class="pequeno" style="font-weight:500">· {{ _({'publicada': 'publicada', 'rascunho': 'rascunho', 'vazia': 'não criada'}[estados[cod]]) }}</span></a>
+  {% endfor %}
+</nav>
+{% if lang != 'pt' %}<p class="ajuda" style="margin-top:-6px">{{ _('Cada idioma tem a sua página. Enquanto a versão em {v1} não for publicada, quem visita em {v1} vê a página em português.', v1=IDIOMAS[lang][0]) }}</p>{% endif %}
+<form method="post" action="/master/pagina" enctype="multipart/form-data" id="pagina">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+
+  {% for sec, esq in esquema.items() %}
+  {% set s = c[sec] %}
+  <details class="cartao ed-secao" {{ 'open' if loop.first }}>
+    <summary><span class="ed-nome">{{ _(esq.nome) }}</span><span class="etiqueta {{ 'ok' if s.ativo }}" data-estado>{{ _('Visível') if s.ativo else _('Escondida') }}</span></summary>
+    <div class="ed-corpo">
+      <label class="marcar" style="margin-bottom:14px"><input type="checkbox" name="{{ sec }}__ativo" value="1" {{ 'checked' if s.ativo }} class="js-ativo"><span>{{ _('Mostrar esta seção na página') }}</span></label>
+      {% if sec == 'planos' %}<div class="ajuda" style="margin-bottom:12px">{{ _('Os cartões de plano vêm de Painel Master → Planos (os que estão à venda).') }}</div>{% endif %}
+      {% if sec == 'depoimentos' %}<div class="alerta">{{ _('Cadastre só depoimentos reais, de clientes que autorizaram. Depoimento inventado é propaganda enganosa.') }}</div>{% endif %}
+      {% for campo, lim in esq.campos.items() %}
+      <div class="campo">
+        <label for="{{ sec }}__{{ campo }}">{{ _(rotulos[campo]) }}</label>
+        {% if campo in longos %}<textarea id="{{ sec }}__{{ campo }}" name="{{ sec }}__{{ campo }}" maxlength="{{ lim }}" rows="3">{{ s[campo] }}</textarea>
+        {% else %}<input id="{{ sec }}__{{ campo }}" type="text" name="{{ sec }}__{{ campo }}" value="{{ s[campo] }}" maxlength="{{ lim }}">{% endif %}
+      </div>
+      {% endfor %}
+      {% for campo in esq.get('linhas', ()) %}
+      <div class="campo"><label for="{{ sec }}__{{ campo }}">{{ _(rotulos[campo]) }}</label><textarea id="{{ sec }}__{{ campo }}" name="{{ sec }}__{{ campo }}" rows="4">{{ s[campo]|join('\n') }}</textarea></div>
+      {% endfor %}
+      {% if 'imagem' in esq.get('midia', ()) %}{{ campo_imagem(sec ~ '__imagem', s.imagem) }}{% endif %}
+      {% if 'video' in esq.get('midia', ()) %}{{ campo_video(sec ~ '__video', s.video) }}{% endif %}
+      {% if esq.lista %}
+      <label>{{ _('Itens') }}</label>
+      <div class="ed-lista" data-max="{{ esq.max }}">
+        {% for item in s.itens %}{{ linha(sec, esq, item, nova_chave()) }}{% endfor %}
+      </div>
+      <button type="button" class="botao claro mini js-novo">{{ _('Adicionar item') }}</button>
+      <template>{{ linha(sec, esq, {}, 'CHAVENOVA') }}</template>
+      {% endif %}
+    </div>
+  </details>
+  {% endfor %}
+
+  <div class="ed-barra">
+    <button class="botao claro" type="submit" name="acao" value="salvar">{{ _('Salvar rascunho') }}</button>
+    <button class="botao claro" type="submit" name="acao" value="previa" formtarget="_blank">{{ _('Salvar e ver prévia') }}</button>
+    <button class="botao" type="submit" name="acao" value="publicar">{{ _('Publicar') }}</button>
+  </div>
+</form>
+
+<div class="acoes" style="margin-top:18px">
+  {% if pendente and publicada %}
+  <form method="post" action="/master/pagina" class="inline" data-confirma="{{ _('Descartar as alterações não publicadas e voltar ao que está no ar?') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="descartar"><input type="hidden" name="lang" value="{{ lang }}">
+    <button class="botao link" type="submit">{{ _('Descartar alterações não publicadas') }}</button>
+  </form>
+  {% endif %}
+  {% if publicada %}
+  <form method="post" action="/master/pagina" class="inline" data-confirma="{{ _('Tirar a página de vendas do ar? O site volta a mostrar a página simples. O rascunho é mantido.') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="tirar"><input type="hidden" name="lang" value="{{ lang }}">
+    <button class="botao link" type="submit">{{ _('Tirar do ar') }}</button>
+  </form>
+  <a href="/" target="_blank" rel="noopener" class="pequeno">{{ _('Ver a página no ar') }}</a> <span class="suave pequeno">{{ _('(em janela anônima; logado você cai no painel)') }}</span>
+  {% endif %}
+</div>
+
+<script>
+(function () {
+  function chave() { return Math.random().toString(36).slice(2, 10); }
+  document.querySelectorAll(".js-novo").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var lista = b.previousElementSibling, modelo = b.nextElementSibling;
+      if (lista.children.length >= Number(lista.dataset.max)) { alert(t("Limite de ") + lista.dataset.max + t(" itens nesta seção.")); return; }
+      var caixa = document.createElement("div");
+      caixa.innerHTML = modelo.innerHTML.replaceAll("CHAVENOVA", chave());
+      var nova = caixa.firstElementChild;
+      lista.appendChild(nova);
+      var primeiro = nova.querySelector("input[type=text], textarea");
+      if (primeiro) primeiro.focus();
+    });
+  });
+  document.getElementById("pagina").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    var l = b.closest(".ed-linha"); if (!l) return;
+    if (b.classList.contains("js-tira")) l.remove();
+    else if (b.classList.contains("js-sobe") && l.previousElementSibling) l.parentNode.insertBefore(l, l.previousElementSibling);
+    else if (b.classList.contains("js-desce") && l.nextElementSibling) l.parentNode.insertBefore(l.nextElementSibling, l);
+  });
+  document.querySelectorAll(".js-ativo").forEach(function (cx) {
+    cx.addEventListener("change", function () {
+      var e = cx.closest("details").querySelector("[data-estado]");
+      e.textContent = cx.checked ? t("Visível") : t("Escondida");
+      e.classList.toggle("ok", cx.checked);
+    });
+  });
+  var enviando = false;
+  document.getElementById("pagina").addEventListener("submit", function (ev) {
+    var b = ev.submitter;
+    if (b && b.value === "publicar" && !window.confirm(t("Publicar agora? A página passa a ser o que os visitantes veem."))) { ev.preventDefault(); return; }
+    if (b && b.value !== "previa") { if (enviando) { ev.preventDefault(); return; } enviando = true; b.textContent = t("Enviando…"); }
+  });
+})();
+</script>
+{% endblock %}

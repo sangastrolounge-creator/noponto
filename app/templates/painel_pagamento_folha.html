@@ -1,0 +1,118 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+{% set rascunho = f.situacao == 'rascunho' %}
+<div class="cabecalho">
+  <div><h1>{{ _('Folha de {v1} a {v2}', v1=(f.inicio.strftime('%d/%m/%Y')), v2=(f.fim.strftime('%d/%m/%Y'))) }}</h1>
+    <p class="suave" style="margin:0">{% if rascunho %}<span class="etiqueta">{{ _('Rascunho') }}</span> {{ _('Os funcionários ainda não veem os holerites.') }}{% else %}<span class="etiqueta ok">{{ _('Finalizada') }}</span> {{ _('em {v1}. Cada funcionário vê o próprio holerite no app.', v1=(local(e, f.finalizada_em, '%d/%m/%Y %H:%M'))) }}{% endif %}</p></div>
+  <a class="botao claro" href="/painel/pagamento">{{ _('Voltar') }}</a>
+</div>
+
+<div class="cartao">
+  <div class="folha-resumo">
+    <div><span>{{ _('Proventos') }}</span><strong>{{ total.bruto|dinheiro }}</strong></div>
+    <div><span>{{ _('INSS') }}</span><strong>{{ total.inss|dinheiro }}</strong></div>
+    <div><span>{{ _('IRRF') }}</span><strong>{{ total.irrf|dinheiro }}</strong></div>
+    <div><span>{{ _('Descontos') }}</span><strong>{{ total.descontos|dinheiro }}</strong></div>
+    <div class="destaque"><span>{{ _('Líquido a pagar') }}</span><strong>{{ total.liquido|dinheiro }}</strong></div>
+    <div><span>{{ _('FGTS (empresa)') }}</span><strong>{{ total.fgts|dinheiro }}</strong></div>
+  </div>
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Holerites') }}</h2>
+  <div class="rolagem"><table class="tabela-valores">
+    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Salário base') }}</th><th>{{ _('Proventos') }}</th><th>{{ _('Descontos') }}</th><th>{{ _('Líquido') }}</th><th>{{ _('FGTS') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for it in itens %}
+    {% set c = calcs[it.id] %}
+    <tr>
+      <td class="nome-forte">{{ it.usuario.nome }}{% for a in c.alertas or [] %}<br><span class="etiqueta erro pequeno">{{ _(a) }}</span>{% endfor %}</td>
+      <td>{{ it.salario_centavos|dinheiro }}</td>
+      <td>{{ it.bruto|dinheiro }}</td>
+      <td>{{ it.descontos|dinheiro }}</td>
+      <td><strong>{{ it.liquido|dinheiro }}</strong></td>
+      <td>{{ it.fgts|dinheiro }}</td>
+      <td class="direita"><a class="botao mini claro" href="/painel/pagamento/{{ f.id }}/holerite/{{ it.id }}">{{ _('Holerite') }}</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="acoes" style="margin-top:12px">
+    {% if rascunho %}
+    <form method="post" action="/painel/pagamento/{{ f.id }}/recalcular" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="botao claro" type="submit">{{ _('Recalcular com os dados salariais atuais') }}</button>
+    </form>
+    <form method="post" action="/painel/pagamento/{{ f.id }}/finalizar" class="inline" data-confirma="{{ _('Finalizar a folha? Os holerites ficam visíveis para os funcionários no app.') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="finalizar">
+      <button class="botao" type="submit">{{ _('Finalizar folha') }}</button>
+    </form>
+    {% else %}
+    <form method="post" action="/painel/pagamento/{{ f.id }}/finalizar" class="inline" data-confirma="{{ _('Desfazer a finalização? Os holerites saem do app dos funcionários até você finalizar de novo.') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="desfazer">
+      <button class="botao claro" type="submit">{{ _('Desfazer finalização') }}</button>
+    </form>
+    {% endif %}
+    <a class="botao claro" href="/painel/pagamento/{{ f.id }}/holerites">{{ _('Imprimir todos os holerites') }}</a>
+    <a class="botao claro" href="/painel/pagamento/{{ f.id }}/planilha.csv">{{ _('Planilha para o contador') }}</a>
+    {% if rascunho %}
+    <form method="post" action="/painel/pagamento/{{ f.id }}/excluir" class="inline" data-confirma="{{ _('Excluir esta folha? Os lançamentos manuais dela serão perdidos.') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="botao perigo" type="submit">{{ _('Excluir folha') }}</button>
+    </form>
+    {% endif %}
+  </div>
+  <p class="ajuda">{{ _('Cálculo: valor da hora = salário ÷ jornada mensal. Extras com {v1}% em dia normal e {v2}% em folga ou feriado, adicional noturno de {v3}%, DSR sobre extras, faltas e DSR perdido descontados. INSS e IRRF pelas tabelas de {v4} (com o redutor do IR); FGTS de {v5}% é pago pela empresa e não sai do salário.', v1=(f.fechamento.pct_normal), v2=(f.fechamento.pct_especial), v3=(f.fechamento.pct_noturno), v4=((f.tabelas|fromjson).vigencia), v5=((f.tabelas|fromjson).fgts_pct)) }}{% if f.controle == 'banco' %} {{ _('Controle por banco de horas: extras e atrasos ficam no banco e não entram na folha.') }}{% endif %} {{ _('Férias, 13º, rescisão e encargos da empresa não entram nesta folha.') }}</p>
+</div>
+
+{% if rascunho %}
+<form method="post" action="/painel/pagamento/{{ f.id }}/gorjetas" class="cartao" id="gorjetas">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Rateio de gorjetas') }}</h2>
+  <p class="suave pequeno" style="margin-top:-4px">{{ _('Divida o total das gorjetas do período entre quem participa. Cada parte entra no holerite como provento tributável: pela Lei 13.419/2017 a gorjeta integra a remuneração (INSS, FGTS e IRRF). Se a convenção coletiva prevê retenção para encargos, desconte-a do total antes.') }}</p>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    <div class="campo"><label for="g-total">{{ _('Total a dividir (R$)') }}</label><input id="g-total" type="text" name="total" inputmode="decimal" placeholder="0,00" required></div>
+    <div class="campo"><label for="g-modo">{{ _('Dividir') }}</label><select id="g-modo" name="modo"><option value="horas">{{ _('Pelas horas trabalhadas') }}</option><option value="igual">{{ _('Em partes iguais') }}</option></select></div>
+    <div class="campo"><label for="g-desc">{{ _('Descrição no holerite') }}</label><input id="g-desc" type="text" name="descricao" maxlength="80" value="{{ _('Gorjetas (rateio)') }}"></div>
+  </div>
+  <div class="opcoes-cartao">
+    {% for it in itens %}<label class="marcar"><input type="checkbox" name="p_{{ it.id }}" value="1" {{ 'checked' if it.usuario.gorjeta }}><span>{{ it.usuario.nome }}</span></label>{% endfor %}
+  </div>
+  <button class="botao" type="submit" style="margin-top:10px">{{ _('Dividir e lançar nos holerites') }}</button>
+</form>
+{% endif %}
+
+<div class="cartao" id="revisao">
+  <h2>{{ _('Revisão do Claude') }}</h2>
+  {% if f.revisao_situacao == 'andamento' %}
+  <p><span class="etiqueta alerta">{{ _('Em andamento') }}</span> {{ _('O Claude está refazendo as contas de cada holerite. Esta página se atualiza sozinha.') }}</p>
+  <script>setTimeout(function () { location.reload(); }, 6000);</script>
+  {% elif f.revisao_situacao == 'erro' %}
+  <div class="aviso erro">{{ _(revisao.erro) if revisao else _('A revisão falhou.') }}</div>
+  {% elif f.revisao_situacao == 'pronta' and revisao %}
+  <p>{{ revisao.resumo }}</p>
+  <p class="suave pequeno">{{ _('{v1} holerite(s) conferido(s), {v2} com divergência · {v3} · {v4}', v1=(revisao.conferidos), v2=(revisao.divergencias), v3=(revisao.modelo or modelo), v4=(local(e, f.revisao_em, '%d/%m/%Y %H:%M'))) }}</p>
+  {% if revisao.alertas %}
+  <ul class="lista-revisao">
+    {% for a in revisao.alertas %}
+    <li><span class="etiqueta {{ 'erro' if a.gravidade == 'alta' else 'alerta' if a.gravidade == 'media' else '' }}">{{ {'alta': _('Importante'), 'media': _('Atenção'), 'baixa': _('Lembrete')}[a.gravidade] }}</span>
+      <strong>{{ a.funcionario }}</strong>: {{ a.mensagem }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="suave">{{ _('Nenhum ponto de atenção encontrado.') }}</p>
+  {% endif %}
+  {% else %}
+  <p class="suave">{{ _('O Claude refaz as contas de cada holerite por conta própria e aponta diferenças e riscos (salário abaixo do mínimo, descontos estranhos, muitas faltas...). Os nomes, horas e valores desta folha são enviados à Anthropic para isso.') }}</p>
+  {% endif %}
+  {% if claude and f.revisao_situacao != 'andamento' %}
+  <form method="post" action="/painel/pagamento/{{ f.id }}/revisar">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="botao" type="submit">{{ _('Revisar de novo com o Claude') if f.revisao_situacao in ('pronta', 'erro') else _('Revisar com o Claude') }}</button>
+  </form>
+  {% elif not claude %}
+  <p class="ajuda">{{ _('A revisão pelo Claude ainda não foi ligada nesta plataforma.') }}</p>
+  {% endif %}
+  <p class="ajuda">{{ _('A revisão ajuda a achar erros, mas não substitui o contador.') }}</p>
+</div>
+{% endblock %}

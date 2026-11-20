@@ -1,0 +1,149 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>{{ _('Locais e totens') }}</h1><p class="suave" style="margin:0">{{ _('Filiais ou outros endereços onde o ponto também vale, e tablets para bater o ponto na empresa.') }}</p></div></div>
+
+<div class="cartao">
+  <h2>{{ _('Locais') }}</h2>
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Local') }}</th><th>{{ _('Localização') }}</th><th>{{ _('Raio') }}</th><th></th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="nome-forte">{{ e.nome }}</span> <span class="etiqueta azul">{{ _('principal') }}</span>{% if e.endereco %}<br><span class="suave pequeno">{{ e.endereco }}</span>{% endif %}</td>
+        <td>{% if e.lat is not none %}<a href="https://www.google.com/maps?q={{ e.lat }},{{ e.lng }}" target="_blank" rel="noopener">{{ _('ver no mapa') }}</a>{% else %}<span class="etiqueta alerta">{{ _('não definido') }}</span>{% endif %}</td>
+        <td>{% if e.cerca %}<span class="etiqueta ok">{{ _('cerca desenhada') }}</span>{% else %}{{ _('{v1} m', v1=(e.raio_m)) }}{% endif %}</td>
+        <td class="direita"><div class="acoes" style="justify-content:flex-end">{% if e.lat is not none and cerca_liberada(e) %}<a class="botao mini claro" href="/painel/cerca/principal">{{ _('Desenhar cerca') }}</a>{% endif %}<a class="botao mini claro" href="/painel/config">{{ _('Editar em Configurações') }}</a></div></td>
+      </tr>
+      {% for l in locais %}
+      <tr class="{{ 'inativo' if not l.ativo }}">
+        <td><span class="nome-forte">{{ l.nome }}</span>{% if not l.ativo %} <span class="etiqueta">{{ _('desativado') }}</span>{% endif %}{% if l.endereco %}<br><span class="suave pequeno">{{ l.endereco }}</span>{% endif %}</td>
+        <td><a href="https://www.google.com/maps?q={{ l.lat }},{{ l.lng }}" target="_blank" rel="noopener">{{ _('ver no mapa') }}</a></td>
+        <td>{% if l.cerca %}<span class="etiqueta ok">{{ _('cerca desenhada') }}</span>{% else %}{{ _('{v1} m', v1=(l.raio_m)) }}{% endif %}</td>
+        <td class="direita"><div class="acoes" style="justify-content:flex-end">
+          {% if l.lat is not none and cerca_liberada(e) %}<a class="botao mini claro" href="/painel/cerca/{{ l.id }}">{{ _('Desenhar cerca') }}</a>{% endif %}
+          <details class="menu-editar"><summary class="botao mini claro">{{ _('Editar') }}</summary>
+            <form method="post" action="/painel/locais/{{ l.id }}" class="form-local">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <div class="campo"><label>{{ _('Nome') }}</label><input type="text" name="nome" value="{{ l.nome }}" maxlength="80" required></div>
+              <div class="campo"><label>{{ _('Endereço') }}</label><input type="text" name="endereco" value="{{ l.endereco }}" maxlength="300"></div>
+              <div class="linha-form" style="grid-template-columns:1fr 1fr 1fr">
+                <div class="campo"><label>{{ _('Latitude') }}</label><input type="text" name="lat" value="{{ l.lat }}" inputmode="decimal" required></div>
+                <div class="campo"><label>{{ _('Longitude') }}</label><input type="text" name="lng" value="{{ l.lng }}" inputmode="decimal" required></div>
+                <div class="campo"><label>{{ _('Raio (m)') }}</label><input type="number" name="raio_m" value="{{ l.raio_m }}" min="30" max="5000" required></div>
+              </div>
+              <button class="botao mini" type="submit" name="acao" value="salvar">{{ _('Salvar') }}</button>
+            </form>
+          </details>
+          <form method="post" action="/painel/locais/{{ l.id }}" class="inline">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button class="botao mini claro" type="submit" name="acao" value="{{ 'desativar' if l.ativo else 'reativar' }}">{{ _('Desativar') if l.ativo else _('Reativar') }}</button>
+          </form>
+        </div></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="ajuda">{{ _('O ponto vale em qualquer local ativo. Se na escala você escolher um local para o dia, o ponto daquele dia só vale lá.') }}</p>
+
+  <details>
+    <summary>{{ _('Adicionar um local') }}</summary>
+    <form method="post" action="/painel/locais" id="novo-local">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="linha-form" style="grid-template-columns:1fr 2fr">
+        <div class="campo"><label for="l-nome">{{ _('Nome') }}</label><input type="text" id="l-nome" name="nome" maxlength="80" required placeholder="{{ _('Ex.: Filial Centro') }}"></div>
+        <div class="campo"><label for="l-end">{{ _('Endereço (só para referência)') }}</label><input type="text" id="l-end" name="endereco" maxlength="300"></div>
+      </div>
+      <div class="campo">
+        <button class="botao claro" type="button" id="usar-local">{{ _('Usar minha localização atual') }}</button>
+        <div class="ajuda" id="local-estado">{{ _('Toque no botão estando dentro do local, de preferência pelo celular. Também dá para copiar os dois números do Google Maps.') }}</div>
+      </div>
+      <div class="linha-form" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="campo"><label for="l-lat">{{ _('Latitude') }}</label><input type="text" id="l-lat" name="lat" inputmode="decimal" required placeholder="-2.5307"></div>
+        <div class="campo"><label for="l-lng">{{ _('Longitude') }}</label><input type="text" id="l-lng" name="lng" inputmode="decimal" required placeholder="-44.3068"></div>
+        <div class="campo"><label for="l-raio">{{ _('Raio aceito (m)') }}</label><input type="number" id="l-raio" name="raio_m" value="150" min="30" max="5000" required></div>
+      </div>
+      <button class="botao" type="submit">{{ _('Criar local') }}</button>
+    </form>
+  </details>
+</div>
+
+<div class="cartao" id="totens">
+  <h2>{{ _('Totens') }} <span class="suave pequeno" style="font-weight:400">{{ _('{v1} de {v2}', v1=(totens|length), v2=limite_totens) }}</span></h2>
+  <p class="suave pequeno">{{ _('Um totem é um tablet (ou celular velho) fixo na empresa. Ele mostra um código que muda a cada minuto: o funcionário digita o código no aplicativo, ou lê o QR code, e bate o ponto sem depender do GPS. Quem não tem celular bate direto no tablet, com um PIN.') }}</p>
+  {% if link_totem %}
+  <div class="aviso">
+    <strong>{{ _('Totem “{v1}”: abra este endereço no tablet que vai ficar na empresa.', v1=(link_totem.nome)) }}</strong><br>
+    <input type="text" readonly value="{{ link_totem.link }}" onclick="this.select()" style="margin-top:8px" aria-label="{{ _('Endereço de ativação do totem') }}">
+    <span class="pequeno">{{ _('Ele aparece só agora. Quem abrir esse endereço transforma o aparelho em totem, então não compartilhe. Se perder, gere outro.') }}</span>
+  </div>
+  {% endif %}
+  {% if totens %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Totem') }}</th><th>{{ _('Local') }}</th><th>{{ _('Último uso') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for t in totens %}
+    <tr>
+      <td class="nome-forte">{{ t.nome }}</td>
+      <td>{{ t.local.nome if t.local else e.nome }}</td>
+      <td>{{ local(e, t.visto_em, '%d/%m %H:%M') if t.visto_em else _('ainda não foi aberto') }}</td>
+      <td class="direita"><div class="acoes" style="justify-content:flex-end">
+        <form method="post" action="/painel/totens/{{ t.id }}" class="inline" data-confirma="{{ _('Gerar um novo endereço? O tablet que usa o endereço atual para de funcionar.') }}">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="botao mini claro" type="submit" name="acao" value="novo_link">{{ _('Novo endereço') }}</button>
+        </form>
+        <form method="post" action="/painel/totens/{{ t.id }}" class="inline" data-confirma="{{ _('Remover este totem?') }}">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="botao mini perigo" type="submit" name="acao" value="remover">{{ _('Remover') }}</button>
+        </form>
+      </div></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+  {% if totens|length >= limite_totens %}
+  <p class="ajuda" style="margin-top:12px">{{ _('Um totem por local de ponto: para criar outro, cadastre um novo local acima ou remova um totem.') }}</p>
+  {% else %}
+  <form method="post" action="/painel/totens" style="margin-top:12px">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="linha-form">
+      <div><label for="t-nome">{{ _('Nome do totem') }}</label><input type="text" id="t-nome" name="nome" maxlength="80" required placeholder="{{ _('Ex.: Tablet da entrada') }}"></div>
+      <div><label for="t-local">{{ _('Onde fica') }}</label><select id="t-local" name="local_id">
+        <option value="">{{ _('{v1} (principal)', v1=(e.nome)) }}</option>
+        {% for l in locais if l.ativo %}<option value="{{ l.id }}">{{ l.nome }}</option>{% endfor %}</select></div>
+      <div><button class="botao" type="submit">{{ _('Criar totem') }}</button></div>
+    </div>
+  </form>
+  {% endif %}
+</div>
+<script>
+(function () {
+  var estado = document.getElementById("local-estado");
+  document.getElementById("usar-local").addEventListener("click", function () {
+    if (!navigator.geolocation) { estado.textContent = t("Este navegador não informa a localização."); return; }
+    estado.textContent = t("Obtendo a localização…");
+    navigator.geolocation.getCurrentPosition(function (p) {
+      document.getElementById("l-lat").value = p.coords.latitude.toFixed(6);
+      document.getElementById("l-lng").value = p.coords.longitude.toFixed(6);
+      estado.textContent = t("Localização preenchida (precisão de cerca de ") + Math.round(p.coords.accuracy) + " m).";
+    }, function (err) {
+      estado.textContent = err.code === 1 ? t("Permissão de localização negada. Libere nas configurações do navegador e tente de novo.")
+        : t("Não foi possível obter a localização. Tente de novo.");
+    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  });
+})();
+</script>
+{% if pode(u, 'dono') %}
+<form method="post" action="/painel/config/cerca" class="cartao" id="cerca">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Cerca virtual') }}</h2>
+  <label class="marcar campo"><input type="checkbox" name="motivo_fora" value="1" {{ 'checked' if e.motivo_fora }}>
+    <span>{{ _('Pedir o motivo de quem bate o ponto fora da área') }}<br><span class="ajuda">{{ _('Vale quando o ponto fora da área é aceito. O motivo vai junto no aviso para você. Para não aceitar de jeito nenhum, ligue “bloquear fora da área” em Configurações.') }}</span></span></label>
+  {% if cerca_liberada(e) %}<label class="marcar campo"><input type="checkbox" name="cerca_turno" value="1" {{ 'checked' if e.cerca_turno }}>
+    <span>{{ _('Conferir a área com o app aberto durante o turno') }}<br><span class="ajuda">{{ _('Enquanto a pessoa está com o ponto aberto e com o app aberto na tela, o celular confere a área a cada 2 minutos. Fora dela pelo tempo abaixo, você recebe um aviso. Com o app fechado, nada é lido. Bom para tablets e celulares de serviço.') }}</span></span></label>
+  <div class="campo" style="max-width:260px"><label for="cerca-min">{{ _('Avisar depois de quantos minutos fora') }}</label><input id="cerca-min" type="number" name="cerca_turno_min" min="3" max="120" value="{{ e.cerca_turno_min }}"></div>
+  {% else %}<input type="hidden" name="cerca_turno_min" value="{{ e.cerca_turno_min }}">
+  <p class="pequeno suave">{{ _('A cerca desenhada no mapa e a conferência durante o turno fazem parte de planos maiores.') }} <a href="/painel/assinatura">{{ _('Ver planos') }}</a></p>{% endif %}
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+{% endif %}
+{% endblock %}

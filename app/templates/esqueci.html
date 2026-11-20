@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Esqueci a senha — {v1}', v1=(app_nome)) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<div class="centro"><div class="caixa">
+  {{ seletor("caixa-idiomas") }}
+  <a class="marca" href="/"><img src="/static/logo.png" alt="">{{ app_nome }}</a>
+  <div class="cartao">
+    <h1>{{ _('Esqueci a senha') }}</h1>
+    {% if enviado %}
+    <div class="aviso">{{ _('Se este e-mail estiver cadastrado, enviamos um link para criar uma senha nova. Ele vale por 1 hora. Confira também a caixa de spam.') }}</div>
+    <p class="pequeno"><a href="/entrar">{{ _('Voltar para entrar') }}</a></p>
+    {% else %}
+    <p class="suave">{{ _('Gestores e gerentes: informe o e-mail com que você entra. Vamos mandar um link para criar uma senha nova.') }}</p>
+    {% if not email_ok %}<div class="alerta">{{ _('O envio de e-mails ainda não foi ligado nesta plataforma. Fale com o suporte.') }}</div>{% endif %}
+    {% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+    <form method="post" action="/esqueci">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label for="email">{{ _('E-mail') }}</label><input id="email" type="email" name="email" required autofocus autocomplete="username"></div>
+      <button class="botao" type="submit" style="width:100%">{{ _('Enviar o link') }}</button>
+    </form>
+    <p class="suave pequeno" style="margin-top:12px">{{ _('Funcionário que entra pelo celular: peça ao seu gestor um novo link de acesso.') }}</p>
+    {% endif %}
+  </div>
+</div></div>
+{% endblock %}

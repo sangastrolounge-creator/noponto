@@ -1,0 +1,50 @@
+{% extends "app_base.html" %}
+{% block saudacao %}{{ _('Minhas horas') }}{% endblock %}
+{% block conteudo %}
+{% set banco = e.controle == 'banco' %}
+<section class="cartao">
+  <h2>{{ _('Período atual') }} <span class="suave pequeno" style="font-weight:400">{{ _('· {v1} a {v2}', v1=(ini.strftime('%d/%m')), v2=(fim.strftime('%d/%m'))) }}</span></h2>
+  {% if r %}
+  <div class="folha-resumo">
+    <div><span>{{ _('Trabalhado') }}</span><strong>{{ fmt_min(r.trabalhado) }}</strong></div>
+    <div><span>{{ _('Previsto') }}</span><strong>{{ fmt_min(r.previsto) }}</strong></div>
+    <div><span>{{ _('Extras') }}</span><strong>{{ fmt_min(r.extra_normal + r.extra_especial) }}</strong></div>
+    <div><span>{{ _('Atrasos e saídas') }}</span><strong>{{ fmt_min(r.debito) }}</strong></div>
+    {% if r.faltas %}<div><span>{{ _('Faltas') }}</span><strong>{{ _('{v1} dia(s)', v1=(r.faltas)) }}</strong></div>{% endif %}
+    <div class="destaque"><span>{{ _('Banco de horas') if banco else _('Saldo do período') }}</span><strong>{{ fmt_saldo(r.saldo_final if banco else r.saldo_periodo) }}</strong></div>
+  </div>
+  <p class="ajuda">{{ _('Os números do período atual ainda podem mudar até o gestor fechar o ponto.') }}</p>
+  {% else %}
+  <p class="suave" style="margin:0">{{ _('Você ainda não tem escala nem batidas neste período.') }}</p>
+  {% endif %}
+</section>
+
+<section class="cartao">
+  <h2>{{ _('Folhas de ponto') }}</h2>
+  {% if linhas %}
+  <ul class="lista-dias">
+    {% for l in linhas %}
+    <li><span>{{ _('{v1} a {v2}', v1=(l.fechamento.inicio.strftime('%d/%m')), v2=(l.fechamento.fim.strftime('%d/%m/%Y'))) }}
+        <br><span class="suave pequeno">{{ _('{v1} trabalhadas', v1=(fmt_min(l.trabalhado))) }}{% if banco %} {{ _('· banco {v1}', v1=(fmt_saldo(l.saldo_final))) }}{% endif %}</span></span>
+      <span>{% if l.aceite_em %}<a href="/app/folha/{{ l.id }}"><span class="etiqueta ok">{{ _('Assinada') }}</span></a>
+        {% else %}<a class="botao mini" href="/app/folha/{{ l.id }}">{{ _('Conferir e assinar') }}</a>{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="suave" style="margin:0">{{ _('Quando o gestor fechar o período, a folha aparece aqui para você conferir e assinar.') }}</p>
+  {% endif %}
+</section>
+
+{% if holerites %}
+<section class="cartao">
+  <h2>{{ _('Holerites') }}</h2>
+  <ul class="lista-dias">
+    {% for h in holerites %}
+    <li><span>{{ _('{v1} a {v2}', v1=(h.folha.inicio.strftime('%d/%m')), v2=(h.folha.fim.strftime('%d/%m/%Y'))) }}
+        <br><span class="suave pequeno">{{ _('Líquido {v1}', v1=(h.liquido|dinheiro)) }}</span></span>
+      <span><a class="botao mini claro" href="/app/holerite/{{ h.id }}">{{ _('Ver holerite') }}</a></span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

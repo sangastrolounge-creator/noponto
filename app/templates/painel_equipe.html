@@ -1,0 +1,75 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>{{ _('Equipe') }}</h1><p class="suave" style="margin:0">{{ _('Cada funcionário recebe um link para criar a própria senha. Depois entra com o celular.') }}</p></div>
+  {% if u.dono %}<a class="botao claro" href="/painel/gerentes">{{ _('Gerentes e permissões') }}</a>{% endif %}</div>
+
+<div class="cartao" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+  <div><h2 style="margin:0">{{ _('Adicionar pessoa') }}</h2><p class="suave pequeno" style="margin:4px 0 0">{{ _('Contato, funções e salários, nível de acesso e classificação tributária, numa página só.') }}</p></div>
+  <span class="acoes"><a class="botao claro" href="/painel/importar-equipe">{{ _('Importar planilha') }}</a> <a class="botao" href="/painel/equipe/novo">{{ _('Adicionar pessoa') }}</a></span>
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Pessoas ({v1})', v1=(pessoas|length)) }}</h2>
+  {% for p in pessoas %}
+  <div id="p{{ p.id }}" style="padding:14px 0;{{ 'border-bottom:1px solid var(--borda)' if not loop.last }};{{ 'opacity:.55' if not p.ativo }}">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+      <div>
+        <span class="nome-forte">{{ p.nome }}</span>
+        {% if p.gestor %}<span class="etiqueta azul">{{ _('Gestor') }}</span>{% endif %}
+        {% if not p.ativo %}<span class="etiqueta">{{ _('Desativado') }}</span>
+        {% elif convites.get(p.id) %}<span class="etiqueta alerta">{{ _('Aguardando 1º acesso') }}</span>
+        {% elif not p.gestor %}<span class="etiqueta ok">{{ _('Ativo') }}</span>{% endif %}
+        <br><span class="suave pequeno">{{ p.cargo ~ ' · ' if p.cargo }}{{ p.celular or p.email }}</span>
+      </div>
+      {% if convites.get(p.id) and p.ativo %}
+      <div class="acoes">
+        <a class="botao mini zap" href="{{ convites[p.id].zap }}" target="_blank" rel="noopener">{{ _('Enviar link pelo WhatsApp') }}</a>
+        <button class="botao mini claro" type="button" data-copiar="{{ convites[p.id].link }}">{{ _('Copiar link') }}</button>
+      </div>
+      {% endif %}
+    </div>
+    {% for ap in aparelhos.get(p.id, []) %}
+    <form method="post" action="/painel/equipe/{{ p.id }}" class="aparelho">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="aparelho_id" value="{{ ap.id }}">
+      {% if ap.situacao == 'pendente' %}
+      <span><span class="etiqueta alerta">{{ _('Novo aparelho pedindo liberação') }}</span> {{ ap.nome }} · {{ local(e, ap.criado_em, '%d/%m %H:%M') }}</span>
+      <span class="acoes">
+        <button class="botao mini" type="submit" name="acao" value="autorizar_aparelho">{{ _('Liberar este e bloquear o antigo') }}</button>
+        <button class="botao mini perigo" type="submit" name="acao" value="recusar_aparelho">{{ _('Recusar') }}</button>
+      </span>
+      {% else %}
+      <span class="suave pequeno">{{ _('Aparelho autorizado: {v1}', v1=(ap.nome)) }}{% if ap.ultimo_uso %} {{ _('· último ponto em {v1}', v1=(local(e, ap.ultimo_uso, '%d/%m %H:%M'))) }}{% endif %}</span>
+      {% endif %}
+    </form>
+    {% endfor %}
+    <a class="pequeno" href="/painel/equipe/{{ p.id }}/ficha">{{ _('Ficha completa') }}</a>
+    <details style="margin-top:8px">
+      <summary class="pequeno">{{ _('Editar') }}</summary>
+      <form method="post" action="/painel/equipe/{{ p.id }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="linha-form">
+          <div><label>{{ _('Nome') }}</label><input type="text" name="nome" value="{{ p.nome }}" required maxlength="120"></div>
+          <div><label>{{ _('Celular') }}</label><input type="tel" name="celular" value="{{ p.celular or '' }}" {{ 'required' if not p.gestor }}></div>
+          <div><label>{{ _('Função') }}</label><input type="text" name="cargo" value="{{ p.cargo }}" maxlength="80"></div>
+        </div>
+        <label class="marcar" style="margin:12px 0"><input type="checkbox" name="na_escala" value="1" {{ 'checked' if p.na_escala }}><span>{{ _('Aparece na escala e bate ponto') }}</span></label>
+        <div class="acoes">
+          <button class="botao" type="submit" name="acao" value="salvar">{{ _('Salvar') }}</button>
+          {% if not p.gestor %}
+          <button class="botao claro" type="submit" name="acao" value="novo_link" formnovalidate>{{ _('Gerar novo link (esqueceu a senha)') }}</button>
+          {% endif %}
+          {% if aparelhos.get(p.id) %}
+          <button class="botao claro" type="submit" name="acao" value="liberar_troca" formnovalidate>{{ _('Liberar troca de aparelho') }}</button>
+          {% endif %}
+          {% if p.ativo and p.id != u.id %}
+          <button class="botao perigo" type="submit" name="acao" value="desativar" formnovalidate>{{ _('Desativar') }}</button>
+          {% elif not p.ativo %}
+          <button class="botao claro" type="submit" name="acao" value="reativar" formnovalidate>{{ _('Reativar') }}</button>
+          {% endif %}
+        </div>
+      </form>
+    </details>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

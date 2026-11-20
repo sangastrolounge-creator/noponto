@@ -1,0 +1,297 @@
+<title>Manual do No Ponto</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: guia de consulta numa coluna de leitura; índice fixo à esquerda no computador, no topo no celular. */
+:root {
+  --bg: #f4f7f6;
+  --card: #ffffff;
+  --fg: #16201e;
+  --muted: #56645f;
+  --line: #dbe4e1;
+  --accent: #0f766e;
+  --accent-soft: #e1f1ee;
+  --warn-bg: #fff6df;
+  --warn-fg: #6b4e00;
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1514; --card: #172120; --fg: #e5eeeb; --muted: #9db0aa; --line: #2a3835;
+    --accent: #3cc4b4; --accent-soft: #163a36; --warn-bg: #3a3014; --warn-fg: #f3d78c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1514; --card: #172120; --fg: #e5eeeb; --muted: #9db0aa; --line: #2a3835;
+  --accent: #3cc4b4; --accent-soft: #163a36; --warn-bg: #3a3014; --warn-fg: #f3d78c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+a { color: var(--accent); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; text-wrap: balance; }
+.casca { max-width: 1080px; margin: 0 auto; padding-block: 32px 64px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 40px; }
+.topo { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 20px; }
+.marca { display: flex; gap: 12px; align-items: center; }
+.selo { width: 44px; height: 44px; border-radius: 12px; background: var(--accent); display: grid; place-items: center; flex: none; }
+.selo svg { width: 24px; height: 24px; }
+.topo h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.2rem); }
+.topo p { margin: 2px 0 0; color: var(--muted); }
+.endereco { font-weight: 600; font-variant-numeric: tabular-nums; }
+nav.indice { position: sticky; top: max(16px, env(safe-area-inset-top, 0px)); align-self: start; font-size: .92rem; }
+nav.indice h2 { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+nav.indice ol { list-style: none; margin: 0 0 20px; padding: 0; display: grid; gap: 2px; }
+nav.indice a { display: block; padding: 4px 10px; border-radius: 8px; color: var(--fg); text-decoration: none; }
+nav.indice a:hover { background: var(--accent-soft); }
+main { min-width: 0; display: grid; gap: 48px; }
+.parte > h2 { font-size: 1.7rem; margin: 0 0 4px; }
+.parte > .sub { color: var(--muted); margin: 0 0 20px; max-width: 65ch; }
+section.topico { scroll-margin-top: 16px; padding-block: 20px; border-top: 1px solid var(--line); }
+section.topico h3 { font-size: 1.2rem; margin: 0 0 10px; }
+section.topico p, section.topico li { max-width: 68ch; }
+ol.passos { counter-reset: p; list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 10px; }
+ol.passos > li { counter-increment: p; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: start; }
+ol.passos > li::before { content: counter(p); width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; display: grid; place-items: center; font-size: .9rem; font-family: var(--font-display); }
+ul { padding-left: 20px; margin: 10px 0; }
+ul li { margin: 4px 0; }
+.btn { display: inline-block; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); font-weight: 600; font-size: .9em; white-space: nowrap; }
+.nota { background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; margin: 12px 0; max-width: 68ch; }
+.atencao { background: var(--warn-bg); color: var(--warn-fg); border-radius: 10px; padding: 12px 14px; margin: 12px 0; max-width: 68ch; }
+.fluxo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 12px 0; }
+.fluxo span { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-weight: 600; font-size: .92rem; }
+.fluxo i { color: var(--muted); font-style: normal; }
+.tabela { overflow-x: auto; margin: 12px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+footer { grid-column: 1 / -1; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 16px; }
+@media (max-width: 820px) {
+  .casca { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 20px 48px; }
+  nav.indice { position: static; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  nav.indice ol { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="casca">
+  <header class="topo">
+    <div class="marca">
+      <div class="selo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3 2"/></svg></div>
+      <div>
+        <h1>Manual do No Ponto</h1>
+        <p>Escala, ponto e fechamento do mês da sua equipe, no celular de cada um.</p>
+      </div>
+    </div>
+    <p class="endereco"><a href="https://noponto.app.br" target="_blank" rel="noopener">noponto.app.br</a></p>
+  </header>
+
+  <nav class="indice" aria-label="Índice">
+    <h2>Para o gestor</h2>
+    <ol>
+      <li><a href="#primeiro-acesso">Primeiro acesso</a></li>
+      <li><a href="#configuracoes">Configurações</a></li>
+      <li><a href="#equipe">Equipe</a></li>
+      <li><a href="#escala">Escala</a></li>
+      <li><a href="#hoje">Hoje</a></li>
+      <li><a href="#ponto">Ponto</a></li>
+      <li><a href="#ausencias">Ausências e feriados</a></li>
+      <li><a href="#fechamento">Fechamento do mês</a></li>
+      <li><a href="#tarefas">Tarefas</a></li>
+      <li><a href="#totem">Locais e totem</a></li>
+      <li><a href="#assinatura">Assinatura</a></li>
+    </ol>
+    <h2>Para o funcionário</h2>
+    <ol>
+      <li><a href="#acesso-funcionario">Primeiro acesso</a></li>
+      <li><a href="#bater-ponto">Bater o ponto</a></li>
+      <li><a href="#ver-escala">Ver a escala</a></li>
+      <li><a href="#esqueci">Esqueci de bater</a></li>
+      <li><a href="#atestado">Atestado</a></li>
+      <li><a href="#horas">Horas e folha</a></li>
+      <li><a href="#problemas">Problemas comuns</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <div class="nota">O sistema funciona em português, inglês e espanhol. Troque no seletor <span class="btn">PT · EN · ES</span>, no alto de qualquer tela.</div>
+
+    <div class="parte">
+      <h2>Para o gestor</h2>
+      <p class="sub">Quem monta a escala, acompanha o ponto e fecha o mês. Tudo pelo computador ou pelo celular.</p>
+
+      <section class="topico" id="primeiro-acesso">
+        <h3>Primeiro acesso</h3>
+        <ol class="passos">
+          <li><span>Em <strong>noponto.app.br</strong>, toque em <span class="btn">Testar grátis</span> e crie a conta da empresa.</span></li>
+          <li><span>Na primeira vez, o sistema oferece um <strong>guia passo a passo</strong> nas telas de verdade. Para ver de novo, toque em <span class="btn">Guia</span>, no alto de cada tela.</span></li>
+          <li><span>Siga a ordem abaixo. Com isso, o ponto já funciona.</span></li>
+        </ol>
+        <div class="fluxo"><span>Local da empresa</span><i>→</i><span>Equipe</span><i>→</i><span>Escala</span></div>
+      </section>
+
+      <section class="topico" id="configuracoes">
+        <h3>Configurações: onde fica a empresa</h3>
+        <ul>
+          <li>Estando dentro da empresa, de preferência pelo celular, toque em <span class="btn">Usar minha localização atual</span> e depois em <span class="btn">Salvar configurações</span>.</li>
+          <li><strong>Raio aceito:</strong> a distância máxima para o ponto valer. 150 metros funcionam bem.</li>
+          <li><strong>Bloquear o ponto fora do raio:</strong> ligado, ninguém bate o ponto longe da empresa.</li>
+          <li><strong>Confiança no ponto:</strong> foto na hora da batida, um aparelho por funcionário e por quantos dias o funcionário pode pedir ajuste.</li>
+          <li><strong>Jornada e banco de horas:</strong> banco de horas ou hora extra, percentuais das extras, adicional noturno, tolerância do dia, intervalo obrigatório e DSR.</li>
+        </ul>
+        <div class="atencao">Enquanto o local não estiver definido, um aviso amarelo aparece no alto do painel e o ponto é aceito de qualquer lugar.</div>
+      </section>
+
+      <section class="topico" id="equipe">
+        <h3>Equipe</h3>
+        <ol class="passos">
+          <li><span>Em <strong>Equipe → Novo funcionário</strong>, informe o nome e o celular com DDD.</span></li>
+          <li><span>Toque em <span class="btn">Enviar link pelo WhatsApp</span>. O funcionário abre o link, cria a senha e já pode bater o ponto.</span></li>
+        </ol>
+        <ul>
+          <li><strong>Esqueceu a senha?</strong> Em <span class="btn">Editar</span>, toque em <span class="btn">Gerar novo link</span>.</li>
+          <li><strong>Trocou de celular?</strong> O pedido de liberação aparece na ficha dele: toque em <span class="btn">Liberar</span>.</li>
+          <li><strong>Saiu da empresa?</strong> <span class="btn">Desativar</span>. Ele não entra mais, e o histórico fica guardado.</li>
+        </ul>
+      </section>
+
+      <section class="topico" id="escala">
+        <h3>Escala</h3>
+        <ul>
+          <li>Toque num dia da grade para definir <strong>entrada, saída, saída para o intervalo, duração do intervalo e local</strong>. Saída menor que a entrada (ex.: 18:00 às 02:00) termina no dia seguinte.</li>
+          <li>Com <strong>Repetir toda semana</strong> marcado, o horário vale sempre, sem copiar nada. Desmarcado, muda só aquela semana (aparece “só nesta semana”).</li>
+          <li><strong>Aplicar em</strong> “Segunda a sexta” preenche a semana de uma vez.</li>
+          <li><span class="btn">Repetir esta semana sempre</span> transforma a semana mostrada na escala fixa de todos.</li>
+          <li><span class="btn">Enviar pelo WhatsApp</span> manda a escala da semana já escrita para o funcionário.</li>
+        </ul>
+      </section>
+
+      <section class="topico" id="hoje">
+        <h3>Hoje</h3>
+        <p>A tela inicial do painel mostra, ao vivo, quem está escalado, quem está trabalhando, quem atrasou e quem não bateu o ponto, com o atalho <span class="btn">Chamar no WhatsApp</span>. Os <strong>Avisos</strong> listam atrasos, faltas, saídas esquecidas, intervalos não feitos e pedidos da equipe.</p>
+        <p>Toque em <span class="btn">Receber avisos neste aparelho</span> para receber os avisos como notificação.</p>
+      </section>
+
+      <section class="topico" id="ponto">
+        <h3>Ponto</h3>
+        <ul>
+          <li>Todas as batidas, dia a dia, com horas trabalhadas e atrasos. Toque em <strong>foto</strong> para ver a foto da batida.</li>
+          <li><strong>Pedidos de ajuste:</strong> quando alguém esquece de bater, pede pelo aplicativo, e você aprova ou recusa.</li>
+          <li><strong>Lançar batida à mão:</strong> para incluir uma batida que faltou.</li>
+          <li><strong>Batida errada?</strong> Toque na hora para anular. Nada é apagado de verdade: tudo fica no <strong>Histórico de alterações</strong>.</li>
+          <li><span class="btn">Baixar planilha (CSV)</span> exporta o período.</li>
+        </ul>
+      </section>
+
+      <section class="topico" id="ausencias">
+        <h3>Ausências e feriados</h3>
+        <ul>
+          <li><strong>Atestados:</strong> o funcionário envia a foto pelo aplicativo, e você aceita ou recusa. Nesses dias o ponto não é cobrado e não conta como falta.</li>
+          <li><strong>Lançar ausência:</strong> férias, licença, afastamento ou falta abonada.</li>
+          <li><strong>Feriados:</strong> toque em <span class="btn">Carregar os nacionais</span> e acrescente os da sua cidade e do seu estado.</li>
+        </ul>
+      </section>
+
+      <section class="topico" id="fechamento">
+        <h3>Fechamento do mês</h3>
+        <ol class="passos">
+          <li><span>Escolha o período e confira as horas de cada um: previsto, trabalhado, extras, noturnas, atrasos, faltas, DSR e banco de horas.</span></li>
+          <li><span><span class="btn">Folha</span> abre a folha de ponto do funcionário.</span></li>
+          <li><span><span class="btn">Resumo em PDF</span> mostra a equipe toda numa página: horas trabalhadas, adicional noturno, horas extras e faltas em horas e em dias.</span></li>
+          <li><span><span class="btn">Fechar este período</span> trava as batidas e a escala. Cada funcionário confere e assina a folha pelo aplicativo, com a senha.</span></li>
+          <li><span><span class="btn">Planilha para o contador</span> baixa os totais do período fechado.</span></li>
+          <li><span>Precisa corrigir? <span class="btn">Reabrir</span> o último período. As assinaturas são descartadas.</span></li>
+        </ol>
+        <div class="nota">Para gerar o PDF, toque em <span class="btn">Imprimir ou salvar em PDF</span> e escolha <strong>Salvar como PDF</strong> na janela de impressão.</div>
+      </section>
+
+      <section class="topico" id="tarefas">
+        <h3>Tarefas</h3>
+        <p>Crie o checklist do dia (“Fechar o caixa”, “Limpar a vitrine”), escolha os dias da semana e se a tarefa é de uma pessoa ou de toda a equipe. Você vê quem fez e a que horas.</p>
+      </section>
+
+      <section class="topico" id="totem">
+        <h3>Locais e totem</h3>
+        <ul>
+          <li><strong>Locais:</strong> filiais ou outros endereços onde o ponto também vale.</li>
+          <li><strong>Totem:</strong> um tablet fixo na empresa. Crie o totem e abra no tablet o endereço que aparece (só uma vez). O tablet mostra um código que muda a cada minuto e um QR Code. Quem não tem celular bate o ponto tocando no próprio nome e digitando um PIN.</li>
+        </ul>
+      </section>
+
+      <section class="topico" id="assinatura">
+        <h3>Assinatura</h3>
+        <p>Em <strong>Configurações → Assinatura e plano</strong> ficam o seu plano, a validade e o pagamento por Pix, boleto ou cartão, com liberação automática.</p>
+        <div class="atencao">Se a assinatura vencer, o painel fica fechado até o pagamento, mas o ponto da equipe continua sendo registrado.</div>
+      </section>
+    </div>
+
+    <div class="parte">
+      <h2>Para o funcionário</h2>
+      <p class="sub">Quem bate o ponto, vê a escala e assina a folha. Tudo pelo celular.</p>
+
+      <section class="topico" id="acesso-funcionario">
+        <h3>Primeiro acesso</h3>
+        <ol class="passos">
+          <li><span>Abra o link que o gestor mandou pelo WhatsApp.</span></li>
+          <li><span>Crie uma senha com pelo menos 6 caracteres. Seu login é o número do celular.</span></li>
+          <li><span>Adicione o aplicativo à tela inicial do celular: no menu do navegador, “Adicionar à tela inicial”.</span></li>
+        </ol>
+      </section>
+
+      <section class="topico" id="bater-ponto">
+        <h3>Bater o ponto</h3>
+        <ol class="passos">
+          <li><span>Abra o aplicativo e toque em <span class="btn">Bater ponto</span>.</span></li>
+          <li><span>Permita o acesso à <strong>localização</strong> (e à <strong>câmera</strong>, se a empresa pedir foto).</span></li>
+          <li><span>O sistema confere se você está na empresa e registra a hora.</span></li>
+        </ol>
+        <p>O botão muda a cada passo do dia. Bata também a saída e a volta do intervalo:</p>
+        <div class="fluxo"><span>Bater ponto</span><i>→</i><span>Sair para o intervalo</span><i>→</i><span>Voltar do intervalo</span><i>→</i><span>Bater saída</span></div>
+        <p><strong>Com o totem:</strong> toque em <span class="btn">Usar o código do totem</span> e digite os 6 números do tablet, ou aponte a câmera para o QR Code. Sem celular, toque no seu nome no tablet e digite o seu PIN (crie o PIN no aplicativo, em <span class="btn">Criar PIN para o totem</span>).</p>
+      </section>
+
+      <section class="topico" id="ver-escala">
+        <h3>Ver a escala</h3>
+        <p>Na aba <strong>Escala</strong> estão seus horários desta semana e da próxima, com a hora do intervalo e o local.</p>
+      </section>
+
+      <section class="topico" id="esqueci">
+        <h3>Esqueci de bater o ponto</h3>
+        <p>Na aba <strong>Ajustes</strong>, informe o dia, a hora certa e o motivo. A batida só entra depois que o gestor aprovar.</p>
+      </section>
+
+      <section class="topico" id="atestado">
+        <h3>Atestado</h3>
+        <p>Na aba <strong>Ajustes → Enviar atestado</strong>, tire uma foto do atestado e informe os dias.</p>
+      </section>
+
+      <section class="topico" id="horas">
+        <h3>Minhas horas e a folha de ponto</h3>
+        <p>Na aba <strong>Horas</strong> ficam as horas trabalhadas, as extras e o saldo do período. Quando o gestor fechar o mês, a folha aparece ali: confira e <strong>assine com a sua senha</strong>, ou toque em <span class="btn">Algo está errado</span> para avisar o gestor.</p>
+      </section>
+
+      <section class="topico" id="problemas">
+        <h3>Problemas comuns</h3>
+        <div class="tabela">
+          <table>
+            <thead><tr><th>Mensagem</th><th>O que fazer</th></tr></thead>
+            <tbody>
+              <tr><td>“Você está a X m da empresa”</td><td>Chegue mais perto ou vá para um lugar aberto, onde o GPS funciona melhor.</td></tr>
+              <tr><td>“Precisa permitir o acesso à localização”</td><td>Libere a localização nas configurações do navegador.</td></tr>
+              <tr><td>“Este não é o seu aparelho autorizado”</td><td>Peça ao gestor para liberar o celular novo.</td></tr>
+              <tr><td>“Código do totem inválido ou vencido”</td><td>O código muda a cada minuto: digite o que está no tablet agora.</td></tr>
+              <tr><td>“Sem internet”</td><td>Para bater o ponto é preciso estar conectado.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>No Ponto · <a href="https://noponto.app.br" target="_blank" rel="noopener">noponto.app.br</a> · Manual atualizado em 17/11/2026.</footer>
+</div>

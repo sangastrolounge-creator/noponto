@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('{v1} — escala, ponto e tarefas da equipe', v1=(app_nome)) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<div class="barra-site">
+  <span class="marca"><img src="/static/logo.png" alt="">{{ app_nome }}</span>
+  <div class="acoes" style="align-items:center">{{ seletor() }}<a class="botao claro" href="/entrar">{{ _('Entrar') }}</a></div>
+</div>
+<section class="heroi">
+  <h1>{{ plat.titulo or _('Escala, ponto e tarefas da sua equipe, no celular de cada um') }}</h1>
+  <p>{{ plat.subtitulo or _('Monte a escala da semana em minutos. O funcionário bate o ponto pelo celular e o sistema confere se ele está mesmo na empresa. Você é avisado na hora quando alguém atrasa ou não aparece.') }}</p>
+  <div class="acoes">
+    {% if cadastro_aberto %}<a class="botao" href="/cadastro">{{ _('Testar ') ~ plat.dias_teste ~ _(' dias grátis') if plat.dias_teste else _('Criar conta da empresa') }}</a>{% endif %}
+    <a class="botao claro" href="/entrar">{{ _('Já tenho conta') }}</a>
+  </div>
+</section>
+<section class="passos">
+  <div class="cartao"><div class="n">1</div><h2>{{ _('Monte a escala') }}</h2><p class="suave">{{ _('Horários e folgas da semana numa grade só. Copie a semana anterior com um toque.') }}</p></div>
+  <div class="cartao"><div class="n">2</div><h2>{{ _('Ponto pelo celular') }}</h2><p class="suave">{{ _('O funcionário toca em “Bater ponto”. A hora é registrada e a localização é conferida com o endereço da empresa.') }}</p></div>
+  <div class="cartao"><div class="n">3</div><h2>{{ _('Avisos na hora') }}</h2><p class="suave">{{ _('Atraso, ponto não batido, tentativa fora da empresa: tudo aparece no seu painel e no seu celular.') }}</p></div>
+  <div class="cartao"><div class="n">4</div><h2>{{ _('Checklist do dia') }}</h2><p class="suave">{{ _('Fechar o caixa, limpar a vitrine, enviar o relatório. Você vê o que foi feito e por quem.') }}</p></div>
+</section>
+{% if planos %}
+{% from "_planos.html" import cartoes %}
+<section class="vitrine">
+  <h2>{{ _('Planos') }}</h2>
+  <p class="suave">{{ _('Assinatura mensal, sem fidelidade.') }}{% if plat.dias_teste and cadastro_aberto %} {{ _('Teste {v1} dias grátis, sem cartão.', v1=(plat.dias_teste)) }}{% endif %}</p>
+  {{ cartoes(planos, 'venda' if cadastro_aberto else 'mostra', None, plat.dias_teste) }}
+  {% if plat.whatsapp %}<p class="suave">{{ _('Dúvidas?') }} <a href="https://wa.me/55{{ plat.whatsapp }}" target="_blank" rel="noopener">{{ _('Fale com a gente no WhatsApp') }}</a>.</p>{% endif %}
+</section>
+{% endif %}
+<p class="suave pequeno legal-links"><a href="/terms">{{ _('Termos de Uso') }}</a> · <a href="/privacy">{{ _('Política de Privacidade') }}</a></p>
+{% endblock %}

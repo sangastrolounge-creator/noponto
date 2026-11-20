@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Holerite — {v1} — {v2}', v1=(e.nome), v2=(f.competencia)) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<div class="folha">
+  <div class="folha-barra nao-imprime">
+    {{ seletor() }}
+    <a class="botao claro" href="{{ volta }}">{{ _('Voltar') }}</a>
+    <button class="botao" type="button" onclick="window.print()">{{ _('Imprimir ou salvar em PDF') }}</button>
+  </div>
+  {% if flash %}<div class="aviso nao-imprime {{ 'erro' if flash.tipo == 'erro' }}">{{ flash.texto }}</div>{% endif %}
+  {% if f.situacao != 'finalizada' %}<p class="nao-imprime"><span class="etiqueta alerta">{{ _('Rascunho: a folha ainda não foi finalizada') }}</span></p>{% endif %}
+
+  {% for h in lista %}
+  {% set it = h.it %}
+  <section class="holerite">
+    <header class="folha-topo">
+      <div>
+        <h1>{{ _('Recibo de pagamento de salário') }}</h1>
+        <div>{{ e.nome }}{% if e.cpf_cnpj %} · {{ e.cpf_cnpj }}{% endif %}</div>
+        <div><strong>{{ it.usuario.nome }}</strong>{% if it.usuario.cargo %} · {{ it.usuario.cargo }}{% endif %}</div>
+      </div>
+      <div class="direita">
+        <strong>{{ _('Competência {v1}', v1=(f.competencia[5:] ~ '/' ~ f.competencia[:4])) }}</strong><br>
+        {{ _('Ponto de {v1} a {v2}', v1=(f.inicio.strftime('%d/%m/%Y')), v2=(f.fim.strftime('%d/%m/%Y'))) }}<br>
+        <span class="suave pequeno">{{ _('emitido em {v1}', v1=(emitido.strftime('%d/%m/%Y às %H:%M'))) }}</span>
+      </div>
+    </header>
+    <div class="rolagem"><table class="tabela-folha">
+      <thead><tr><th>{{ _('Descrição') }}</th><th>{{ _('Referência') }}</th><th class="direita">{{ _('Proventos') }}</th><th class="direita">{{ _('Descontos') }}</th></tr></thead>
+      <tbody>
+      {% for l in h.proventos %}<tr><td>{{ _(l.desc) }}{% if l.trib == false %} <span class="suave pequeno">{{ _('(não tributável)') }}</span>{% endif %}</td><td>{{ l.ref }}</td><td class="direita">{{ l.valor|dinheiro }}</td><td></td></tr>{% endfor %}
+      {% for l in h.descontos %}<tr><td>{{ _(l.desc) }}</td><td>{{ l.ref }}</td><td></td><td class="direita">{{ l.valor|dinheiro }}</td></tr>{% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><td colspan="2"><strong>{{ _('Totais') }}</strong></td><td class="direita"><strong>{{ it.bruto|dinheiro }}</strong></td><td class="direita"><strong>{{ it.descontos|dinheiro }}</strong></td></tr>
+        <tr><td colspan="3"><strong>{{ _('Líquido a receber') }}</strong></td><td class="direita"><strong>{{ it.liquido|dinheiro }}</strong></td></tr>
+      </tfoot>
+    </table></div>
+    <p class="pequeno">{{ _('Salário base {v1} · valor da hora {v2} · base INSS {v3} · base IRRF {v4} · base FGTS {v5} · FGTS do mês {v6}', v1=(it.salario_centavos|dinheiro), v2=(h.calc.valor_hora|dinheiro), v3=(h.calc.base_inss|dinheiro), v4=(h.calc.base_irrf|dinheiro), v5=(h.calc.base_fgts|dinheiro), v6=(it.fgts|dinheiro)) }}</p>
+    <div class="linhas-assinatura"><div>{{ _('Empresa') }}</div><div>{{ _('Recebi o valor líquido acima — {v1}', v1=(it.usuario.nome)) }}</div></div>
+
+    {% if editar %}
+    <div class="cartao nao-imprime">
+      <h2>{{ _('Lançamentos manuais') }}</h2>
+      {% if h.lanc %}
+      <ul class="lista-dias">
+        {% for l in h.lanc %}
+        <li><span>{{ l.descricao }} <span class="suave pequeno">· {{ _('provento') if l.tipo == 'p' else _('desconto') }}{% if l.tipo == 'p' and not l.tributavel %} {{ _('(não tributável)') }}{% endif %}</span></span>
+          <span>{{ l.centavos|dinheiro }}
+            <form method="post" action="/painel/pagamento/{{ f.id }}/item/{{ it.id }}/lancamento/{{ loop.index0 }}/remover" class="inline">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <button class="botao mini perigo" type="submit">{{ _('Remover') }}</button>
+            </form></span></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      <form method="post" action="/painel/pagamento/{{ f.id }}/item/{{ it.id }}/lancamento">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="linha-form">
+          <div><label for="l-desc">{{ _('Descrição') }}</label><input type="text" id="l-desc" name="descricao" maxlength="80" required placeholder="{{ _('Ex.: comissão, adiantamento, bônus') }}"></div>
+          <div><label for="l-tipo">{{ _('Tipo') }}</label><select id="l-tipo" name="tipo"><option value="p">{{ _('Provento (soma)') }}</option><option value="d">{{ _('Desconto (tira)') }}</option></select></div>
+          <div><label for="l-valor">{{ _('Valor (R$)') }}</label><input type="text" id="l-valor" name="valor" inputmode="decimal" required placeholder="150,00"></div>
+          <div><label><input type="checkbox" name="tributavel" value="1" checked> {{ _('Provento com INSS, IR e FGTS') }}</label></div>
+          <div><button class="botao" type="submit">{{ _('Lançar') }}</button></div>
+        </div>
+      </form>
+      <p class="ajuda">{{ _('Comissões, gratificações e bônus normalmente têm INSS, IR e FGTS. Desmarque só para reembolsos e ajudas de custo. Descontos manuais (adiantamento, plano de saúde) não mudam as bases.') }}</p>
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

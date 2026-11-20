@@ -1,0 +1,46 @@
+{% extends "master/base.html" %}
+{% from "master/_sit.html" import etiqueta %}
+{% block master %}
+<div class="cabecalho">
+  <div><h1>{{ _('Painel Master') }}</h1><p class="suave" style="margin:0">{{ _('{v1} {v2} na plataforma', v1=(total), v2=(_('empresa') if total == 1 else _('empresas'))) }}</p></div>
+  <a class="botao" href="/master/empresas/nova">{{ _('Nova empresa') }}</a>
+</div>
+<div class="grade">
+  <div class="numero"><div class="rotulo">{{ _('Receita mensal') }}</div><div class="valor">{{ mrr|dinheiro }}</div><div class="nota">{{ _('soma dos planos das empresas ativas') }}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Recebido em 30 dias') }}</div><div class="valor">{{ recebido|dinheiro }}</div><div class="nota">{{ _('pagamentos registrados') }}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Ativas') }}</div><div class="valor">{{ contagem.ativa }}</div><div class="nota">{{ _('pagantes em dia') }}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Em teste') }}</div><div class="valor">{{ contagem.teste }}</div><div class="nota">{{ _('{v1} {v2} em 30 dias', v1=(novas), v2=(_('nova') if novas == 1 else _('novas'))) }}</div></div>
+  <div class="numero {{ 'ruim' if contagem.vencida }}"><div class="rotulo">{{ _('Vencidas') }}</div><div class="valor">{{ contagem.vencida }}</div><div class="nota">{{ contagem.bloqueada }} {{ _('bloqueada') if contagem.bloqueada == 1 else _('bloqueadas') }}</div></div>
+</div>
+
+<div class="cartao">
+  <form method="get" action="/master" class="linha-form" style="margin-bottom:14px">
+    <div><label for="q">{{ _('Buscar') }}</label><input type="text" id="q" name="q" value="{{ q }}" placeholder="{{ _('Empresa ou e-mail') }}"></div>
+    <div><label for="s">{{ _('Situação') }}</label><select id="s" name="s">
+      <option value="">{{ _('Todas') }}</option>
+      {% for k, t in SITUACOES.items() %}<option value="{{ k }}" {{ 'selected' if s == k }}>{{ t }} ({{ contagem[k] }})</option>{% endfor %}
+    </select></div>
+    <div><button class="botao claro" type="submit">{{ _('Filtrar') }}</button></div>
+  </form>
+  {% if empresas %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Empresa') }}</th><th>{{ _('Situação') }}</th><th>{{ _('Plano') }}</th><th>{{ _('Validade') }}</th><th>{{ _('Funcionários') }}</th><th>{{ _('Batidas em 30 dias') }}</th><th>{{ _('Desde') }}</th></tr></thead>
+    <tbody>
+    {% for x in empresas %}
+    <tr>
+      <td><a href="/master/empresas/{{ x.id }}"><strong>{{ x.nome }}</strong></a>{% if donos.get(x.id) %}<br><span class="suave pequeno">{{ donos[x.id].email }}</span>{% endif %}</td>
+      <td>{{ etiqueta(x) }}</td>
+      <td>{{ x.plano.nome if x.plano else '—' }}</td>
+      <td class="pequeno">{{ validade(x)|data('%d/%m/%Y') or '—' }}</td>
+      <td>{{ equipe.get(x.id, 0) }}{% if x.plano and x.plano.limite_funcionarios and not x.isenta %}<span class="suave"> / {{ x.plano.limite_funcionarios }}</span>{% endif %}</td>
+      <td>{{ batidas.get(x.id, 0) }}</td>
+      <td class="suave pequeno">{{ x.criado_em|data('%d/%m/%Y') }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="vazio">{{ _('Nenhuma empresa encontrada.') }}</div>
+  {% endif %}
+</div>
+{% endblock %}

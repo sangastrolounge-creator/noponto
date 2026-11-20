@@ -1,0 +1,52 @@
+{% extends "master/base.html" %}
+{% macro campos(p) %}
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="linha-form" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr">
+    <div class="campo"><label>{{ _('Nome') }}</label><input type="text" name="nome" value="{{ p.nome if p else '' }}" maxlength="60" required></div>
+    <div class="campo"><label>{{ _('Preço por mês (R$)') }}</label><input type="text" name="preco" inputmode="decimal" value="{{ ('%.2f'|format(p.preco_centavos / 100)).replace('.', ',') if p else '' }}" placeholder="49,90" required><div class="ajuda">{{ _('0 = plano grátis') }}</div></div>
+    <div class="campo"><label>{{ _('Funcionários') }}</label><input type="number" name="limite" min="0" value="{{ p.limite_funcionarios if p else 0 }}" required><div class="ajuda">{{ _('0 = ilimitado') }}</div></div>
+    <div class="campo"><label>{{ _('Locais de ponto') }}</label><input type="number" name="limite_locais" min="0" value="{{ p.limite_locais if p else 0 }}"><div class="ajuda">{{ _('contando o principal; 0 = ilimitado') }}</div></div>
+    <div class="campo"><label>{{ _('Ordem') }}</label><input type="number" name="ordem" value="{{ p.ordem if p else 0 }}"></div>
+  </div>
+  <fieldset class="cobranca-pessoa">
+    <legend class="pequeno"><strong>{{ _('Cobrança por pessoa (opcional)') }}</strong> · <span class="suave">{{ _('Preencha o valor por pessoa para cobrar base + pessoas que trabalharam nos últimos 30 dias. Assim o preço fixo acima é ignorado.') }}</span></legend>
+    <div class="linha-form" style="grid-template-columns:repeat(3,1fr)">
+      <div class="campo"><label>{{ _('Taxa base por mês (R$)') }}</label><input type="text" name="base" inputmode="decimal" value="{{ ('%.2f'|format(p.base_centavos / 100)).replace('.', ',') if p and p.base_centavos else '' }}" placeholder="20,00"></div>
+      <div class="campo"><label>{{ _('Por pessoa por mês (R$)') }}</label><input type="text" name="por_pessoa" inputmode="decimal" value="{{ ('%.2f'|format(p.por_pessoa_centavos / 100)).replace('.', ',') if p and p.por_pessoa_centavos else '' }}" placeholder="6,00"></div>
+      <div class="campo"><label>{{ _('Mínimo por mês (R$)') }}</label><input type="text" name="minimo" inputmode="decimal" value="{{ ('%.2f'|format(p.minimo_centavos / 100)).replace('.', ',') if p and p.minimo_centavos else '' }}" placeholder="29,90"></div>
+    </div>
+  </fieldset>
+  <div class="campo"><label>{{ _('Benefícios (um por linha)') }}</label><textarea name="descricao" maxlength="1000" style="min-height:76px">{{ p.descricao if p else '' }}</textarea></div>
+  <div class="acoes" style="align-items:center;gap:10px 16px;flex-wrap:wrap">
+    <label class="marcar"><input type="checkbox" name="ativo" value="1" {{ 'checked' if not p or p.ativo }}><span>{{ _('À venda (aparece na página inicial)') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_gps" value="1" {{ 'checked' if not p or p.com_gps }}><span>{{ _('Inclui ponto por GPS') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_foto" value="1" {{ 'checked' if not p or p.com_foto }}><span>{{ _('Inclui foto no ponto') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_alertas" value="1" {{ 'checked' if not p or p.com_alertas }}><span>{{ _('Inclui alertas de atraso e de não comparecimento') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_pagamento" value="1" {{ 'checked' if not p or p.com_pagamento }}><span>{{ _('Inclui Pagamento e revisão do Claude') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_cerca" value="1" {{ 'checked' if not p or p.com_cerca }}><span>{{ _('Inclui cerca virtual (contorno no mapa e conferência no turno)') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="destaque" value="1" {{ 'checked' if p and p.destaque }}><span>{{ _('Destacar como “Mais escolhido”') }}</span></label>
+  </div>
+{% endmacro %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Planos') }}</h1><p class="suave" style="margin:0">{{ _('O que você vende: preço mensal, quantos funcionários ativos e locais a empresa pode ter. Preço 0 = plano grátis, que nunca vence.') }}</p></div></div>
+{% for p in planos %}
+<div class="cartao">
+  <form method="post" action="/master/planos/{{ p.id }}" id="plano-{{ p.id }}">{{ campos(p) }}</form>
+  <div class="acoes" style="margin-top:14px;align-items:center">
+    <button class="botao" type="submit" form="plano-{{ p.id }}">{{ _('Salvar') }}</button>
+    <form method="post" action="/master/planos/{{ p.id }}/excluir" class="inline" data-confirma="{{ _('Excluir o plano {v1}?', v1=(p.nome)) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="botao link" type="submit">{{ _('Excluir') }}</button>
+    </form>
+    <span class="suave pequeno">{{ _('{v1} {v2} neste plano', v1=(em_uso.get(p.id, 0)), v2=(_('empresa') if em_uso.get(p.id, 0) == 1 else _('empresas'))) }}</span>
+  </div>
+</div>
+{% endfor %}
+<div class="cartao">
+  <h2>{{ _('Novo plano') }}</h2>
+  <form method="post" action="/master/planos">
+    {{ campos(None) }}
+    <button class="botao" type="submit" style="margin-top:14px">{{ _('Criar plano') }}</button>
+  </form>
+</div>
+{% endblock %}

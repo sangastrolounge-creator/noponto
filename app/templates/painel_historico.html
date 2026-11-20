@@ -1,0 +1,43 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Histórico de alterações') }}</h1><p class="suave" style="margin:0">{{ _('Tudo o que foi alterado no ponto, por quem e quando. Nada aqui pode ser apagado.') }}</p></div>
+  <a class="botao claro" href="/painel/ponto">{{ _('Voltar ao ponto') }}</a>
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Alterações') }}</h2>
+  {% if itens %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Quando') }}</th><th>{{ _('Quem') }}</th><th>{{ _('O quê') }}</th><th>{{ _('Detalhe') }}</th></tr></thead>
+    <tbody>
+    {% for i in itens %}
+    <tr><td style="white-space:nowrap">{{ local(e, i.criado_em, '%d/%m/%Y %H:%M') }}</td><td>{{ i.autor }}</td>
+      <td><span class="etiqueta">{{ _(i.acao) }}</span></td><td>{{ _(i.detalhe) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="vazio">{{ _('Nenhuma alteração até agora.') }}</div>
+  {% endif %}
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Batidas anuladas (registro original)') }}</h2>
+  {% if anuladas %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Batida original') }}</th><th>{{ _('Origem') }}</th><th>{{ _('Anulada por') }}</th></tr></thead>
+    <tbody>
+    {% for b in anuladas %}
+    <tr><td class="nome-forte">{{ b.usuario.nome }}</td>
+      <td>{{ _('{v1} em {v2}', v1=(_('Entrada') if b.tipo == 'entrada' else _('Saída')), v2=(local(e, b.momento, '%d/%m/%Y %H:%M'))) }}{% if b.foto %} <a class="link-foto" href="/painel/ponto/foto/{{ b.id }}" target="_blank" rel="noopener">{{ _('foto') }}</a>{% endif %}</td>
+      <td>{% if b.manual %}{{ _('Lançada à mão: {v1}', v1=(b.obs)) }}{% elif b.distancia_m is not none %}{{ _('Aplicativo, a {v1} m da empresa', v1=(b.distancia_m)) }}{% else %}{{ _('Aplicativo') }}{% endif %}</td>
+      <td>{{ _('{v1} em {v2}', v1=(b.anulada_por), v2=(local(e, b.anulada_em, '%d/%m/%Y %H:%M'))) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="vazio">{{ _('Nenhuma batida anulada.') }}</div>
+  {% endif %}
+</div>
+{% endblock %}

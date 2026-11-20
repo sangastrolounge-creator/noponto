@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Sem internet — {v1}', v1=(app_nome)) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<div class="centro"><div class="caixa">
+  {{ seletor("caixa-idiomas") }}
+  <div class="cartao" style="text-align:center">
+    <h1>{{ _('Sem internet') }}</h1>
+    <p class="suave">{{ _('Para bater o ponto é preciso estar conectado. Confira o Wi-Fi ou os dados móveis e tente de novo.') }}</p>
+    <a class="botao" href="/">{{ _('Tentar de novo') }}</a>
+  </div>
+</div></div>
+{% endblock %}

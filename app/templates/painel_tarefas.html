@@ -1,0 +1,67 @@
+{% extends "painel_base.html" %}
+{% macro campos(t=None) %}
+  <div class="linha-form" style="grid-template-columns:2fr 1fr">
+    <div><label>{{ _('Tarefa') }}</label><input type="text" name="titulo" value="{{ t.titulo if t }}" required maxlength="160" placeholder="{{ _('Ex.: Fechar o caixa') }}"></div>
+    <div><label>{{ _('Quem faz') }}</label><select name="usuario_id"><option value="0">{{ _('Equipe toda (basta um fazer)') }}</option>
+      {% for p in equipe %}<option value="{{ p.id }}" {{ 'selected' if t and t.usuario_id == p.id }}>{{ p.nome }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="campo" style="margin-top:12px"><label>{{ _('Dias da semana') }}</label>
+    <div class="dias-semana">
+      {% for nome in DIAS %}<label><input type="checkbox" name="d{{ loop.index0 }}" value="1" {{ 'checked' if not t or loop.index0|string in t.dias }}><span>{{ nome }}</span></label>{% endfor %}
+    </div></div>
+{% endmacro %}
+{% macro quadro(itens, titulo) %}
+  <div class="cartao">
+    <h2>{{ titulo }}</h2>
+    {% if itens %}
+    <ul class="lista-dias">
+      {% for i in itens %}
+      <li><span>{{ i.t.titulo }}</span>
+        {% if i.feita %}<span class="etiqueta ok">{{ i.feita.usuario.primeiro_nome }} · {{ local(e, i.feita.feito_em) }}</span>
+        {% else %}<span class="etiqueta">{{ _('não feita') }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}<div class="vazio">{{ _('Nenhuma tarefa neste dia.') }}</div>{% endif %}
+  </div>
+{% endmacro %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>{{ _('Tarefas') }}</h1><p class="suave" style="margin:0">{{ _('O checklist aparece todo dia no celular de cada funcionário.') }}</p></div></div>
+
+<div class="cartao">
+  <h2>{{ _('Nova tarefa') }}</h2>
+  <form method="post" action="/painel/tarefas">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {{ campos() }}
+    <button class="botao" type="submit">{{ _('Adicionar') }}</button>
+  </form>
+</div>
+
+<div class="duas">
+  <div class="cartao">
+    <h2>{{ _('Checklist ({v1})', v1=(tarefas|length)) }}</h2>
+    {% if tarefas %}
+    {% for t in tarefas %}
+    <details style="padding:10px 0;border-bottom:1px solid var(--borda)">
+      <summary style="color:inherit;font-weight:500">{{ t.titulo }}
+        <span class="suave pequeno">· {{ t.usuario.primeiro_nome if t.usuario else _('equipe toda') }} ·
+        {% if t.dias == '0123456' %}{{ _('todo dia') }}{% else %}{% for c in t.dias %}{{ DIAS[c|int]|lower }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}</span></summary>
+      <form method="post" action="/painel/tarefas/{{ t.id }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        {{ campos(t) }}
+        <div class="acoes">
+          <button class="botao" type="submit" name="acao" value="salvar">{{ _('Salvar') }}</button>
+          <button class="botao perigo" type="submit" name="acao" value="apagar" formnovalidate>{{ _('Remover') }}</button>
+        </div>
+      </form>
+    </details>
+    {% endfor %}
+    {% else %}
+    <div class="vazio">{{ _('Nenhuma tarefa ainda. Exemplos: “Fechar o caixa”, “Limpar a vitrine”, “Enviar o relatório”.') }}</div>
+    {% endif %}
+  </div>
+  <div>
+    {{ quadro(hoje, _('Hoje, ') ~ dia.strftime('%d/%m')) }}
+    {{ quadro(de_ontem, _('Ontem, ') ~ ontem.strftime('%d/%m')) }}
+  </div>
+</div>
+{% endblock %}

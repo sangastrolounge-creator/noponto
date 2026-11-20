@@ -1,0 +1,115 @@
+{% extends "painel_base.html" %}
+{% macro val(campo, padrao='') %}{{ v.get(campo, padrao) if v else padrao }}{% endmacro %}
+{% block conteudo %}
+{% set novo = alvo is none %}
+<div class="cabecalho">
+  <div><h1>{{ _('Adicionar pessoa') if novo else _('Ficha de {v1}', v1=alvo.nome) }}</h1>
+    <p class="suave" style="margin:0">{{ _('Os dados de contato, as funções com o salário, a jornada, o nível de acesso e o tipo de contrato.') }}</p></div>
+  <a class="botao claro" href="/painel/equipe">{{ _('Voltar para Equipe') }}</a>
+</div>
+{% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+{% set partes = (alvo.nome.split(' ', 1) if alvo else ['', '']) %}
+<form method="post" action="{{ '/painel/equipe/novo' if novo else '/painel/equipe/' ~ alvo.id ~ '/ficha' }}" class="ficha">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="cartao">
+    <h2>{{ _('Contato') }}</h2>
+    <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-items:start">
+      <div class="campo"><label for="f-nome">{{ _('Nome') }} *</label><input id="f-nome" type="text" name="nome" required maxlength="60" value="{{ val('nome', partes[0]) }}"></div>
+      <div class="campo"><label for="f-sobrenome">{{ _('Sobrenome') }}</label><input id="f-sobrenome" type="text" name="sobrenome" maxlength="60" value="{{ val('sobrenome', partes[1] if partes|length > 1 else '') }}"></div>
+      <div class="campo"><label for="f-email">{{ _('E-mail') }}</label><input id="f-email" type="email" name="email" value="{{ val('email', alvo.email or '' if alvo else '') }}"><div class="ajuda">{{ _('Obrigatório para gerentes (é o login deles).') }}</div></div>
+      <div class="campo"><label for="f-cel">{{ _('Celular') }}</label><input id="f-cel" type="tel" name="celular" placeholder="98 99999-1234" value="{{ val('celular', alvo.celular or '' if alvo else '') }}"><div class="ajuda">{{ _('Obrigatório para funcionários (é o login deles).') }}</div></div>
+    </div>
+  </div>
+
+  <div class="cartao">
+    <h2>{{ _('Trabalho') }}</h2>
+    <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <div class="campo"><label for="f-local">{{ _('Local') }}</label><select id="f-local" name="local_id">
+        <option value="">{{ _('{v1} (principal)', v1=e.nome) }}</option>
+        {% for l in locais %}<option value="{{ l.id }}" {{ 'selected' if (val('local_id') or (alvo.local_id|string if alvo and alvo.local_id else '')) == l.id|string }}>{{ l.nome }}</option>{% endfor %}</select></div>
+      <div class="campo"><label for="f-inicio">{{ _('Data de admissão') }}</label><input id="f-inicio" type="date" name="data_admissao" value="{{ val('data_admissao', alvo.data_admissao.isoformat() if alvo and alvo.data_admissao else '') }}"></div>
+      <div class="campo"><label for="f-nasc">{{ _('Data de nascimento (só para menores de 18)') }}</label><input id="f-nasc" type="date" name="nascimento" value="{{ val('nascimento', alvo.nascimento.isoformat() if alvo and alvo.nascimento else '') }}">
+        <div class="ajuda">{{ _('O sistema avisa quando a escala ou o ponto passam dos limites de horário da lei para menores.') }}</div></div>
+    </div>
+    <label class="pequeno" style="font-weight:700">{{ _('Funções e salários') }}</label>
+    <datalist id="funcoes-sugeridas">{% for f in funcoes_empresa(e) %}<option value="{{ f.nome }}">{% endfor %}</datalist>
+    <div class="funcoes">
+      {% for i in range(MAX_FUNCOES) %}{% set fx = funcs[i] if i < funcs|length else none %}
+      <div class="linha-form funcao-linha" style="grid-template-columns:2fr 1fr 1fr" {{ 'hidden' if i > 0 and not fx and not val('funcao_' ~ i) }}>
+        <div class="campo"><label for="fn{{ i }}">{{ _('Função') }}{{ ' ' ~ _('(principal)') if i == 0 }}</label><input id="fn{{ i }}" type="text" name="funcao_{{ i }}" maxlength="80" list="funcoes-sugeridas" placeholder="{{ _('Ex.: Garçom') }}" value="{{ val('funcao_' ~ i, fx.nome if fx else '') }}"></div>
+        <div class="campo"><label for="vl{{ i }}">{{ _('Valor (R$)') }}</label><input id="vl{{ i }}" type="text" name="valor_{{ i }}" inputmode="decimal" placeholder="0,00" value="{{ val('valor_' ~ i, (('%.2f'|format(fx.valor_centavos / 100)).replace('.', ',')) if fx and fx.valor_centavos else '') }}"></div>
+        <div class="campo"><label for="tp{{ i }}">{{ _('Tipo') }}</label><select id="tp{{ i }}" name="tipo_{{ i }}">
+          {% set tsel = val('tipo_' ~ i, fx.tipo if fx else 'mensal') %}
+          <option value="mensal" {{ 'selected' if tsel == 'mensal' }}>{{ _('Salário mensal') }}</option>
+          <option value="hora" {{ 'selected' if tsel == 'hora' }}>{{ _('Por hora') }}</option></select></div>
+      </div>
+      {% endfor %}
+    </div>
+    <button class="botao link pequeno" type="button" id="mais-funcao">{{ _('+ Outra função e salário') }}</button>
+    <p class="ajuda">{{ _('A primeira função define o salário usado na folha e no custo da equipe (por hora: valor da hora × jornada do mês). As outras funções servem para turnos abertos daquele cargo.') }}</p>
+    <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div class="campo"><label for="f-jornada">{{ _('Jornada mensal (horas)') }}</label><input id="f-jornada" type="number" name="jornada_mensal" min="1" max="300" value="{{ val('jornada_mensal', alvo.jornada_mensal if alvo else 220) }}"><div class="ajuda">{{ _('220 para 44 h por semana, 180 para 36 h, 150 para 30 h.') }}</div></div>
+      <div class="campo"><label for="f-dep">{{ _('Dependentes (IRRF)') }}</label><input id="f-dep" type="number" name="dependentes" min="0" max="30" value="{{ val('dependentes', alvo.dependentes if alvo else 0) }}"></div>
+      <div class="campo"><label for="f-vt">{{ _('Vale-transporte no mês (R$)') }}</label><input id="f-vt" type="text" name="vt" inputmode="decimal" placeholder="0,00" value="{{ val('vt', (('%.2f'|format(alvo.vt_centavos / 100)).replace('.', ',')) if alvo and alvo.vt_centavos else '') }}"><div class="ajuda">{{ _('Custo das passagens; o desconto é de até 6% do salário.') }}</div></div>
+    </div>
+    <label class="marcar"><input type="checkbox" name="gorjeta" value="1" {{ 'checked' if (v and v.get('gorjeta')) or (not v and alvo and alvo.gorjeta) }}><span>{{ _('Recebe gorjeta') }}</span></label>
+  </div>
+
+  <div class="cartao">
+    <h2>{{ _('Nível de acesso') }}</h2>
+    {% set nsel = val('nivel', nivel_atual) %}
+    {% if alvo and alvo.dono %}<p>{{ _('Dono da conta: pode tudo.') }}</p>{% else %}
+    <div class="opcoes-cartao">
+      {% for k, nome in NIVEIS.items() %}
+      <label class="opcao {{ 'desligada' if k != 'funcionario' and not pode_gerente }}"><input type="radio" name="nivel" value="{{ k }}" {{ 'checked' if nsel == k }} {{ 'disabled' if k != 'funcionario' and not pode_gerente }}>
+        <span><strong>{{ _(nome) }}</strong><br><span class="suave pequeno">{{ {'funcionario': _('Bate o ponto e vê a própria escala no celular.'), 'gerente': _('Entra no painel: escala, ponto, mural, tarefas e ausências. Ajuste em Gerentes.'), 'gerente_geral': _('Entra no painel com tudo, menos Configurações, Assinatura e Gerentes.')}[k] }}</span></span></label>
+      {% endfor %}
+    </div>
+    {% if not pode_gerente %}<p class="ajuda">{{ _('Só o dono da conta cadastra gerentes.') }}</p>{% endif %}
+    <label class="marcar" id="na-escala" style="margin-top:8px"><input type="checkbox" name="na_escala" value="1" {{ 'checked' if (v and v.get('na_escala')) or (not v and (not alvo or alvo.na_escala)) }}><span>{{ _('Gerente também trabalha na escala e bate o ponto') }}</span></label>
+    {% endif %}
+  </div>
+
+  <div class="cartao">
+    <h2>{{ _('Tipo de contrato') }}</h2>
+    {% set csel = val('classificacao', alvo.classificacao if alvo else 'clt') %}
+    <div class="opcoes-cartao">
+      {% for k, (nome, sub) in CLASSIFICACOES.items() %}
+      <label class="opcao"><input type="radio" name="classificacao" value="{{ k }}" {{ 'checked' if csel == k }}><span><strong>{{ _(nome) }}</strong><br><span class="suave pequeno">{{ _(sub) }}</span></span></label>
+      {% endfor %}
+    </div>
+    <p class="ajuda">{{ _('Prestador PJ não entra na folha nem nos avisos de hora extra. Contratar como PJ quem trabalha com horário, subordinação e de forma contínua pode ser reconhecido como vínculo de emprego pela Justiça do Trabalho: na dúvida, consulte o contador.') }}</p>
+  </div>
+
+  <div class="acoes">
+    <button class="botao" type="submit">{{ _('Cadastrar e gerar o link de acesso') if novo else _('Salvar a ficha') }}</button>
+    <a class="botao claro" href="/painel/equipe">{{ _('Cancelar') }}</a>
+  </div>
+</form>
+<script>
+(function () {
+  var b = document.getElementById("mais-funcao");
+  b.addEventListener("click", function () {
+    var esc = document.querySelector(".funcao-linha[hidden]");
+    if (esc) esc.hidden = false;
+    if (!document.querySelector(".funcao-linha[hidden]")) b.hidden = true;
+  });
+  if (!document.querySelector(".funcao-linha[hidden]")) b.hidden = true;
+  var ne = document.getElementById("na-escala");
+  function nivel() {
+    var r = document.querySelector("input[name=nivel]:checked");
+    if (ne) ne.hidden = !r || r.value === "funcionario";
+  }
+  document.querySelectorAll("input[name=nivel]").forEach(function (r) { r.addEventListener("change", nivel); });
+  nivel();
+})();
+</script>
+<script>
+(function () {
+  var gorjeta = {{ funcoes_empresa(e)|selectattr('gorjeta')|map(attribute='nome')|list|tojson }};
+  var fn = document.getElementById("fn0"), cx = document.querySelector("input[name=gorjeta]");
+  if (!fn || !cx || !gorjeta.length) return;
+  fn.addEventListener("change", function () { if (gorjeta.indexOf(fn.value.trim()) >= 0) cx.checked = true; });
+})();
+</script>
+{% endblock %}

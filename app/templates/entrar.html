@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Entrar — {v1}', v1=(app_nome)) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<div class="centro"><div class="caixa">
+  {{ seletor("caixa-idiomas") }}
+  <a class="marca" href="/"><img src="/static/logo.png" alt="">{{ app_nome }}</a>
+  <div class="cartao">
+    <h1>{{ _('Entrar') }}</h1>
+    <p class="suave">{{ _('Gestor entra com o e-mail. Funcionário entra com o celular.') }}</p>
+    {% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+    {% if flash %}<div class="aviso {{ 'erro' if flash.tipo == 'erro' }}">{{ flash.texto }}</div>{% endif %}
+    <form method="post" action="/entrar">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label for="login">{{ _('E-mail ou celular') }}</label><input id="login" type="text" name="login" value="{{ login }}" required autofocus autocomplete="username" inputmode="email"></div>
+      <div class="campo"><label for="senha">{{ _('Senha') }}</label><input id="senha" type="password" name="senha" required autocomplete="current-password"></div>
+      <button class="botao" type="submit" style="width:100%">{{ _('Entrar') }}</button>
+    </form>
+    <p class="pequeno" style="text-align:center;margin:12px 0 0"><a href="/esqueci">{{ _('Esqueci a senha') }}</a></p>
+  </div>
+  <p class="suave pequeno" style="text-align:center">
+    {% if cadastro_aberto %}{{ _('Sua empresa ainda não usa?') }} <a href="/cadastro">{{ _('Criar conta') }}</a><br>{% endif %}
+    {{ _('Funcionário sem senha: peça o link de acesso ao seu gestor.') }}
+  </p>
+  <p class="suave pequeno legal-links"><a href="/terms">{{ _('Termos de Uso') }}</a> · <a href="/privacy">{{ _('Política de Privacidade') }}</a></p>
+  <div class="instalar-app" id="instalar" hidden>
+    <button class="botao claro mini" type="button" id="instalar-botao">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7.5v7M9 11.5l3 3 3-3"/></svg>
+      {{ _('Instalar o app') }}</button>
+    <p class="suave pequeno" id="instalar-ios" hidden>{{ _('No iPhone: toque em Compartilhar') }} <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="{{ _('Compartilhar') }}" style="vertical-align:-2px"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> {{ _('e depois em “Adicionar à Tela de Início”.') }}</p>
+  </div>
+</div></div>
+<script>
+/* Botão "Instalar o app": Android/Chrome/Edge abrem a instalação; no iPhone mostra o passo a passo.
+   Some quando o app já está instalado (aberto em modo aplicativo). */
+(function () {
+  var caixa = document.getElementById("instalar"), botao = document.getElementById("instalar-botao"),
+      ios = document.getElementById("instalar-ios"), pedido = null;
+  var instalado = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
+  if (instalado) return;
+  var iphone = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (iphone) caixa.hidden = false;
+  window.addEventListener("beforeinstallprompt", function (ev) {
+    ev.preventDefault(); pedido = ev; caixa.hidden = false;
+  });
+  window.addEventListener("appinstalled", function () { caixa.hidden = true; });
+  botao.addEventListener("click", function () {
+    if (pedido) {
+      pedido.prompt();
+      pedido.userChoice.finally(function () { pedido = null; caixa.hidden = true; });
+    } else {
+      ios.hidden = !ios.hidden;
+    }
+  });
+})();
+</script>
+{% endblock %}

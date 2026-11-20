@@ -1,0 +1,70 @@
+{% extends "master/base.html" %}
+{% macro reais(c) %}{{ '%.2f'|format(c / 100)|replace('.', ',') }}{% endmacro %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Folha de pagamento e Claude') }}</h1><p class="suave" style="margin:0">{{ _('Tabelas de INSS e IRRF usadas por todas as empresas e a chave da revisão pelo Claude.') }}</p></div></div>
+
+<div class="cartao">
+  <h2>{{ _('Revisão pelo Claude') }}</h2>
+  {% if claude %}
+  <div class="aviso">{{ _('Ligada. As empresas já podem pedir a revisão das folhas (modelo {v1}, até 20 revisões por empresa por dia).', v1=(modelo)) }}</div>
+  {% else %}
+  <div class="alerta">{{ _('Desligada: falta a chave da API da Anthropic. Sem ela a folha é calculada normalmente, só não há revisão.') }}</div>
+  {% endif %}
+  {% if chave_env %}
+  <p class="ajuda">{{ _('A chave está definida no servidor (arquivo .env) e tem prioridade sobre a desta tela.') }}</p>
+  {% else %}
+  <form method="post" action="/master/folha/chave" autocomplete="off">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="linha-form">
+      <div><label for="chave">{{ _('Chave da API (começa com sk-ant-)') }}</label><input id="chave" type="password" name="chave" autocomplete="off" placeholder="{{ _('cole aqui a chave') if not claude else '••••••••••••' }}"></div>
+      <div><button class="botao" type="submit">{{ _('Salvar chave') }}</button></div>
+      {% if claude %}<div><button class="botao perigo" type="submit" name="apagar" value="1">{{ _('Remover chave') }}</button></div>{% endif %}
+    </div>
+    <p class="ajuda">{{ _('Crie a chave em console.anthropic.com (API Keys). O uso é cobrado pela Anthropic na sua conta; a chave nunca aparece de novo nesta tela.') }}</p>
+  </form>
+  {% endif %}
+</div>
+
+<form method="post" action="/master/folha" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Tabelas') }}</h2>
+  <div class="alerta">{{ _('Confira estes valores com o seu contador todo começo de ano. Mudanças valem para as folhas geradas depois; as já geradas guardam as tabelas da época.') }}</div>
+  <div class="campo"><label for="vigencia">{{ _('Vigência') }}</label><input id="vigencia" type="text" name="vigencia" value="{{ t.vigencia }}" maxlength="20" style="max-width:160px"></div>
+
+  <h3>{{ _('INSS do empregado (progressivo)') }}</h3>
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Faixa') }}</th><th>{{ _('Até (R$)') }}</th><th>{{ _('Alíquota (%)') }}</th></tr></thead>
+    <tbody>
+    {% for teto, pct in t.inss %}
+    <tr><td>{{ loop.index }}</td>
+      <td><input type="text" inputmode="decimal" name="inss_teto_{{ loop.index0 }}" value="{{ reais(teto) }}" aria-label="{{ _('INSS faixa {v1}: até', v1=(loop.index)) }}"></td>
+      <td><input type="text" inputmode="decimal" name="inss_pct_{{ loop.index0 }}" value="{{ pct }}" aria-label="{{ _('INSS faixa {v1}: alíquota', v1=(loop.index)) }}"></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="ajuda">{{ _('A última faixa é o teto do INSS.') }}</p>
+
+  <h3>{{ _('IRRF (tabela mensal)') }}</h3>
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Faixa') }}</th><th>{{ _('Base até (R$)') }}</th><th>{{ _('Alíquota (%)') }}</th><th>{{ _('Parcela a deduzir (R$)') }}</th></tr></thead>
+    <tbody>
+    {% for teto, pct, ded in t.irrf %}
+    <tr><td>{{ loop.index }}</td>
+      <td>{% if loop.last %}<input type="hidden" name="ir_teto_{{ loop.index0 }}" value="0">{{ _('acima') }}{% else %}<input type="text" inputmode="decimal" name="ir_teto_{{ loop.index0 }}" value="{{ reais(teto) }}" aria-label="{{ _('IRRF faixa {v1}: até', v1=(loop.index)) }}">{% endif %}</td>
+      <td><input type="text" inputmode="decimal" name="ir_pct_{{ loop.index0 }}" value="{{ pct }}" aria-label="{{ _('IRRF faixa {v1}: alíquota', v1=(loop.index)) }}"></td>
+      <td><input type="text" inputmode="decimal" name="ir_ded_{{ loop.index0 }}" value="{{ reais(ded) }}" aria-label="{{ _('IRRF faixa {v1}: parcela a deduzir', v1=(loop.index)) }}"></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+
+  <h3>{{ _('Outros valores') }}</h3>
+  <div class="linha-form">
+    {% for chave, rotulo, tipo in campos %}
+    <div><label for="c-{{ chave }}">{{ _(rotulo) }}{{ ' (R$)' if tipo == 'c' }}</label>
+      <input id="c-{{ chave }}" type="text" inputmode="decimal" name="{{ chave }}" value="{{ reais(t[chave]) if tipo == 'c' else t[chave] }}"></div>
+    {% endfor %}
+  </div>
+  <p class="ajuda">{{ _('Redutor do IR (2026): quem tem rendimento tributável até o valor “isento até” não paga IR; até “vale até”, o imposto cai em a − b × rendimento.') }}</p>
+  <button class="botao" type="submit">{{ _('Salvar tabelas') }}</button>
+</form>
+{% endblock %}

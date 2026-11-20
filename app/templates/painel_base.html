@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block titulo %}{{ e.nome }} — {{ app_nome }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<header class="topo"><div class="topo-dentro">
+  <div class="marca-linha">
+    <a class="marca" href="/painel"><img src="/static/logo.png" alt=""><span>{{ app_nome }}</span></a>
+    <button type="button" class="recolher-lateral" id="recolher-lateral" onclick="recolherLateral()" title="{{ _('Recolher ou expandir o menu') }}" aria-label="{{ _('Recolher ou expandir o menu') }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M9.5 4v16"/><path class="seta" d="M15.5 10l-2 2 2 2"/></svg>
+    </button>
+  </div>
+  {% set selos = contadores_menu(u) %}
+  {% macro item(href, chave, rotulo, desenho, subs=[]) -%}
+    {%- set ativo = aba == chave -%}
+    <div class="grupo {{ 'com-sub' if subs }} {{ 'aberto' if ativo and subs }}" data-grupo="{{ chave }}">
+      <a href="{{ href }}" class="{{ 'ativa' if ativo }}" title="{{ rotulo }}" {{ 'aria-current="page"' if ativo }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ desenho|safe }}</svg><span>{{ rotulo }}</span>{% if selos.get(chave) %}<b class="menu-selo" title="{{ _('{v1} aguardando sua atenção', v1=selos[chave]) }}">{{ selos[chave] }}</b>{% endif %}</a>
+      {%- if subs %}
+      <button type="button" class="abrir-sub" aria-expanded="{{ 'true' if ativo else 'false' }}" aria-label="{{ _('Abrir submenu de {v1}', v1=rotulo) }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10l4 4 4-4"/></svg></button>
+      <div class="sub">
+        {%- for sh, sr in subs %}<a href="{{ sh }}" class="{{ 'atual' if request.url.path == sh }}">{{ sr }}</a>{% endfor -%}
+      </div>
+      {%- endif %}
+    </div>
+  {%- endmacro %}
+  <nav class="abas" aria-label="{{ _('Menu do painel') }}">
+    <span class="menu-titulo">{{ _('Dia a dia') }}</span>
+    {{ item('/painel', 'hoje', _('Hoje'), '<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>') }}
+    {% if pode(u, 'escala') %}{{ item('/painel/escala', 'escala', _('Escala'), '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>', [('/painel/escala', _('Escala da semana')), ('/painel/escala#ofertas', _('Turnos abertos e trocas'))]) }}{% endif %}
+    {% if pode(u, 'ponto') %}{{ item('/painel/ponto', 'ponto', _('Ponto'), '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', [('/painel/ponto', _('Batidas e horas')), ('/painel/ponto/problemas', _('Problemas de ponto')), ('/painel/perguntas', _('Perguntas de fim de turno')), ('/painel/historico', _('Histórico de alterações'))]) }}{% endif %}
+    {% if pode(u, 'ausencias') %}{{ item('/painel/ausencias', 'ausencias', _('Ausências'), '<rect x="4" y="6" width="16" height="14" rx="2"/><path d="M9 6V4h6v2M12 10v6M9 13h6"/>', [('/painel/ausencias', _('Ausências e pedidos')), ('/painel/ferias', _('Férias')), ('/painel/ausencias#feriados', _('Feriados'))]) }}{% endif %}
+    {% if pode(u, 'mural') %}{{ item('/painel/mural', 'mural', _('Mural'), '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>') }}{% endif %}
+    {% if pode(u, 'tarefas') %}{{ item('/painel/tarefas', 'tarefas', _('Tarefas'), '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/>') }}{% endif %}
+    {% if pode(u, 'ponto') %}{{ item('/painel/relatorios', 'relatorios', _('Relatórios'), '<path d="M4 20V4"/><path d="M4 20h16"/><rect x="7" y="12" width="3" height="5" rx="1"/><rect x="12" y="8" width="3" height="9" rx="1"/><rect x="17" y="5" width="3" height="12" rx="1"/>') }}{% endif %}
+    {% if pode(u, 'ponto') %}{{ item('/painel/conformidade', 'conformidade', _('Conformidade'), '<path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>') }}{% endif %}
+    {% if pode(u, 'fechamento') or pode(u, 'pagamento') %}<span class="menu-titulo">{{ _('Pagamento') }}</span>{% endif %}
+    {% if pode(u, 'fechamento') %}{{ item('/painel/fechamento', 'fechamento', _('Fechamento'), '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>') }}{% endif %}
+    {% if pode(u, 'pagamento') %}{{ item('/painel/pagamento', 'pagamento', _('Pagamento'), '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>') }}{% endif %}
+    {% if pode(u, 'equipe') or pode(u, 'locais') or pode(u, 'dono') %}<span class="menu-titulo">{{ _('Empresa') }}</span>{% endif %}
+    {% if pode(u, 'equipe') %}{{ item('/painel/equipe', 'equipe', _('Equipe'), '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.5c2.1.8 3.5 2.8 3.5 5.5"/>', [('/painel/equipe', _('Pessoas')), ('/painel/equipe/novo', _('Adicionar pessoa')), ('/painel/importar-equipe', _('Importar planilha'))] + ([('/painel/gerentes', _('Gerentes e permissões'))] if u.dono else [])) }}{% endif %}
+    {% if pode(u, 'locais') %}{{ item('/painel/locais', 'locais', _('Locais'), '<path d="M12 21s7-6.2 7-11.5a7 7 0 0 0-14 0C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>', [('/painel/locais', _('Locais de ponto')), ('/painel/locais#totens', _('Totens'))]) }}{% endif %}
+    {% if pode(u, 'dono') %}{{ item('/painel/config', 'config', _('Configurações'), '<path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="16" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/>', [('/painel/config', _('Empresa e regras')), ('/painel/comecar', _('Configuração guiada')), ('/painel/ponto/problemas#regras', _('Regras automáticas do ponto')), ('/painel/assinatura', _('Assinatura e plano'))]) }}{% endif %}
+    {% if u.na_escala %}{{ item('/app', 'meu', _('Meu ponto'), '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/>') }}{% endif %}
+  </nav>
+  <div class="conta">
+    {% set st = situacao(e) %}
+    {% if st == 'teste' %}
+      {% set total = (plat.dias_teste or 7) %}
+      {% set resta = dias_restantes(e) or 0 %}
+      {% set pct = [[(resta * 100 / total)|round|int, 4]|max, 100]|min %}
+      <a class="contagem-teste {{ 'urgente' if resta <= 3 }}" href="/painel/assinatura" title="{{ _('Ver planos e assinar') }}">
+        <span class="contagem-texto">{% if fim_da_carencia(e) %}{{ _('Teste terminou: assine') }}{% elif resta == 0 %}{{ _('Teste grátis: último dia') }}{% else %}{{ _('Teste grátis: {v1} dia(s)', v1=resta) }}{% endif %}</span>
+        <span class="contagem-barra" role="progressbar" aria-valuemin="0" aria-valuemax="{{ total }}" aria-valuenow="{{ resta }}" aria-label="{{ _('Dias restantes do teste grátis') }}"><span style="width:{{ 0 if fim_da_carencia(e) else pct }}%"></span></span>
+      </a>
+    {% endif %}
+    <span class="conta-nome">{{ e.nome }}</span>
+    <div class="conta-pessoa" title="{{ u.nome }} · {{ e.nome }}">
+      <span class="avatar" aria-hidden="true">{{ (u.nome.split()[0][:1] ~ (u.nome.split()[-1][:1] if u.nome.split()|length > 1 else ''))|upper }}</span>
+      <span class="quem"><strong>{{ u.nome }}</strong><small>{{ e.nome }}</small></span>
+    </div>
+    <div class="conta-rodape">
+    {{ seletor() }}
+    <div class="conta-icones">
+      {% if u.is_admin and not suporte %}<a href="/master" class="icone-conta {{ 'ativa' if aba == 'master' }}" title="{{ _('Master') }}" aria-label="{{ _('Master') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></a>{% endif %}
+      <button class="icone-conta" type="button" id="abrir-guia" title="{{ _('Ver o guia desta tela') }}" aria-label="{{ _('Guia') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.8 1c0 1.7-2.3 2.2-2.3 3.8"/><path d="M12 17.2h.01"/></svg></button>
+      <form method="post" action="/sair" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="icone-conta" type="submit" title="{{ _('Sair') }}" aria-label="{{ _('Sair') }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H5v16h4"/><path d="M15 16l4-4-4-4"/><path d="M19 12H9"/></svg></button>
+      </form>
+    </div>
+    </div>
+  </div>
+</div></header>
+<main class="pagina">
+  {% if suporte %}
+  <form method="post" action="/master/voltar" class="alerta" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <span>{{ _('Você está no painel de') }} <strong>{{ e.nome }}</strong> {{ _('como suporte.') }}</span>
+    <button class="botao mini" type="submit">{{ _('Voltar ao Master') }}</button>
+  </form>
+  {% elif aba != 'master' and fim_da_carencia(e) %}
+  <div class="alerta">{% if situacao(e) == 'teste' %}{{ _('Seu teste grátis terminou em {v1}. Você ainda pode usar o painel até {v2}: assine para não perder o acesso.', v1=(e.teste_ate|data('%d/%m/%Y')), v2=(fim_da_carencia(e)|data('%d/%m/%Y'))) }}{% else %}{{ _('Sua assinatura venceu em {v1}. O painel continua aberto até {v2}.', v1=(e.pago_ate|data('%d/%m/%Y')), v2=(fim_da_carencia(e)|data('%d/%m/%Y'))) }}{% endif %} {% if aba != 'assinatura' %}<a href="/painel/assinatura">{{ _('Regularizar') }}</a>{% endif %}</div>
+  {% elif aba != 'master' and aba != 'assinatura' and situacao(e) == 'teste' and dias_restantes(e) is not none and dias_restantes(e) <= 3 %}
+  <div class="alerta">{{ _('Seu período de teste termina {v1}.', v1=('hoje' if dias_restantes(e) == 0 else 'em ' ~ dias_restantes(e) ~ ' dia(s)')) }} <a href="/painel/assinatura">{{ _('Ver planos e assinar') }}</a></div>
+  {% elif aba != 'master' and aba != 'assinatura' and situacao(e) == 'ativa' and validade(e) and dias_restantes(e) == 0 %}
+  <div class="alerta">{{ _('Sua assinatura venceu em {v1}.', v1=(validade(e)|data('%d/%m/%Y'))) }} <a href="/painel/assinatura">{{ _('Regularizar') }}</a></div>
+  {% endif %}
+  {% if e.lat is none and gps_liberado(e) and pode(u, 'dono') and aba != 'config' and aba != 'master' and aba != 'assinatura' %}
+  <div class="alerta">{{ _('O local da empresa ainda não foi definido, então o ponto está sendo aceito de qualquer lugar.') }} <a href="/painel/config">{{ _('Definir o local') }}</a></div>
+  {% endif %}
+  {% if flash %}<div class="aviso {{ 'erro' if flash.tipo == 'erro' }}">{{ flash.texto }}</div>{% endif %}
+  {% block conteudo %}{% endblock %}
+</main>
+{% if aba == 'hoje' and not u.guia_visto and not suporte %}
+<dialog id="convite-guia" aria-labelledby="convite-guia-titulo">
+  <h2 id="convite-guia-titulo">{{ _('Bem-vindo, {v1}!', v1=(u.primeiro_nome)) }}</h2>
+  <p>{{ _('Quer conhecer o sistema em poucos minutos? O guia mostra, passo a passo e nas telas de verdade, o que você vai usar no dia a dia: o local da empresa, a equipe, a escala, o ponto e o fechamento do mês.') }}</p>
+  <p class="suave pequeno">{{ _('Ele fica sempre disponível no botão') }} <strong>{{ _('Guia') }}</strong>{{ _(', no alto de cada tela.') }}</p>
+  <div class="acoes" style="justify-content:flex-end;margin-top:14px">
+    <button class="botao claro" type="button" data-guia="nao">{{ _('Agora não') }}</button>
+    <button class="botao" type="button" data-guia="sim">{{ _('Começar o guia') }}</button>
+  </div>
+</dialog>
+{% endif %}
+<script>
+/* Submenus do menu lateral, como sanfona: só um fica aberto. Ao abrir um, o outro fecha;
+   ao chegar numa tela, fica aberto só o grupo dela. */
+(function () {
+  var grupos = Array.prototype.slice.call(document.querySelectorAll(".grupo.com-sub"));
+  function marcar(g, aberto) {
+    g.classList.toggle("aberto", aberto);
+    g.querySelector(".abrir-sub").setAttribute("aria-expanded", aberto ? "true" : "false");
+  }
+  grupos.forEach(function (g) {
+    marcar(g, !!g.querySelector("a.ativa"));
+    g.querySelector(".abrir-sub").addEventListener("click", function () {
+      var abrir = !g.classList.contains("aberto");
+      grupos.forEach(function (o) { marcar(o, o === g ? abrir : false); });
+    });
+  });
+})();
+</script>
+<script>window.TOUR = { aba: "{{ aba }}", caminho: "{{ request.url.path }}", csrf: "{{ csrf }}" };</script>
+<script src="/static/tour.js?v=3" defer></script>
+<dialog id="dlg-foto" class="dlg-foto" aria-labelledby="dlg-foto-titulo">
+  <h2 id="dlg-foto-titulo">{{ _('Foto da batida') }}</h2>
+  <img id="dlg-foto-img" alt="">
+  <p class="suave" id="dlg-foto-erro" hidden>{{ _('Foto não disponível: o prazo de guarda pode ter vencido.') }}</p>
+  <div class="acoes" style="justify-content:flex-end;margin-top:12px">
+    <button class="botao" type="button" id="dlg-foto-fechar">{{ _('Fechar') }}</button>
+  </div>
+</dialog>
+<script>
+// Links de foto da batida abrem numa janela por cima da página, em vez de outra aba.
+(function () {
+  var dlg = document.getElementById("dlg-foto"), img = document.getElementById("dlg-foto-img"),
+      erro = document.getElementById("dlg-foto-erro"), titulo = document.getElementById("dlg-foto-titulo");
+  if (!dlg.showModal) return;
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest('a[href^="/painel/ponto/foto/"]');
+    if (!a || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
+    ev.preventDefault();
+    titulo.textContent = a.dataset.titulo || t("Foto da batida");
+    img.alt = titulo.textContent; img.hidden = false; erro.hidden = true;
+    img.onerror = function () { img.hidden = true; erro.hidden = false; };
+    img.src = a.getAttribute("href");
+    dlg.showModal();
+  });
+  document.getElementById("dlg-foto-fechar").addEventListener("click", function () { dlg.close(); });
+  dlg.addEventListener("click", function (ev) { if (ev.target === dlg) dlg.close(); });
+  dlg.addEventListener("close", function () { img.removeAttribute("src"); });
+})();
+</script>
+{% endblock %}

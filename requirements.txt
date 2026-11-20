@@ -1,0 +1,16 @@
+fastapi==0.115.14
+uvicorn==0.34.3
+jinja2==3.1.6
+sqlalchemy==2.0.57
+python-multipart==0.0.33
+itsdangerous==2.2.0
+tzdata
+# Avisos push no aparelho do gestor (opcional: sem ela o app roda, só sem a notificação)
+pywebpush>=2.0,<3
+qrcode==8.2
+# Chamadas HTTP (push e outros)
+httpx==0.28.1
+# Revisão da folha de pagamento pelo Claude (API da Anthropic)
+anthropic==2.9.0
+# Cobrança das assinaturas (SDK oficial do Stripe)
+stripe==17.0.0

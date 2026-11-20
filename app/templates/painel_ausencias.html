@@ -1,0 +1,116 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>{{ _('Ausências e feriados') }}</h1><p class="suave" style="margin:0">{{ _('Atestados, férias, licenças e feriados. Nesses dias o ponto não é cobrado e não conta como falta.') }}</p></div>
+  <div><a class="botao claro" href="/painel/ferias">{{ _('Controle de férias') }}</a></div></div>
+
+{% set pendentes = lista|selectattr('situacao', 'equalto', 'pendente')|list %}
+{% if pendentes %}
+<div class="cartao">
+  <h2>{{ _('Enviados pelos funcionários ({v1})', v1=(pendentes|length)) }}</h2>
+  {% for a in pendentes %}
+  <form method="post" action="/painel/ausencias/{{ a.id }}" class="pedido">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div>
+      <span class="nome-forte">{{ a.usuario.nome }}</span> · {{ TIPOS_AUSENCIA.get(a.tipo, a.tipo) }} ·
+      <strong>{{ a.inicio.strftime('%d/%m') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim.strftime('%d/%m'))) }}{% endif %}</strong>
+      {% if a.anexo %} · <a href="/anexo/{{ a.id }}" target="_blank" rel="noopener">{{ _('ver anexo') }}</a>{% endif %}
+      {% if a.abono_dias %} · {{ _('vende {v1} dia(s)', v1=a.abono_dias) }}{% endif %}
+      {% if a.obs %}<br><span class="suave pequeno">{{ a.obs }}</span>{% endif %}
+      {% if avisos_ferias.get(a.id) %}<ul class="pequeno alerta" style="margin:6px 0 0;padding-left:24px">{% for x in avisos_ferias[a.id] %}<li>{{ x|traduz }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="pedido-acoes">
+      <button class="botao" type="submit" name="acao" value="aprovar">{{ _('Aceitar') }}</button>
+      <button class="botao perigo" type="submit" name="acao" value="recusar">{{ _('Recusar') }}</button>
+    </div>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="cartao">
+  <h2>{{ _('Lançar ausência') }}</h2>
+  <form method="post" action="/painel/ausencias" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="linha-form">
+      <div><label for="a-func">{{ _('Funcionário') }}</label><select id="a-func" name="usuario_id" required>
+        {% for p in equipe %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}</select></div>
+      <div><label for="a-tipo">{{ _('Tipo') }}</label><select id="a-tipo" name="tipo">
+        {% for cod, nome in TIPOS_AUSENCIA.items() %}<option value="{{ cod }}">{{ nome }}</option>{% endfor %}</select></div>
+      <div><label for="a-ini">{{ _('Primeiro dia') }}</label><input type="date" id="a-ini" name="inicio" value="{{ hoje.isoformat() }}" required></div>
+      <div><label for="a-fim">{{ _('Último dia') }}</label><input type="date" id="a-fim" name="fim" value="{{ hoje.isoformat() }}" required></div>
+    </div>
+    <div class="linha-form" style="margin-top:12px">
+      <div><label for="a-obs">{{ _('Observação (opcional)') }}</label><input type="text" id="a-obs" name="obs" maxlength="300"></div>
+      <div><label for="a-anexo">{{ _('Anexo (foto ou PDF, opcional)') }}</label><input type="file" id="a-anexo" name="anexo" accept="image/*,application/pdf"></div>
+      <div><button class="botao" type="submit">{{ _('Lançar') }}</button></div>
+    </div>
+  </form>
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Ausências recentes e futuras') }}</h2>
+  {% set decididas = lista|rejectattr('situacao', 'equalto', 'pendente')|list %}
+  {% if decididas %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Tipo') }}</th><th>{{ _('Dias') }}</th><th>{{ _('Situação') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for a in decididas %}
+    <tr>
+      <td class="nome-forte">{{ a.usuario.nome }}</td>
+      <td>{{ TIPOS_AUSENCIA.get(a.tipo, a.tipo) }}{% if a.obs %}<br><span class="suave pequeno">{{ a.obs }}</span>{% endif %}</td>
+      <td style="white-space:nowrap">{{ a.inicio.strftime('%d/%m/%Y') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim.strftime('%d/%m/%Y'))) }}{% endif %}</td>
+      <td><span class="etiqueta {{ 'ok' if a.situacao == 'aprovado' else 'erro' }}">{{ _('Válida') if a.situacao == 'aprovado' else _('Recusada') }}</span>
+        {% if a.anexo %}<a class="link-foto" href="/anexo/{{ a.id }}" target="_blank" rel="noopener">{{ _('anexo') }}</a>{% endif %}</td>
+      <td class="direita">
+        {% if not (fechado and a.inicio <= fechado and a.situacao == 'aprovado') %}
+        <form method="post" action="/painel/ausencias/{{ a.id }}" class="inline" data-confirma="{{ _('Remover esta ausência de {v1}?', v1=(a.usuario.primeiro_nome)) }}">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="botao mini perigo" type="submit" name="acao" value="remover">{{ _('Remover') }}</button>
+        </form>
+        {% else %}<span class="suave pequeno">{{ _('período fechado') }}</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="vazio">{{ _('Nenhuma ausência lançada.') }}</div>
+  {% endif %}
+</div>
+
+<div class="cartao" id="feriados">
+  <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+    <h2 style="margin:0">{{ _('Feriados de {v1}', v1=(ano)) }}</h2>
+    <div class="acoes">
+      <a class="botao mini claro" href="/painel/ausencias?ano={{ ano - 1 }}#feriados">‹ {{ ano - 1 }}</a>
+      <a class="botao mini claro" href="/painel/ausencias?ano={{ ano + 1 }}#feriados">{{ ano + 1 }} ›</a>
+      <form method="post" action="/painel/feriados/nacionais" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="ano" value="{{ ano }}">
+        <button class="botao mini" type="submit">{{ _('Carregar os nacionais de {v1}', v1=(ano)) }}</button>
+      </form>
+    </div>
+  </div>
+  <p class="ajuda" style="margin-top:0">{{ _('Em feriado ninguém deve horas. Quem trabalhar tem as horas contadas como extra em feriado. Acrescente os feriados estaduais e municipais da sua cidade.') }}</p>
+  {% if feriados %}
+  <ul class="lista-dias">
+    {% for f in feriados %}
+    <li><span>{{ DIAS[f.data.weekday()] }} {{ f.data.strftime('%d/%m') }} · {{ f.nome }}</span>
+      <form method="post" action="/painel/feriados/{{ f.id }}/remover" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="botao link" type="submit" aria-label="{{ _('Remover {v1}', v1=(f.nome)) }}">{{ _('remover') }}</button>
+      </form></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="vazio">{{ _('Nenhum feriado cadastrado em {v1}.', v1=(ano)) }}</div>
+  {% endif %}
+  <form method="post" action="/painel/feriados" style="margin-top:14px">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="linha-form">
+      <div><label for="f-data">{{ _('Data') }}</label><input type="date" id="f-data" name="data" required></div>
+      <div><label for="f-nome">{{ _('Nome do feriado') }}</label><input type="text" id="f-nome" name="nome" maxlength="80" required placeholder="{{ _('Ex.: Aniversário da cidade') }}"></div>
+      <div><button class="botao claro" type="submit">{{ _('Adicionar feriado') }}</button></div>
+    </div>
+  </form>
+</div>
+{% endblock %}

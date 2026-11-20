@@ -1,0 +1,21 @@
+{% extends "painel_base.html" %}
+{% from "_mural.html" import lista %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Mural da equipe') }}</h1><p class="suave" style="margin:0">{{ _('Avisos para todos: mudança de horário, reunião, cardápio do dia. A equipe lê no celular.') }}</p></div>
+  <form method="post" action="/painel/mural/regra" class="inline">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="marcar pequeno"><input type="checkbox" name="equipe" value="1" {{ 'checked' if e.mural_equipe }} onchange="this.form.submit()"><span>{{ _('Funcionários também podem escrever') }}</span></label>
+  </form>
+</div>
+<form method="post" action="/painel/mural" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="campo"><label for="texto">{{ _('Nova mensagem') }}</label><textarea id="texto" name="texto" maxlength="1000" required style="min-height:90px" placeholder="{{ _('Ex.: Reunião rápida no sábado às 9h, antes de abrir.') }}"></textarea></div>
+  <div class="acoes" style="align-items:center;gap:16px">
+    <label class="marcar"><input type="checkbox" name="notificar" value="1" checked><span>{{ _('Avisar a equipe no celular') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="fixar" value="1"><span>{{ _('Fixar no alto') }}</span></label>
+    <button class="botao" type="submit">{{ _('Publicar') }}</button>
+  </div>
+</form>
+<div class="cartao">{{ lista(mensagens, u, visto, True, leituras) }}</div>
+{% endblock %}

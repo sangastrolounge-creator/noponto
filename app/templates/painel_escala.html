@@ -1,0 +1,284 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div>
+    <h1>{{ _('Escala da semana') }}</h1>
+    <p class="suave" style="margin:0">{{ _('{v1} a {v2}. Toque num dia para definir o horário ou a folga.', v1=(dias[0].strftime('%d/%m')), v2=(dias[6].strftime('%d/%m/%Y'))) }} {% if fixas %}{{ _('A escala fixa se repete sozinha toda semana.') }}{% else %}{{ _('Marque “Repetir toda semana” e a escala passa a valer sempre.') }}{% endif %}</p>
+  </div>
+  <div class="semana-nav">
+    <a class="botao claro" href="/painel/escala?semana={{ ant.isoformat() }}" aria-label="{{ _('Semana anterior') }}">‹</a>
+    <a class="botao claro" href="/painel/escala">{{ _('Esta semana') }}</a>
+    <a class="botao claro" href="/painel/escala?semana={{ prox.isoformat() }}" aria-label="{{ _('Próxima semana') }}">›</a>
+    <form method="post" action="/painel/escala/copiar" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="semana" value="{{ seg.isoformat() }}">
+      <button class="botao claro" type="submit">{{ _('Copiar semana anterior') }}</button>
+    </form>
+    <form method="post" action="/painel/escala/publicar" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="semana" value="{{ seg.isoformat() }}">
+      <button class="botao {{ '' if publicar_n else 'claro' }}" type="submit" title="{{ _('Avisa no celular quem teve a escala mudada') }}">{{ _('Publicar e avisar') }}{% if publicar_n %} ({{ publicar_n }}){% endif %}</button>
+    </form>
+    <form method="post" action="/painel/escala/fixar" class="inline" data-confirma="{{ _('Tornar esta semana a escala fixa de toda a equipe? Ela passa a se repetir toda semana, e o que estava marcado nas semanas seguintes é substituído.') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="semana" value="{{ seg.isoformat() }}">
+      <button class="botao" type="submit">{{ _('Repetir esta semana sempre') }}</button>
+    </form>
+  </div>
+</div>
+
+{% if curtos %}<div class="alerta" id="interjornada">{{ _('{v1} turno(s) começam menos de 11 horas depois do fim do turno anterior (marcados na grade). A CLT (art. 66) exige 11 horas de descanso entre jornadas.', v1=curtos|length) }}</div>{% endif %}
+{% if fw %}
+<div class="{{ 'alerta' if fw.atrasada or not fw.publicada else 'aviso' }}" id="escala-justa">
+  <strong>{{ fw.regra.nome }} · {{ _('escala justa') }}</strong>:
+  {% if fw.publicada and fw.no_prazo %}{{ _('escala publicada dentro do prazo de {v1} dias.', v1=fw.regra.aviso) }}
+  {% elif fw.publicada %}{{ _('escala publicada depois do prazo ({v1}). Mudanças nos próximos dias podem gerar predictability pay.', v1=fw.prazo.strftime('%d/%m')) }}
+  {% elif fw.atrasada %}{{ _('o prazo para publicar esta semana era {v1}. Publique agora.', v1=fw.prazo.strftime('%d/%m')) }}
+  {% else %}{{ _('publique esta semana até {v1} ({v2} dias antes).', v1=fw.prazo.strftime('%d/%m'), v2=fw.regra.aviso) }}{% endif %}
+  {% if fw.regra.muda %}{{ _('Depois de publicada, mudar um turno até {v1} gera adicional, salvo a pedido do funcionário.', v1=fw.janela_ate.strftime('%d/%m')) }}{% endif %}
+</div>
+{% endif %}
+
+{% set pedidas = ofertas|selectattr('situacao', 'equalto', 'pedida')|list %}
+{% set abertas = ofertas|selectattr('situacao', 'equalto', 'aberta')|list %}
+<div class="cartao" id="ofertas">
+  <div class="cabecalho" style="margin-bottom:6px"><div><h2 style="margin:0">{{ _('Turnos abertos e trocas') }}{% if pedidas %} <span class="etiqueta alerta">{{ _('{v1} para aprovar', v1=(pedidas|length)) }}</span>{% endif %}</h2>
+    <p class="suave pequeno" style="margin:4px 0 0">{{ _('Publique um turno sem dono para a equipe pegar, ou aprove quando alguém cobre o turno de um colega.') }}</p></div>
+    <form method="post" action="/painel/ofertas/regra" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="marcar pequeno"><input type="checkbox" name="aprovacao" value="1" {{ 'checked' if e.trocas_aprovacao }} onchange="this.form.submit()"><span>{{ _('Exigir minha aprovação') }}</span></label>
+    </form>
+  </div>
+  {% if pedidas %}
+  <ul class="lista-alertas">
+    {% for o in pedidas %}
+    <li style="justify-content:space-between;flex-wrap:wrap">
+      <span><strong>{{ o.candidato.nome }}</strong> {{ _('quer') }} {{ DIAS[o.data.weekday()] }} {{ o.data.strftime('%d/%m') }}, {{ o.inicio }}–{{ o.fim }}
+        <br><span class="suave pequeno">{% if o.tipo == 'repasse' %}{{ _('Cobrindo {v1}', v1=(o.de.nome)) }}{% else %}{{ _('Turno aberto') }}{% endif %}{% if o.cargo %} · {{ o.cargo }}{% endif %}{% if o.local %} · {{ o.local.nome }}{% endif %}</span>
+        {% set x = avisos_extra.get(o.id) %}{% if x %}<br><span class="etiqueta alerta pequeno">{{ _('Com este turno, {v1} fica com {v2} na semana: {v3} de hora extra (1,5x).', v1=x.nome, v2=x.total, v3=x.extra) }}</span>{% endif %}</span>
+      <span class="acoes">
+        <form method="post" action="/painel/ofertas/{{ o.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="aprovar"><button class="botao mini" type="submit">{{ _('Aprovar') }}</button></form>
+        <form method="post" action="/painel/ofertas/{{ o.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="recusar"><button class="botao mini claro" type="submit">{{ _('Recusar') }}</button></form>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if abertas %}
+  <ul class="lista-alertas">
+    {% for o in abertas %}
+    <li style="justify-content:space-between;flex-wrap:wrap">
+      <span>{{ DIAS[o.data.weekday()] }} {{ o.data.strftime('%d/%m') }}, {{ o.inicio }}–{{ o.fim }} <span class="etiqueta">{{ _('Esperando alguém') }}</span>
+        <br><span class="suave pequeno">{% if o.tipo == 'repasse' %}{{ _('{v1} oferece o próprio turno', v1=(o.de.nome)) }}{% else %}{{ _('Turno aberto') }}{% endif %}{% if o.cargo %} · {{ o.cargo }}{% endif %}{% if o.local %} · {{ o.local.nome }}{% endif %}{% if o.obs %} · {{ o.obs }}{% endif %}</span></span>
+      <form method="post" action="/painel/ofertas/{{ o.id }}" class="inline" data-confirma="{{ _('Cancelar esta oferta?') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="cancelar"><button class="botao mini claro" type="submit">{{ _('Cancelar') }}</button></form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if not ofertas %}<p class="suave pequeno" style="margin:6px 0">{{ _('Nenhum turno oferecido no momento.') }}</p>{% endif %}
+  <details style="margin-top:8px">
+    <summary class="botao claro mini" style="display:inline-flex">{{ _('Publicar turno aberto') }}</summary>
+    <form method="post" action="/painel/ofertas" style="margin-top:12px">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+        <div class="campo"><label for="o-data">{{ _('Dia') }}</label><input type="date" id="o-data" name="data" min="{{ hoje.isoformat() }}" value="{{ (seg if seg >= hoje else hoje).isoformat() }}" required></div>
+        <div class="campo"><label for="o-ini">{{ _('Início') }}</label><input type="time" id="o-ini" name="inicio" value="08:00" required></div>
+        <div class="campo"><label for="o-fim">{{ _('Fim') }}</label><input type="time" id="o-fim" name="fim" value="17:00" required></div>
+        <div class="campo"><label for="o-int">{{ _('Intervalo (min)') }}</label><input type="number" id="o-int" name="intervalo" min="0" max="240" value="{{ e.intervalo_padrao_min }}"></div>
+        <div class="campo"><label for="o-n">{{ _('Vagas') }}</label><input type="number" id="o-n" name="quantos" min="1" max="10" value="1"></div>
+      </div>
+      <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+        <div class="campo"><label for="o-cargo">{{ _('Cargo') }}</label><select id="o-cargo" name="cargo"><option value="">{{ _('Qualquer cargo') }}</option>{% for c in cargos %}<option>{{ c }}</option>{% endfor %}</select></div>
+        {% if locais %}<div class="campo"><label for="o-local">{{ _('Local') }}</label><select id="o-local" name="local_id"><option value="">{{ _('Qualquer local') }}</option>{% for l in locais %}<option value="{{ l.id }}">{{ l.nome }}</option>{% endfor %}</select></div>{% endif %}
+        <div class="campo"><label for="o-obs">{{ _('Observação') }}</label><input type="text" id="o-obs" name="obs" maxlength="200" placeholder="{{ _('Ex.: evento de sábado') }}"></div>
+      </div>
+      <div class="acoes">
+        <button class="botao" type="submit">{{ _('Publicar e avisar a equipe') }}</button>
+        <button class="botao claro" type="button" id="o-sugerir">{{ _('Ver quem pode') }}</button>
+      </div>
+      <div id="o-sugestoes" class="sugestoes" hidden></div>
+    </form>
+    <form method="post" action="/painel/escala/turno" id="o-escalar" hidden>
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="usuario_id"><input type="hidden" name="data">
+      <input type="hidden" name="modo" value="trabalho"><input type="hidden" name="inicio"><input type="hidden" name="fim">
+      <input type="hidden" name="intervalo"><input type="hidden" name="repetir" value="dia"><input type="hidden" name="local_id">
+    </form>
+  </details>
+<script>
+(function () {
+  var b = document.getElementById("o-sugerir"); if (!b) return;
+  var caixa = document.getElementById("o-sugestoes"), esc = document.getElementById("o-escalar");
+  function v(id) { return document.getElementById(id) ? document.getElementById(id).value : ""; }
+  function txt(s) { var d = document.createElement("span"); d.textContent = s; return d.innerHTML; }
+  b.addEventListener("click", function () {
+    var q = new URLSearchParams({data: v("o-data"), inicio: v("o-ini"), fim: v("o-fim"), cargo: v("o-cargo")});
+    caixa.hidden = false; caixa.textContent = t("Procurando…");
+    fetch("/painel/escala/sugestoes?" + q, {credentials: "same-origin"}).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.erro) { caixa.textContent = j.erro; return; }
+      if (!j.pessoas.length) { caixa.textContent = t("Ninguém livre neste dia."); return; }
+      caixa.innerHTML = "<p class='pequeno suave'>" + txt(t("Ordenado por: disponível, sem hora extra, menos horas na semana e menor custo.")) + "</p>" +
+        j.pessoas.map(function (p) {
+          return "<div class='sug'><span><strong>" + txt(p.nome) + "</strong>" + (p.cargo ? " · " + txt(p.cargo) : "") +
+            "<br><small class='suave'>" + txt(p.horas) + " " + txt(t("na semana")) + (p.custo != null ? " · $" + (p.custo / 100).toFixed(2) : "") + "</small>" +
+            (p.motivos.length ? "<br><small class='disp-aviso'>" + txt(p.motivos.join("; ")) + "</small>" : "<br><small class='conf-sim'>" + txt(t("pode trabalhar")) + "</small>") +
+            "</span><button type='button' class='botao mini" + (p.ok ? "" : " claro") + "' data-id='" + p.id + "'>" + txt(t("Escalar")) + "</button></div>";
+        }).join("");
+      caixa.querySelectorAll("button[data-id]").forEach(function (bt) {
+        bt.addEventListener("click", function () {
+          esc.usuario_id.value = bt.dataset.id; esc.data.value = v("o-data"); esc.inicio.value = v("o-ini");
+          esc.fim.value = v("o-fim"); esc.intervalo.value = v("o-int"); esc.local_id.value = v("o-local"); esc.submit();
+        });
+      });
+    }).catch(function () { caixa.textContent = t("Não deu para buscar agora. Tente de novo."); });
+  });
+})();
+</script>
+</div>
+
+<div class="cartao">
+  {% if equipe %}
+  <div class="rolagem"><table class="tabela-escala">
+    <thead><tr>
+      <th>{{ _('Funcionário') }}</th>
+      {% for d in dias %}<th class="{{ 'hoje' if d == hoje }}">{{ DIAS[loop.index0] }}<small>{{ d.strftime('%d/%m') }}</small>{% if feriados.get(d) %}<span class="etiqueta azul" title="{{ feriados[d] }}">{{ _('Feriado') }}</span>{% endif %}</th>{% endfor %}
+    </tr></thead>
+    <tbody>
+    {% for f in equipe %}
+    <tr>
+      <td><span class="nome-forte">{{ f.nome }}</span>{% if menor.menores.get(f.id) %} <span class="etiqueta alerta pequeno" title="{{ _('Menor de idade: a escala é conferida pelos limites da lei') }}">{{ _('Menor') }}</span>{% endif %}{% if menor.semana.get(f.id) %}<br><span class="disp-aviso pequeno">{{ menor.semana[f.id]|traduz }}</span>{% endif %}<br><span class="suave pequeno">{{ _('{v1} na semana', v1=(fmt_min(horas[f.id]))) }}{% if ver_custo %} · {% set cs = namespace(t=0) %}{% for d in dias %}{% set cs.t = cs.t + custo[(f.id, d)] %}{% endfor %}{{ cs.t|dinheiro }}{% endif %}</span>{% if zaps.get(f.id) %}<br><a class="pequeno" target="_blank" rel="noopener" href="{{ zaps[f.id] }}">{{ _('Enviar pelo WhatsApp') }}</a>{% endif %}</td>
+      {% for d in dias %}
+      {% set t = turnos.get((f.id, d)) %}
+      {% set aus = ausencias.get((f.id, d)) %}
+      {% set dp = disp.get((f.id, loop.index0)) %}
+      {% set conflito = fora_disp(t, dp) and not aus %}
+      {% set curto = (f.id, d) in curtos %}
+      {% set lim_menor = menor.dia.get((f.id, d)) %}
+      {% set janela = fw and fw.publicada and fw.regra.muda and hoje <= d <= fw.janela_ate %}
+      {% set dp_txt = (_('Não pode') if dp.tipo == 'nao' else _('Pode {v1}–{v2}', v1=dp.inicio, v2=dp.fim)) if dp else '' %}
+      <td><button type="button" class="celula {{ 'ausente' if aus else 'folga' if t and t.folga else 'trabalho' if t }}{{ ' conflito' if conflito }}{{ ' curto' if curto }}{{ ' conflito' if lim_menor }}" title="{{ lim_menor|map('traduz')|join('; ') if lim_menor }}" data-janela="{{ '1' if janela }}" data-disp="{{ dp_txt }}{{ ' · ' ~ dp.obs if dp and dp.obs }}" {{ 'disabled' if (fechado and d <= fechado) or (travado and d <= travado) }}
+            data-intervalo="{{ t.intervalo_min if t and not t.folga else e.intervalo_padrao_min }}"
+            data-saidaint="{{ t.intervalo_inicio if t and not t.folga else '' }}"
+            data-uid="{{ f.id }}" data-nome="{{ f.nome }}" data-data="{{ d.isoformat() }}"
+            data-rotulo="{{ DIAS[loop.index0] }} {{ d.strftime('%d/%m') }}"
+            data-modo="{{ 'folga' if t and t.folga else 'trabalho' }}" data-tem="{{ '1' if t }}"
+            data-local="{{ t.local_id if t and t.local_id else '' }}" data-fixa="{{ '1' if (f.id, loop.index0) in fixas }}" data-inicio="{{ t.inicio if t }}" data-fim="{{ t.fim if t }}" data-obs="{{ t.obs if t }}"
+            aria-label="{{ f.nome }}, {{ DIAS[loop.index0] }} {{ d.strftime('%d/%m') }}: {{ 'folga' if t and t.folga else (t.inicio ~ ' a ' ~ t.fim) if t else _('sem escala') }}">
+        {%- if aus %}{{ TIPOS_AUSENCIA.get(aus.tipo, _('Ausência')).split(' ')[0] }}{% if t and not t.folga %}<br><s>{{ t.inicio }}–{{ t.fim }}</s>{% endif %}{% elif t and t.folga %}{{ _('Folga') }}{% elif t %}{{ t.inicio }}<br>{{ t.fim }}{% if t.local %}<br><small>{{ t.local.nome }}</small>{% endif %}{% else %}+{% endif -%}
+        {%- if t and not t.folga and t.intervalo_inicio and not aus %}<br><small class="int-hora">{{ _('intervalo {v1}', v1=(t.intervalo_inicio)) }}</small>{% endif -%}
+        {%- if t and not t.fixa and (f.id, loop.index0) in fixas %}<br><small class="so-semana">{{ _('só nesta semana') }}</small>{% endif -%}
+        {%- if e.confirmar_turno and publicada and t and not t.folga and d >= hoje %}<br><small class="{{ 'conf-sim' if t.confirmado_em else 'conf-nao' }}">{{ _('✓ confirmado') if t.confirmado_em else _('não confirmado') }}</small>{% endif -%}
+        {%- if curto %}<br><small class="disp-aviso">{{ _('Descanso curto') }}</small>{% endif -%}
+        {%- if lim_menor %}<br><small class="disp-aviso">{{ _('Limite de menor') }}</small>{% endif -%}
+        {%- if conflito %}<br><small class="disp-aviso">{{ _('Fora da disponibilidade') }}</small>{% elif dp and not (t and not t.folga) %}<br><small class="disp-txt">{{ dp_txt }}</small>{% endif -%}
+      </button></td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr class="total-escala">
+      <td><strong>{{ _('Total do dia') }}</strong>{% if ver_custo %}<br><span class="suave pequeno">{{ _('custo estimado') }}</span>{% endif %}</td>
+      {% for d in dias %}{% set dm = namespace(m=0, c=0) %}{% for f in equipe %}{% set t = turnos.get((f.id, d)) %}{% if t and not t.folga %}{% set dm.m = dm.m + fmt_min_raw(t) %}{% endif %}{% if ver_custo %}{% set dm.c = dm.c + custo[(f.id, d)] %}{% endif %}{% endfor %}
+      <td class="pequeno"><strong>{{ fmt_min(dm.m) }}</strong>{% if ver_custo %}<br>{{ dm.c|dinheiro }}{% endif %}</td>{% endfor %}
+    </tr></tfoot>
+  </table></div>
+  <p class="ajuda">{% if publicacao and publicacao.publicado_em %}{{ _('Publicada por {v1} em {v2}.', v1=publicacao.publicado_por, v2=local(e, publicacao.publicado_em, '%d/%m %H:%M')) }} {% endif %}{% if publicar_n %}{{ _('{v1} pessoa(s) com mudança ainda não avisada.', v1=publicar_n) }}{% endif %}{% if ver_custo %} {{ _('O custo é estimado pelo valor da hora de cada um, sem horas extras nem gorjetas.') }}{% endif %}</p>
+  {% if fechado and dias[0] <= fechado %}<p class="ajuda">{{ _('Os dias até {v1} estão num período de ponto fechado e não podem ser alterados.', v1=(fechado.strftime('%d/%m/%Y'))) }}</p>{% endif %}
+  {% else %}
+  <div class="vazio">{{ _('Cadastre os funcionários primeiro.') }} <a href="/painel/equipe">{{ _('Ir para Equipe') }}</a></div>
+  {% endif %}
+</div>
+
+<dialog id="dlg">
+  <form method="post" action="/painel/escala/turno">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="usuario_id" id="d-uid">
+    <input type="hidden" name="data" id="d-data">
+    <h2 id="d-titulo" style="margin-bottom:2px"></h2>
+    <p class="suave pequeno" id="d-sub"></p>
+    <div class="modos">
+      <label><input type="radio" name="modo" value="trabalho"><span>{{ _('Trabalha') }}</span></label>
+      <label><input type="radio" name="modo" value="folga"><span>{{ _('Folga') }}</span></label>
+      <label><input type="radio" name="modo" value="limpar"><span>{{ _('Limpar') }}</span></label>
+    </div>
+    <div id="d-horas">
+      {% set mods = modelos_turno(e) %}{% if mods %}<div class="modelos-turno" aria-label="{{ _('Modelos de turno') }}">{% for m in mods %}<button type="button" class="botao mini claro" data-ini="{{ m.inicio }}" data-fim="{{ m.fim }}">{{ m.nome }} {{ m.inicio }}–{{ m.fim }}</button>{% endfor %}</div>{% endif %}
+      <div class="linha-form" style="grid-template-columns:1fr 1fr">
+        <div class="campo"><label for="d-inicio">{{ _('Entrada') }}</label><input type="time" name="inicio" id="d-inicio"></div>
+        <div class="campo"><label for="d-fim">{{ _('Saída') }}</label><input type="time" name="fim" id="d-fim"></div>
+      </div>
+      <p class="ajuda" style="margin-top:-6px">{{ _('Saída menor que a entrada (ex.: 18:00 a 02:00) termina no dia seguinte.') }}</p>
+      <div class="campo"><label for="d-saidaint">{{ _('Saída para o intervalo (opcional)') }}</label><input type="time" name="intervalo_inicio" id="d-saidaint">
+        <div class="ajuda">{{ _('A hora em que a pessoa para. Ela vê no aplicativo e recebe um lembrete nesse horário. Em branco, ela mesma escolhe quando parar.') }}</div></div>
+      <div class="campo"><label for="d-intervalo">{{ _('Intervalo (minutos)') }}</label><input type="number" name="intervalo" id="d-intervalo" min="0" max="240">
+        <div class="ajuda">{{ _('Tempo de almoço ou descanso, que não conta como hora trabalhada.') }}</div></div>
+      {% if locais %}<div class="campo"><label for="d-local">{{ _('Local') }}</label><select name="local_id" id="d-local">
+        <option value="">{{ _('Qualquer local da empresa') }}</option>
+        {% for l in locais %}<option value="{{ l.id }}">{{ l.nome }}</option>{% endfor %}</select>
+        <div class="ajuda">{{ _('Escolhendo um local, o ponto desse dia só vale lá.') }}</div></div>{% endif %}
+      <div class="campo"><label for="d-obs">{{ _('Observação (opcional)') }}</label><input type="text" name="obs" id="d-obs" maxlength="200"></div>
+    </div>
+    <div class="campo"><label for="d-repetir">{{ _('Aplicar em') }}</label>
+      <select name="repetir" id="d-repetir">
+        <option value="dia">{{ _('Só neste dia') }}</option>
+        <option value="uteis">{{ _('Segunda a sexta desta semana') }}</option>
+        <option value="sabado">{{ _('Segunda a sábado desta semana') }}</option>
+        <option value="semana">{{ _('A semana inteira') }}</option>
+      </select></div>
+    {% if fw and fw.regra.muda %}<div class="alerta pequeno" id="d-janela" hidden>{{ _('Esta escala já foi publicada e o dia está dentro do prazo de aviso: a mudança gera predictability pay.') }}
+      <label class="marcar" style="margin-top:6px"><input type="checkbox" name="a_pedido" value="1" id="d-pedido"><span>{{ _('Mudança a pedido do funcionário (por escrito): sem adicional') }}</span></label></div>{% endif %}
+    <label class="marcar campo"><input type="checkbox" name="fixar" value="1" id="d-fixar" checked>
+      <span>{{ _('Repetir toda semana (escala fixa)') }}<br><span class="ajuda" id="d-fixar-ajuda"></span></span></label>
+    <div class="acoes" style="justify-content:flex-end">
+      <button class="botao claro" type="button" id="d-fechar">{{ _('Cancelar') }}</button>
+      <button class="botao" type="submit">{{ _('Salvar') }}</button>
+    </div>
+  </form>
+</dialog>
+<script>
+(function () {
+  var dlg = document.getElementById("dlg"), horas = document.getElementById("d-horas");
+  function g(id) { return document.getElementById(id); }
+  function modo() { return dlg.querySelector("input[name=modo]:checked").value; }
+  function explicar() {
+    var fixo = g("d-fixar").checked, m = modo();
+    g("d-fixar-ajuda").textContent = fixo
+      ? (m === "limpar" ? t("Tira este dia da escala fixa: ele fica sem escala daqui em diante.")
+                        : t("Vale deste dia em diante, toda semana, até você mudar. Substitui o que estava marcado nas próximas semanas."))
+      : (m === "limpar" ? t("Apaga só esta data. Se o dia tem escala fixa, ele volta ao horário fixo.")
+                        : t("Vale só nesta semana. Nas outras semanas continua a escala fixa."));
+  }
+  g("d-fixar").addEventListener("change", explicar);
+  function ajustar() {
+    explicar();
+    var trab = modo() === "trabalho";
+    horas.hidden = !trab;
+    g("d-inicio").required = g("d-fim").required = trab;
+  }
+  document.querySelectorAll(".celula").forEach(function (c) {
+    c.addEventListener("click", function () {
+      var d = c.dataset;
+      g("d-uid").value = d.uid; g("d-data").value = d.data;
+      g("d-titulo").textContent = d.nome; g("d-sub").textContent = d.rotulo + (d.disp ? " · " + t("Disponibilidade:") + " " + d.disp : "");
+      g("d-inicio").value = d.inicio || localStorage.getItem("turno_ini") || "08:00";
+      g("d-fim").value = d.fim || localStorage.getItem("turno_fim") || "17:00";
+      g("d-obs").value = d.obs || ""; g("d-repetir").value = "dia"; g("d-intervalo").value = d.intervalo; g("d-saidaint").value = d.saidaint || "";
+      if (g("d-local")) g("d-local").value = d.local || "";
+      g("d-fixar").checked = true;
+      if (g("d-janela")) { g("d-janela").hidden = d.janela !== "1"; g("d-pedido").checked = false; }
+      dlg.querySelector("input[value=" + d.modo + "]").checked = true;
+      ajustar(); dlg.showModal();
+    });
+  });
+  dlg.querySelectorAll("input[name=modo]").forEach(function (r) { r.addEventListener("change", ajustar); });
+  dlg.querySelectorAll(".modelos-turno button").forEach(function (b) {
+    b.addEventListener("click", function () { g("d-inicio").value = b.dataset.ini; g("d-fim").value = b.dataset.fim; });
+  });
+  g("d-fechar").addEventListener("click", function () { dlg.close(); });
+  dlg.querySelector("form").addEventListener("submit", function () {
+    if (modo() === "trabalho") {
+      try { localStorage.setItem("turno_ini", g("d-inicio").value); localStorage.setItem("turno_fim", g("d-fim").value); } catch (e) {}
+    }
+  });
+})();
+</script>
+{% endblock %}

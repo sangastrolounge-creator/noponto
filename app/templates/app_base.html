@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}{{ app_nome }} — {{ e.nome }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<main class="app">
+  <div class="app-topo">
+    <div><div class="ola">{% block saudacao %}{% endblock %}</div><div class="suave pequeno">{{ e.nome }}</div></div>
+    {{ seletor() }}
+    <form method="post" action="/sair" data-confirma="{{ _('Sair do aplicativo neste aparelho?') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="botao link" type="submit">{{ _('Sair') }}</button>
+    </form>
+  </div>
+  {% if flash %}<div class="aviso {{ 'erro' if flash.tipo == 'erro' }}">{{ flash.texto }}</div>{% endif %}
+  {% block conteudo %}{% endblock %}
+</main>
+<nav class="rodape-app">
+  <a href="/app" class="{{ 'ativa' if aba == 'hoje' }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>{{ _('Ponto') }}</a>
+  <a href="/app/escala" class="{{ 'ativa' if aba == 'escala' }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>{{ _('Escala') }}</a>
+  {% set nm = mural_novas(u) if aba != 'mural' else 0 %}
+  <a href="/app/mural" class="{{ 'ativa' if aba == 'mural' }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>{{ _('Mural') }}{% if nm %}<span class="selo-num" aria-label="{{ _('{v1} nova(s)', v1=nm) }}">{{ nm }}</span>{% endif %}</a>
+  <a href="/app/ajustes" class="{{ 'ativa' if aba == 'ajustes' }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>{{ _('Ajustes') }}</a>
+  <a href="/app/folha" class="{{ 'ativa' if aba == 'folha' }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg>{{ _('Horas') }}</a>
+  {% if u.gestor %}
+  <a href="/painel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>{{ _('Painel') }}</a>
+  {% endif %}
+</nav>
+{% endblock %}

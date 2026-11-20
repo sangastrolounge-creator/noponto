@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Primeiro acesso — {v1}', v1=(app_nome)) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<div class="centro"><div class="caixa">
+  {{ seletor("caixa-idiomas") }}
+  <span class="marca"><img src="/static/logo.png" alt="">{{ app_nome }}</span>
+  <div class="cartao">
+    {% if not u %}
+      <h1>{{ _('Link inválido') }}</h1>
+      <p class="suave">{{ _('Este link de acesso já foi usado ou não existe mais. Se você já criou sua senha, é só') }} <a href="/entrar">{{ _('entrar com o seu celular') }}</a>{{ _('. Se não, peça um novo link ao seu gestor.') }}</p>
+    {% else %}
+      <h1>{{ _('Olá, {v1}!', v1=(u.primeiro_nome)) }}</h1>
+      <p class="suave">{% if u.gestor %}{{ _('Este é o seu acesso ao painel da') }}{% else %}{{ _('Este é o seu acesso à escala e ao ponto da') }}{% endif %} <strong>{{ u.empresa.nome }}</strong>{{ _('. Crie uma senha para entrar nas próximas vezes.') }}</p>
+      {% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+      <form method="post" action="/convite/{{ token }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        {% if u.gestor %}<div class="campo"><label>{{ _('Seu e-mail (é o seu login)') }}</label><input type="text" value="{{ u.email }}" disabled></div>
+        {% else %}<div class="campo"><label>{{ _('Seu celular (é o seu login)') }}</label><input type="text" value="{{ u.celular }}" disabled></div>{% endif %}
+        <div class="campo"><label for="senha">{{ _('Crie uma senha') }}</label><input id="senha" type="password" name="senha" required minlength="6" autocomplete="new-password" autofocus><div class="ajuda">{{ _('Pelo menos 6 caracteres. Não use a senha do banco.') }}</div></div>
+        {% if not u.gestor or u.na_escala %}
+        <label class="marcar campo"><input type="checkbox" name="consentimento" value="1" required>
+          <span>{{ _('Autorizo o uso da localização do meu celular (e da foto, se a empresa pedir) na hora de bater o ponto e, se a empresa ligar essa opção, enquanto o app estiver aberto na tela durante o meu turno, para conferir que estou no local de trabalho.') }}<br><span class="ajuda">{{ _('A localização nunca é lida com o app fechado nem fora do turno. As fotos são apagadas em até 45 dias.') }} <a href="/privacy" target="_blank">{{ _('Saiba mais') }}</a></span></span></label>
+        {% endif %}
+        <p class="suave pequeno">{{ _('Ao entrar, você concorda com os') }} <a href="/terms" target="_blank">{{ _('Termos de Uso') }}</a> {{ _('e com a') }} <a href="/privacy" target="_blank">{{ _('Política de Privacidade') }}</a>.</p>
+        <button class="botao" type="submit" style="width:100%">{{ _('Entrar') }}</button>
+      </form>
+    {% endif %}
+  </div>
+</div></div>
+{% endblock %}

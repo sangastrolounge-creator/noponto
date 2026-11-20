@@ -1,0 +1,128 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>{{ _('Férias') }}</h1><p class="suave" style="margin:0">{{ _('Saldo de cada pessoa por período aquisitivo, prazos para dar as férias e o que a CLT pede ao marcar.') }}</p></div></div>
+
+{% if previa %}
+<div class="cartao" id="previa">
+  <h2>{{ _('Confira antes de lançar') }}</h2>
+  <p>{{ _('Férias de {v1}: {v2} a {v3} ({v4} dias)', v1=previa.f.nome, v2=previa.inicio.strftime('%d/%m/%Y'), v3=previa.fim.strftime('%d/%m/%Y'), v4=(previa.fim - previa.inicio).days + 1) }}{% if previa.abono %}{{ _(', vendendo {v1} dia(s)', v1=previa.abono) }}{% endif %}.</p>
+  <ul class="alerta" style="margin:0 0 12px;padding-left:28px">{% for a in previa.avisos %}<li>{{ a|traduz }}</li>{% endfor %}</ul>
+  <form method="post" action="/painel/ferias" class="acoes">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="usuario_id" value="{{ previa.f.id }}"><input type="hidden" name="inicio" value="{{ previa.inicio.isoformat() }}">
+    <input type="hidden" name="fim" value="{{ previa.fim.isoformat() }}"><input type="hidden" name="abono" value="{{ previa.abono }}">
+    <input type="hidden" name="obs" value="{{ previa.obs }}"><input type="hidden" name="confirmar" value="1">
+    <button class="botao" type="submit">{{ _('Lançar mesmo assim') }}</button>
+    <a class="botao claro" href="/painel/ferias">{{ _('Voltar e mudar') }}</a>
+  </form>
+</div>
+{% endif %}
+
+{% if sem_data %}
+<div class="alerta">{{ _('{v1} pessoa(s) sem data de admissão na ficha. Sem ela o sistema não calcula as férias:', v1=sem_data|length) }}
+  {% for p in sem_data %}<a href="/painel/equipe/{{ p.id }}/ficha">{{ p.nome }}</a>{{ ', ' if not loop.last else '.' }}{% endfor %}</div>
+{% endif %}
+
+<div class="cartao">
+  <h2>{{ _('Saldos da equipe') }}</h2>
+  {% if linhas %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Admissão') }}</th><th>{{ _('Saldo') }}</th><th>{{ _('Dar até') }}</th><th>{{ _('Situação') }}</th><th>{{ _('Período em aquisição') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for s in linhas %}
+    {% set p = s.proximo %}
+    <tr>
+      <td class="nome-forte">{{ s.u.nome }}{% if s.u.classificacao == 'estagio' %}<br><span class="suave pequeno">{{ _('recesso de estágio') }}</span>{% endif %}</td>
+      <td>{{ s.u.data_admissao.strftime('%d/%m/%Y') }}</td>
+      <td>{% if s.saldo %}<strong>{{ _('{v1} dia(s)', v1=s.saldo) }}</strong>{% else %}—{% endif %}</td>
+      <td>{% if p %}{{ p.concessivo.strftime('%d/%m/%Y') }}{% else %}—{% endif %}</td>
+      <td>{% if s.vencidos %}<span class="etiqueta erro">{{ _('Vencido: pagar em dobro') }}</span>
+        {% elif s.vencendo %}<span class="etiqueta alerta">{{ _('Vence em {v1} dia(s)', v1=s.vencendo[0].dias_para_vencer) }}</span>
+        {% elif s.saldo %}<span class="etiqueta">{{ _('A gozar') }}</span>
+        {% else %}<span class="etiqueta ok">{{ _('Em dia') }}</span>{% endif %}
+        {% if s.em_dobro %}<br><span class="suave pequeno">{{ _('{v1} dia(s) já gozados fora do prazo (em dobro)', v1=s.em_dobro) }}</span>{% endif %}</td>
+      <td class="pequeno">{% if s.atual %}{{ _('{v1} a {v2}', v1=s.atual.inicio.strftime('%d/%m/%Y'), v2=s.atual.fim.strftime('%d/%m/%Y')) }}<br><span class="suave">{{ _('{v1} dia(s) proporcionais até hoje', v1=s.atual.proporcional) }}{% if s.atual.faltas %} · {{ _('{v1} falta(s)', v1=s.atual.faltas) }}{% endif %}</span>{% if s.atual.usado %}<br><span class="suave">{{ _('{v1} dia(s) antecipados', v1=s.atual.usado) }}</span>{% endif %}{% endif %}</td>
+      <td class="direita"><details class="ferias-det"><summary class="botao mini claro">{{ _('Períodos') }}</summary></details></td>
+    </tr>
+    <tr class="ferias-periodos"><td colspan="7">
+      <div class="rolagem"><table class="pequeno">
+        <thead><tr><th>{{ _('Período aquisitivo') }}</th><th>{{ _('Faltas') }}</th><th>{{ _('Direito') }}</th><th>{{ _('Gozados') }}</th><th>{{ _('Vendidos') }}</th><th>{{ _('Saldo') }}</th><th>{{ _('Dar até') }}</th><th>{{ _('Situação') }}</th></tr></thead>
+        <tbody>
+        {% for q in s.periodos|reverse %}
+        <tr>
+          <td>{{ q.inicio.strftime('%d/%m/%Y') }} – {{ q.fim.strftime('%d/%m/%Y') }}</td>
+          <td>{{ q.faltas or '—' }}{% if q.perdeu_afastamento %}<br><span class="etiqueta erro">{{ _('mais de 6 meses afastado pelo INSS (art. 133)') }}</span>{% endif %}</td>
+          <td>{{ q.direito }}{% if q.ajuste %} <span class="suave">({{ '%+d'|format(q.ajuste) }})</span>{% endif %}</td>
+          <td>{{ q.usado - q.abono }}</td><td>{{ q.abono or '—' }}</td>
+          <td><strong>{{ q.saldo if q.completo else '—' }}</strong></td>
+          <td>{{ q.concessivo.strftime('%d/%m/%Y') }}</td>
+          <td><span class="etiqueta {{ 'erro' if q.situacao == 'vencido' else 'alerta' if q.situacao == 'vencendo' else 'ok' if q.situacao == 'gozado' else '' }}">{{ SITUACOES_FERIAS[q.situacao]|traduz }}</span>{% if q.em_dobro %}<br><span class="suave">{{ _('{v1} em dobro', v1=q.em_dobro) }}</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% if s.ajustes %}
+      <p class="pequeno" style="margin:8px 0 0"><strong>{{ _('Ajustes:') }}</strong></p>
+      <ul class="lista-dias pequeno">{% for a in s.ajustes %}
+        <li><span>{{ _('Período de {v1}: {v2} dia(s) · {v3} ({v4})', v1=a.periodo_inicio.strftime('%d/%m/%Y'), v2='%+d'|format(a.dias), v3=a.motivo, v4=a.autor) }}</span>
+          <form method="post" action="/painel/ferias/ajuste/{{ a.id }}/remover" class="inline" data-confirma="{{ _('Remover este ajuste?') }}">
+            <input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao link" type="submit">{{ _('remover') }}</button></form></li>
+      {% endfor %}</ul>
+      {% endif %}
+      {% if s.u.salario_centavos and s.saldo %}{% set v = valor(s.u.salario_centavos, s.saldo) %}
+      <p class="ajuda" style="margin:8px 0 0">{{ _('Estimativa para {v1} dia(s): {v2} de férias + {v3} de 1/3 = {v4} brutos, sem médias de extras e adicionais.', v1=s.saldo, v2=v.ferias|dinheiro, v3=v.terco|dinheiro, v4=(v.ferias + v.terco)|dinheiro) }}</p>
+      {% endif %}
+    </td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="ajuda">{{ _('A cada 12 meses de contrato a pessoa ganha férias: 30 dias com até 5 faltas no período, 24 com 6 a 14, 18 com 15 a 23, 12 com 24 a 32 (CLT art. 130). As faltas vêm dos períodos de ponto já fechados. A empresa tem os 12 meses seguintes para dar as férias; depois disso, os dias são pagos em dobro (art. 137).') }}</p>
+  {% else %}
+  <div class="vazio">{{ _('Ninguém com data de admissão ainda. Preencha a admissão na ficha de cada pessoa.') }}</div>
+  {% endif %}
+</div>
+
+<div class="cartao" id="lancar">
+  <h2>{{ _('Marcar férias') }}</h2>
+  <form method="post" action="/painel/ferias">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="linha-form">
+      <div><label for="fe-func">{{ _('Funcionário') }}</label><select id="fe-func" name="usuario_id" required>
+        {% for p in equipe %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}</select></div>
+      <div><label for="fe-ini">{{ _('Primeiro dia') }}</label><input type="date" id="fe-ini" name="inicio" value="{{ sugestao.isoformat() }}" required></div>
+      <div><label for="fe-fim">{{ _('Último dia') }}</label><input type="date" id="fe-fim" name="fim" required></div>
+      <div><label for="fe-abono">{{ _('Dias vendidos') }}</label><input type="number" id="fe-abono" name="abono" min="0" max="10" value="0"></div>
+    </div>
+    <div class="linha-form" style="margin-top:12px">
+      <div><label for="fe-obs">{{ _('Observação (opcional)') }}</label><input type="text" id="fe-obs" name="obs" maxlength="300"></div>
+      <div><button class="botao" type="submit">{{ _('Conferir e lançar') }}</button></div>
+    </div>
+    <p class="ajuda">{{ _('Até 3 períodos: um com pelo menos 14 dias e os outros com pelo menos 5. Não podem começar nos 2 dias antes de feriado ou da folga semanal. Avise por escrito com 30 dias e pague até 2 dias antes do início. A pessoa pode vender até 1/3 dos dias (abono). Se algo fugir dessas regras, o sistema mostra antes de lançar.') }}</p>
+  </form>
+</div>
+
+{% if linhas %}
+<div class="cartao" id="ajustar">
+  <h2>{{ _('Ajustar um saldo') }}</h2>
+  <p class="suave pequeno">{{ _('Para férias de antes do sistema, faltas que o ponto não registrou ou um acordo. O ajuste vale para o período aquisitivo escolhido.') }}</p>
+  <form method="post" action="/painel/ferias/ajuste">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="linha-form">
+      <div><label for="aj-per">{{ _('Pessoa e período aquisitivo') }}</label><select id="aj-per" name="periodo_sel" required onchange="var v=this.value.split('|');this.form.usuario_id.value=v[0];this.form.periodo.value=v[1];">
+        {% for s in linhas %}{% for q in s.periodos|reverse %}<option value="{{ s.u.id }}|{{ q.inicio.isoformat() }}">{{ s.u.nome }} · {{ q.inicio.strftime('%d/%m/%Y') }} – {{ q.fim.strftime('%d/%m/%Y') }}</option>{% endfor %}{% endfor %}</select>
+        <input type="hidden" name="usuario_id" value="{{ linhas[0].u.id }}"><input type="hidden" name="periodo" value="{{ (linhas[0].periodos|last).inicio.isoformat() }}"></div>
+      <div><label for="aj-dias">{{ _('Dias') }}</label><input type="number" id="aj-dias" name="dias" min="-60" max="60" required placeholder="{{ _('30 / -6') }}"><div class="ajuda">{{ _('negativo tira do saldo') }}</div></div>
+      <div><label for="aj-mot">{{ _('Motivo') }}</label><input type="text" id="aj-mot" name="motivo" maxlength="200" required placeholder="{{ _('Ex.: férias gozadas antes do sistema') }}"></div>
+      <div><button class="botao claro" type="submit">{{ _('Ajustar') }}</button></div>
+    </div>
+  </form>
+</div>
+{% endif %}
+<script>
+document.querySelectorAll('details.ferias-det').forEach(function (d) {
+  var linha = d.closest('tr').nextElementSibling;
+  linha.hidden = true;
+  d.addEventListener('toggle', function () { linha.hidden = !d.open; });
+});
+</script>
+{% endblock %}

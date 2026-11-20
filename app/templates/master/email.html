@@ -1,0 +1,32 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Envio de e-mails') }}</h1><p class="suave" style="margin:0">{{ _('A caixa de e-mail que envia as mensagens da plataforma, como o link de “Esqueci a senha”.') }}</p></div></div>
+
+<div class="cartao">
+  {% if ok %}<div class="aviso">{{ _('Ligado: os e-mails saem de {v1}.', v1=(d.smtp_remetente or d.smtp_user)) }}</div>
+  {% else %}<div class="alerta">{{ _('Desligado: sem isso ninguém consegue recuperar a senha pelo e-mail.') }}</div>{% endif %}
+  {% if do_env %}<p class="ajuda">{{ _('Os dados estão definidos no servidor (arquivo .env) e têm prioridade sobre esta tela.') }}</p>{% endif %}
+</div>
+
+<form method="post" action="/master/email" class="cartao" autocomplete="off">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Caixa de e-mail') }}</h2>
+  <ol class="pequeno" style="margin:0 0 12px;padding-left:18px;line-height:1.6">
+    <li>{{ _('No painel da Hostinger (hPanel), em E-mails, crie uma caixa no seu domínio, por exemplo no-reply@dataworke.com.') }}</li>
+    <li>{{ _('Preencha abaixo com o e-mail e a senha dessa caixa. Na Hostinger o servidor é smtp.hostinger.com, porta 465.') }}</li>
+    <li>{{ _('Salve e clique em “Enviar e-mail de teste”: ele chega no e-mail da sua conta Master.') }}</li>
+  </ol>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+    <div class="campo"><label for="host">{{ _('Servidor (SMTP)') }}</label><input id="host" name="host" value="{{ d.smtp_host or 'smtp.hostinger.com' }}" required></div>
+    <div class="campo"><label for="porta">{{ _('Porta') }}</label><input id="porta" name="porta" inputmode="numeric" value="{{ d.smtp_port or '465' }}" required><div class="ajuda">{{ _('465 (SSL) ou 587 (STARTTLS)') }}</div></div>
+    <div class="campo"><label for="usuario">{{ _('E-mail da caixa') }}</label><input id="usuario" type="email" name="usuario" value="{{ d.smtp_user }}" required placeholder="no-reply@dataworke.com"></div>
+    <div class="campo"><label for="senha">{{ _('Senha da caixa') }}</label><input id="senha" type="password" name="senha" autocomplete="new-password" placeholder="{{ '••••••••' if tem_senha else '' }}" {{ '' if tem_senha else 'required' }}><div class="ajuda">{{ _('Deixe em branco para manter a atual.') if tem_senha else '' }}</div></div>
+    <div class="campo"><label for="remetente">{{ _('Remetente (opcional)') }}</label><input id="remetente" type="email" name="remetente" value="{{ d.smtp_remetente }}"><div class="ajuda">{{ _('Em branco = o próprio e-mail da caixa.') }}</div></div>
+  </div>
+  <div class="acoes">
+    <button class="botao" type="submit" name="acao" value="salvar">{{ _('Salvar') }}</button>
+    {% if ok %}<button class="botao claro" type="submit" name="acao" value="testar" formnovalidate>{{ _('Enviar e-mail de teste') }}</button>{% endif %}
+  </div>
+  <p class="ajuda">{{ _('A senha nunca aparece de novo nesta tela. Não envie a senha por mensagem para ninguém.') }}</p>
+</form>
+{% endblock %}

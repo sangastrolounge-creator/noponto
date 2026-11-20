@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="{{ IDIOMAS[idioma()][2] }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1530">
+<title>{% block titulo %}{{ app_nome }}{% endblock %}</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/static/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="{{ app_nome }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap">
+<script>
+/* Tema claro/escuro escolhido neste aparelho (vazio = segue o aparelho). Antes do CSS, para não piscar. */
+(function () {
+  try { var t = localStorage.getItem("tema"); if (t === "claro" || t === "escuro") document.documentElement.dataset.tema = t; } catch (e) {}
+  try { if (localStorage.getItem("lateral") === "recolhida") document.documentElement.dataset.lateral = "recolhida"; } catch (e) {}
+  window.recolherLateral = function () {
+    var raiz = document.documentElement, rec = raiz.dataset.lateral === "recolhida";
+    if (rec) delete raiz.dataset.lateral; else raiz.dataset.lateral = "recolhida";
+    try { localStorage.setItem("lateral", rec ? "" : "recolhida"); } catch (e) {}
+  };
+  window.trocarTema = function () {
+    var raiz = document.documentElement, atual = raiz.dataset.tema
+      || (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro");
+    var novo = atual === "escuro" ? "claro" : "escuro";
+    raiz.dataset.tema = novo;
+    try { localStorage.setItem("tema", novo); } catch (e) {}
+  };
+})();
+</script>
+<link rel="stylesheet" href="/static/style.css?v=44">
+<script>window.T = {{ textos_js()|tojson }}; window.t = function (s) { return window.T[s] || s; };</script>
+<script>
+/* Comportamento de app nativo: bloqueia o zoom de pinça e o de duplo toque (reforço para o Safari do iPhone). */
+(function () {
+  function bloquear(e) { e.preventDefault(); }
+  ["gesturestart", "gesturechange", "gestureend"].forEach(function (n) {
+    document.addEventListener(n, bloquear, { passive: false });
+  });
+  var ultimoToque = 0;
+  document.addEventListener("touchend", function (e) {
+    var agora = Date.now();
+    // campos de digitação ficam de fora, para o duplo toque ainda selecionar palavras
+    if (agora - ultimoToque <= 300 && !e.target.closest("input, textarea, select, [contenteditable]")) e.preventDefault();
+    ultimoToque = agora;
+  }, { passive: false });
+})();
+</script>
+</head>
+<body>
+{% block corpo %}{% endblock %}
+<script>
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(function () {});
+// Liga o botão "receber avisos": pede permissão, inscreve o aparelho e manda ao servidor.
+window.ligarAvisos = function (botao, estado, chavePublica, csrf, textoLigado) {
+  if (!botao || !chavePublica) return;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    estado.textContent = /iPhone|iPad/.test(navigator.userAgent)
+      ? t("Para receber avisos no iPhone, adicione o app à Tela de Início.") : "";
+    return;
+  }
+  function chave(b64) {
+    var s = atob((b64 + "===".slice((b64.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
+    return Uint8Array.from(s, function (c) { return c.charCodeAt(0); });
+  }
+  navigator.serviceWorker.ready.then(function (reg) {
+    reg.pushManager.getSubscription().then(function (sub) {
+      if (sub && Notification.permission === "granted") { estado.textContent = textoLigado; return; }
+      botao.hidden = false;
+    });
+    botao.addEventListener("click", function () {
+      botao.disabled = true;
+      Notification.requestPermission().then(function (p) {
+        if (p !== "granted") throw new Error(t("Permissão de notificação negada neste navegador."));
+        return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chave(chavePublica) });
+      }).then(function (sub) {
+        return fetch("/push", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF": csrf }, body: JSON.stringify(sub) });
+      }).then(function (r) {
+        if (!r.ok) throw new Error(t("Não foi possível ativar os avisos."));
+        botao.hidden = true; estado.textContent = textoLigado;
+      }).catch(function (err) { botao.disabled = false; estado.textContent = err.message || t("Não foi possível ativar os avisos."); });
+    });
+  });
+};
+document.querySelectorAll("form[data-confirma]").forEach(function (f) {
+  f.addEventListener("submit", function (ev) {
+    if (!window.confirm(f.dataset.confirma)) ev.preventDefault();
+  });
+});
+document.querySelectorAll("[data-copiar]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    navigator.clipboard.writeText(b.dataset.copiar).then(function () {
+      var antes = b.textContent; b.textContent = t("Copiado!");
+      setTimeout(function () { b.textContent = antes; }, 1500);
+    });
+  });
+});
+
+/* Botões: ao enviar um formulário, o botão mostra que está enviando e não aceita um segundo clique. */
+document.addEventListener("submit", function (ev) {
+  if (ev.defaultPrevented) return;                       // cancelado (confirmação negada) ou tratado por script
+  var f = ev.target, b = ev.submitter || f.querySelector("[type=submit]");
+  if (!b || !b.classList.contains("botao") || b.classList.contains("link")) return;
+  if ((b.getAttribute("formtarget") || f.target) === "_blank") return;
+  b.classList.add("enviando"); b.setAttribute("aria-busy", "true");
+});
+window.addEventListener("pageshow", function () {      // ao voltar pelo navegador, o botão volta ao normal
+  document.querySelectorAll(".botao.enviando").forEach(function (b) { b.classList.remove("enviando"); b.removeAttribute("aria-busy"); });
+});
+
+/* Blocos recolhíveis: cada bloco com título no painel ganha um botão para recolher; a escolha fica guardada neste aparelho. */
+(function () {
+  var cartoes = document.querySelectorAll(".pagina .cartao");
+  if (!cartoes.length) return;
+  var seta = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  function ler(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function gravar(k, v) { try { if (v) localStorage.setItem(k, "1"); else localStorage.removeItem(k); } catch (e) {} }
+  cartoes.forEach(function (c) {
+    var h = c.firstElementChild;
+    if (!h || h.tagName !== "H2" || c.closest("dialog") || h.querySelector(".recolher")) return;
+    var chave = "np-recolher:" + location.pathname + ":" + h.textContent.trim().slice(0, 40);
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "recolher"; b.innerHTML = seta;
+    function aplicar(fechado) {
+      c.classList.toggle("recolhido", fechado);
+      b.setAttribute("aria-expanded", fechado ? "false" : "true");
+      b.title = b.ariaLabel = fechado ? t("Mostrar") : t("Recolher");
+    }
+    b.addEventListener("click", function () {
+      var fechado = !c.classList.contains("recolhido");
+      aplicar(fechado); gravar(chave, fechado);
+    });
+    h.appendChild(b);
+    aplicar(ler(chave) === "1");
+  });
+})();
+</script>
+</body>
+</html>

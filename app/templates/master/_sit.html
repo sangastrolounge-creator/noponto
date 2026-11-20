@@ -1,0 +1,1 @@
+{% macro etiqueta(x) %}{% set s = situacao(x) %}<span class="etiqueta {{ {'ativa': 'ok', 'cortesia': 'azul', 'teste': 'alerta', 'gratis': 'ok', 'vencida': 'erro', 'bloqueada': 'erro'}[s] }}">{{ SITUACOES[s] }}</span>{% endmacro %}

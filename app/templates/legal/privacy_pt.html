@@ -1,0 +1,81 @@
+{% extends "legal/_base.html" %}
+{% block nome_doc %}Política de Privacidade{% endblock %}
+{% block texto %}
+<h1>Política de Privacidade</h1>
+<p class="suave">Última atualização: {{ L.versao.strftime('%d/%m/%Y') }}</p>
+
+<p>Esta política explica quais dados pessoais {{ L.empresa }} (“{{ L.marca }}”, “nós”) trata pelo site, pelo aplicativo web e pelo aplicativo de celular do {{ L.marca }} (o “Serviço”), para quê, com quem compartilha e quais são os seus direitos pela Lei Geral de Proteção de Dados (Lei nº 13.709/2018, “LGPD”).</p>
+
+<h2>1. Quem é o controlador</h2>
+<ul>
+  <li><strong>Empresas que assinam o Serviço</strong> (nossos “Clientes”): somos o controlador dos dados de contato e de cobrança do dono da conta e dos gerentes.</li>
+  <li><strong>Funcionários</strong> convidados por um empregador: <strong>o empregador é o controlador</strong> dos dados sobre o seu trabalho e decide o que coletar e para quê. Nós somos o <strong>operador</strong>: tratamos esses dados em nome dele, só para prestar o Serviço. Pedidos sobre os seus registros de trabalho devem ir primeiro ao seu empregador. Nós o ajudaremos a responder.</li>
+</ul>
+
+<h2>2. Dados que tratamos</h2>
+<ul>
+  <li><strong>Cadastro:</strong> nome, e-mail (gerentes), celular (funcionários), nome e endereço da empresa, CPF ou CNPJ de quem paga a assinatura e a senha (guardada só como hash seguro).</li>
+  <li><strong>Dados de trabalho informados pelo empregador ou pelo funcionário:</strong> escala, disponibilidade, entradas e saídas, intervalos, banco de horas, ausências e atestados (com o arquivo enviado), funções, salário, jornada, dependentes para o IRRF, vale-transporte, gorjeta, tipo de contrato, data de admissão, data de nascimento de menores de idade, tarefas, trocas de turno, mensagens do mural e avaliações de turno.</li>
+  <li><strong>Localização só na hora de bater o ponto:</strong> quando o funcionário bate o ponto pelo celular, o aplicativo lê a localização do aparelho naquele momento para conferir que ele está no local de trabalho. No totem, vale o PIN no tablet da empresa, sem a localização do funcionário.</li>
+  <li><strong>Conferência da área durante o turno, só se o empregador ligar:</strong> com o ponto aberto <em>e</em> o aplicativo aberto na tela, a localização é conferida a cada 2 minutos, mais ou menos, e o empregador é avisado se o funcionário sair da área. <strong>A localização nunca é lida com o aplicativo fechado, em segundo plano ou fora do turno.</strong></li>
+  <li><strong>Foto na batida, se o empregador ligar:</strong> uma foto tirada no momento da batida para o empregador confirmar quem bateu. As fotos são <strong>apagadas sozinhas</strong> no prazo escolhido pelo empregador, de no máximo 45 dias. <strong>Não fazemos reconhecimento facial</strong> nem criamos modelos biométricos com essas fotos.</li>
+  <li><strong>Aparelho:</strong> um identificador aleatório guardado num cookie, o nome do navegador e, se você permitir, a inscrição para notificações.</li>
+  <li><strong>Pagamento da assinatura:</strong> processado pelo Asaas. Recebemos a situação das cobranças e os valores pagos. <strong>Não recebemos nem guardamos dados de cartão.</strong></li>
+  <li><strong>Dados técnicos:</strong> endereço IP e registros de acesso, guardados por 6 meses como manda o Marco Civil da Internet (Lei nº 12.965/2014, art. 15).</li>
+</ul>
+
+<h2>3. Para que usamos e com qual base legal</h2>
+<ul>
+  <li><strong>Prestar o Serviço</strong> (escala, ponto, horas, fechamento, folha de apoio, lembretes e avisos): execução do contrato com o Cliente (LGPD art. 7º, V) e, para o empregador, cumprimento de obrigação legal de controle de jornada (art. 7º, II).</li>
+  <li><strong>Localização e foto no ponto:</strong> cumprimento de obrigação legal e legítimo interesse do empregador em conferir o registro de jornada (art. 7º, II e IX), com aviso ao funcionário e o registro da autorização dele no aplicativo.</li>
+  <li><strong>Atestados médicos:</strong> são dados de saúde (dados sensíveis). São tratados só para justificar faltas, como prevê a legislação trabalhista (art. 11, II, “a”), e vistos só pelo empregador.</li>
+  <li><strong>Segurança e prevenção de fraudes, suporte, cobrança e mensagens do serviço</strong> (como redefinir a senha): execução do contrato e legítimo interesse.</li>
+</ul>
+<p><strong>Não vendemos dados pessoais, não os usamos para publicidade e não mostramos anúncios.</strong></p>
+
+<h2>4. Com quem compartilhamos</h2>
+<ul>
+  <li><strong>O empregador:</strong> os dados do funcionário são vistos pelo dono da conta e pelos gerentes com permissão para aquela área.</li>
+  <li><strong>Prestadores que nos ajudam a operar o Serviço</strong>, com obrigação de sigilo e uso limitado:
+    <ul>
+      <li>hospedagem do servidor, onde rodam o aplicativo e o banco de dados;</li>
+      <li>Asaas, para as cobranças da assinatura;</li>
+      <li>o nosso provedor de e-mail, para os e-mails de senha e do serviço;</li>
+      <li>Anthropic, provedor de inteligência artificial, só quando um gerente pede a revisão automática da folha. Os dados enviados pela API comercial não são usados para treinar os modelos dela;</li>
+      <li>Google Fonts, que entrega as fontes das páginas e recebe o endereço IP do visitante;</li>
+      <li>OpenStreetMap, que entrega os mapas quando um gerente desenha a área de trabalho;</li>
+      <li>um serviço de armazenamento externo que guarda as nossas cópias de segurança, criptografadas no nosso servidor antes do envio.</li>
+    </ul></li>
+  <li><strong>Autoridades:</strong> quando a lei ou uma ordem judicial exigir.</li>
+</ul>
+
+<h2>5. Transferência internacional</h2>
+<p>Os servidores do Serviço ficam em <strong>{{ L.pais }}</strong>. Alguns prestadores acima (como o provedor de inteligência artificial, de fontes e de cópias de segurança) ficam em outros países. Nesses casos a transferência segue o art. 33 da LGPD, com garantias contratuais de proteção.</p>
+
+<h2>6. Por quanto tempo guardamos</h2>
+<ul>
+  <li>Os dados de trabalho ficam guardados enquanto a conta do Cliente estiver ativa. O empregador decide quanto tempo manter os registros de ponto e de folha, que a legislação trabalhista e previdenciária pede que sejam guardados por anos (em geral, pelo prazo de prescrição de 5 anos).</li>
+  <li>As fotos do ponto são apagadas no prazo escolhido pelo empregador, nunca mais de 45 dias. O registro da batida continua.</li>
+  <li>Quando a conta é encerrada, guardamos os dados por 90 dias para o Cliente pedir uma cópia e depois os apagamos. As cópias de segurança são substituídas em cerca de 120 dias.</li>
+</ul>
+
+<h2>7. Segurança</h2>
+<p>Usamos conexão criptografada (HTTPS), senhas com hash, permissões por área para os gerentes e cópias de segurança criptografadas. Nenhum sistema é totalmente seguro. Se houver um incidente de segurança que possa causar risco ou dano relevante, avisaremos o Cliente afetado e, quando a lei exigir, a Autoridade Nacional de Proteção de Dados (ANPD) e os titulares.</p>
+
+<h2>8. Cookies</h2>
+<p>Usamos só os cookies necessários para o Serviço funcionar: a sessão de login, o identificador do aparelho e as preferências de idioma e de tema. Não usamos cookies de publicidade nem de rastreamento.</p>
+
+<h2>9. Seus direitos (LGPD art. 18)</h2>
+<p>Você pode pedir: confirmação de que tratamos seus dados; acesso; correção de dados incompletos ou errados; anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desacordo com a lei; portabilidade; informação sobre com quem compartilhamos; e revisão de decisões automatizadas. Também pode revogar a autorização que tiver dado, sabendo que o empregador pode pedir que você passe a bater o ponto no totem ou de outro jeito.</p>
+<p>Funcionários: você vê a sua escala, as suas batidas e as suas horas no aplicativo e pode pedir ajuste de ponto por ele. Pedidos sobre registros de trabalho são atendidos junto com o seu empregador. Responderemos aos pedidos no prazo da lei. Você também pode reclamar à ANPD.</p>
+
+<h2>10. Menores de idade</h2>
+<p>O Serviço é para empresas e suas equipes. Quando o empregador cadastra um menor de idade (por exemplo, um aprendiz), a data de nascimento é usada só para conferir os limites de jornada da CLT, e o tratamento cabe ao empregador, no melhor interesse do menor (LGPD art. 14).</p>
+
+<h2>11. Mudanças nesta política</h2>
+<p>Podemos atualizar esta política. Se a mudança for importante, avisaremos os donos das contas por e-mail ou no aplicativo antes de ela valer. A data no alto mostra a versão mais recente.</p>
+
+<h2>12. Encarregado e contato</h2>
+<p>Dúvidas e pedidos sobre privacidade e proteção de dados, incluindo o contato com o nosso encarregado (DPO):</p>
+{% include "legal/_contato.html" %}
+{% endblock %}

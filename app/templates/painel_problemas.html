@@ -1,0 +1,60 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Problemas de ponto') }}</h1>
+    <p class="suave" style="margin:0">{{ _('Saídas esquecidas dos últimos 14 dias e saídas registradas automaticamente. Confira o horário sugerido e resolva vários de uma vez.') }}</p></div>
+  <a class="botao claro" href="/painel/ponto">{{ _('Voltar para o ponto') }}</a>
+</div>
+
+<form method="post" action="/painel/ponto/problemas" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if lista %}
+  <div class="rolagem"><table>
+    <thead><tr><th><input type="checkbox" id="todos" aria-label="{{ _('Marcar todos') }}" checked></th><th>{{ _('Funcionário') }}</th><th>{{ _('Dia') }}</th><th>{{ _('Problema') }}</th><th>{{ _('Saída') }}</th></tr></thead>
+    <tbody>
+    {% for p in lista %}
+    <tr>
+      <td><input type="checkbox" class="sel" name="sel_{{ p.chave }}" value="1" {{ 'checked' if p.sugestao }} aria-label="{{ _('Resolver') }}"></td>
+      <td class="nome-forte">{{ p.u.nome }}</td>
+      <td style="white-space:nowrap">{{ DIAS[p.dia.weekday()] }} {{ p.dia.strftime('%d/%m') }}</td>
+      <td>{% if p.tipo == 'sem_saida' %}<span class="etiqueta erro">{{ _('Saída esquecida') }}</span><br><span class="suave pequeno">{{ _('Entrou às {v1}', v1=p.entrada.strftime('%H:%M')) }}{% if p.turno %} · {{ _('escala {v1}–{v2}', v1=p.turno.inicio, v2=p.turno.fim) }}{% else %} · {{ _('sem escala') }}{% endif %}</span>
+        {% else %}<span class="etiqueta alerta">{{ _('Saída automática para conferir') }}</span><br><span class="suave pequeno">{{ _('Registrada no fim da escala') }}</span>{% endif %}</td>
+      <td><input type="time" name="hora_{{ p.chave }}" value="{{ p.sugestao.strftime('%H:%M') if p.sugestao else '' }}" aria-label="{{ _('Horário da saída') }}">
+        {% if p.tipo == 'sem_saida' and not p.sugestao %}<br><span class="ajuda">{{ _('Sem escala: informe o horário.') }}</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="acoes" style="margin-top:12px">
+    <button class="botao" type="submit">{{ _('Resolver os marcados') }}</button>
+  </div>
+  <p class="ajuda">{{ _('Saída esquecida: lança a saída no horário da linha. Saída automática: com o mesmo horário, fica conferida; com outro, ela é trocada. Tudo fica no histórico.') }}</p>
+  {% else %}
+  <div class="vazio">{{ _('Nenhum problema de ponto nos últimos 14 dias.') }}</div>
+  {% endif %}
+</form>
+
+{% if regras_dono %}
+<form method="post" action="/painel/config/regras-ponto" class="cartao" id="regras">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Regras automáticas do ponto') }}</h2>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+    <div class="campo"><label for="ea">{{ _('O ponto abre quantos minutos antes do turno') }}</label><input id="ea" type="number" name="entrada_antecipada_min" min="0" max="720" value="{{ e.entrada_antecipada_min }}">
+      <div class="ajuda">{{ _('Evita hora extra de quem chega muito cedo. 0 = sem limite. O gestor sempre pode lançar a entrada à mão.') }}</div></div>
+    <div class="campo"><label for="sa">{{ _('Saída automática: minutos depois do fim do turno') }}</label><input id="sa" type="number" name="saida_auto_min" min="0" max="720" value="{{ e.saida_auto_min }}">
+      <div class="ajuda">{{ _('Quem esquecer de bater a saída ganha uma no horário do fim da escala, marcada para você conferir aqui. 0 = desligada.') }}</div></div>
+    <div class="campo"><label for="ae">{{ _('Avisar quantos minutos antes da hora extra da semana') }}</label><input id="ae" type="number" name="aviso_extra_min" min="0" max="720" value="{{ e.aviso_extra_min }}">
+      <div class="ajuda">{{ _('Você recebe um aviso quando alguém está chegando nas 40 h da semana, e outro quando entra em hora extra. 0 = desligado.') }}</div></div>
+  </div>
+  <button class="botao claro" type="submit">{{ _('Salvar regras') }}</button>
+</form>
+{% endif %}
+<script>
+(function () {
+  var todos = document.getElementById("todos");
+  if (todos) todos.addEventListener("change", function () {
+    document.querySelectorAll(".sel").forEach(function (c) { c.checked = todos.checked; });
+  });
+})();
+</script>
+{% endblock %}

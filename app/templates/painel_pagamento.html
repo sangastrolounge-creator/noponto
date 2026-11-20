@@ -1,0 +1,76 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Folha de pagamento') }}</h1><p class="suave" style="margin:0">{{ _('Holerites calculados a partir do ponto fechado, com revisão do Claude.') }}</p></div>
+</div>
+{% if not liberado %}<div class="alerta">{{ _('A folha de pagamento não está no seu plano. Você pode ver esta tela, mas para gerar folhas mude de plano.') }} <a href="/painel/assinatura">{{ _('Ver planos') }}</a></div>{% endif %}
+
+<div class="cartao">
+  <h2>{{ _('Gerar folha') }}</h2>
+  {% if fechamentos %}
+  <form method="post" action="/painel/pagamento/gerar">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="linha-form">
+      <div><label for="g-per">{{ _('Período fechado') }}</label><select id="g-per" name="fechamento_id">
+        {% for fe in fechamentos %}<option value="{{ fe.id }}">{{ _('{v1} a {v2}', v1=(fe.inicio.strftime('%d/%m/%Y')), v2=(fe.fim.strftime('%d/%m/%Y'))) }}</option>{% endfor %}
+      </select></div>
+      <div><button class="botao" type="submit">{{ _('Gerar folha de pagamento') }}</button></div>
+    </div>
+  </form>
+  <p class="ajuda">{{ _('A folha usa as horas do período fechado (extras, adicional noturno, DSR, faltas e atrasos) e os dados salariais abaixo. Confira tudo com o seu contador antes de pagar.') }}</p>
+  {% else %}
+  <div class="vazio">{{ _('Nenhum período fechado sem folha.') }} <a href="/painel/fechamento">{{ _('Fechar um período') }}</a></div>
+  {% endif %}
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Folhas geradas') }}</h2>
+  {% if folhas %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Período') }}</th><th>{{ _('Holerites') }}</th><th>{{ _('Líquido total') }}</th><th>{{ _('Situação') }}</th><th>{{ _('Revisão do Claude') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for f in folhas %}
+    <tr>
+      <td style="white-space:nowrap">{{ _('{v1} a {v2}', v1=(f.inicio.strftime('%d/%m/%Y')), v2=(f.fim.strftime('%d/%m/%Y'))) }}</td>
+      <td>{{ f.itens|length }}</td>
+      <td>{{ (f.itens|sum(attribute='liquido'))|dinheiro }}</td>
+      <td>{% if f.situacao == 'finalizada' %}<span class="etiqueta ok">{{ _('Finalizada') }}</span>{% else %}<span class="etiqueta">{{ _('Rascunho') }}</span>{% endif %}</td>
+      <td>{% if f.revisao_situacao == 'pronta' %}<span class="etiqueta ok">{{ _('Revisada') }}</span>{% elif f.revisao_situacao == 'andamento' %}<span class="etiqueta alerta">{{ _('Em andamento') }}</span>{% elif f.revisao_situacao == 'erro' %}<span class="etiqueta erro">{{ _('Erro') }}</span>{% else %}—{% endif %}</td>
+      <td class="direita"><a class="botao mini" href="/painel/pagamento/{{ f.id }}">{{ _('Abrir') }}</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="vazio">{{ _('Nenhuma folha gerada ainda.') }}</div>
+  {% endif %}
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Dados salariais da equipe') }}</h2>
+  {% if equipe %}
+  <form method="post" action="/painel/pagamento/dados">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="rolagem"><table>
+      <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Salário base (R$)') }}</th><th>{{ _('Jornada (h/mês)') }}</th><th>{{ _('Dependentes (IR)') }}</th><th>{{ _('Vale-transporte no mês (R$)') }}</th></tr></thead>
+      <tbody>
+      {% for p in equipe %}
+      <tr>
+        <td class="nome-forte">{{ p.nome }}{% if p.cargo %}<br><span class="suave pequeno">{{ p.cargo }}</span>{% endif %}</td>
+        <td><input type="text" inputmode="decimal" name="sal_{{ p.id }}" value="{{ '%.2f'|format(p.salario_centavos / 100)|replace('.', ',') if p.salario_centavos else '' }}" placeholder="0,00" aria-label="{{ _('Salário de {v1}', v1=(p.nome)) }}" style="min-width:110px"></td>
+        <td><input type="number" name="jor_{{ p.id }}" value="{{ p.jornada_mensal or 220 }}" min="1" max="300" aria-label="{{ _('Jornada de {v1}', v1=(p.nome)) }}" style="width:90px"></td>
+        <td><input type="number" name="dep_{{ p.id }}" value="{{ p.dependentes }}" min="0" max="20" aria-label="{{ _('Dependentes de {v1}', v1=(p.nome)) }}" style="width:80px"></td>
+        <td><input type="text" inputmode="decimal" name="vt_{{ p.id }}" value="{{ '%.2f'|format(p.vt_centavos / 100)|replace('.', ',') if p.vt_centavos else '' }}" placeholder="0,00" aria-label="{{ _('Vale-transporte de {v1}', v1=(p.nome)) }}" style="min-width:100px"></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="ajuda">{{ _('Jornada mensal: 220 h para 44 h por semana, 200 h para 40 h, 180 h para 36 h. O valor da hora é o salário dividido pela jornada. Vale-transporte: informe quanto a empresa gasta no mês; o desconto é de até 6% do salário. Deixe em branco quem não recebe.') }}</p>
+    <button class="botao" type="submit">{{ _('Salvar dados salariais') }}</button>
+  </form>
+  {% else %}
+  <div class="vazio">{{ _('Cadastre os funcionários primeiro.') }} <a href="/painel/equipe">{{ _('Ir para Equipe') }}</a></div>
+  {% endif %}
+</div>
+{% if not claude %}<p class="ajuda">{{ _('A revisão pelo Claude ainda não foi ligada nesta plataforma; o cálculo da folha funciona normalmente.') }}</p>{% endif %}
+{% endblock %}

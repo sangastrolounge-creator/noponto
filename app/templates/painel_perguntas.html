@@ -1,0 +1,47 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Perguntas de fim de turno') }}</h1>
+    <p class="suave" style="margin:0">{{ _('Perguntas que a equipe responde no celular ao bater a saída. Use poucas, para a saída continuar rápida.') }}</p></div>
+</div>
+
+<div class="duas">
+  <div class="cartao">
+    <h2>{{ _('Perguntas') }}</h2>
+    {% if perguntas %}
+    <ul class="lista-alertas">
+      {% for q in perguntas %}
+      <li style="justify-content:space-between;flex-wrap:wrap">
+        <span>{% if not q.ativo %}<s class="suave">{{ q.texto }}</s>{% else %}<strong>{{ q.texto }}</strong>{% endif %}
+          <br><span class="suave pequeno">{{ TIPOS[q.tipo]|traduz }}{% if q.avisar_se %} · {{ _('avisa o gestor se a resposta for {v1}', v1=(_('Sim') if q.avisar_se == 'sim' else _('Não'))) }}{% endif %}</span></span>
+        <form method="post" action="/painel/perguntas/{{ q.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="acao" value="{{ 'desligar' if q.ativo else 'ligar' }}"><button class="botao mini claro" type="submit">{{ _('Desligar') if q.ativo else _('Ligar') }}</button></form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="suave pequeno">{{ _('Nenhuma pergunta ainda.') }}</p>{% endif %}
+    <form method="post" action="/painel/perguntas" style="margin-top:12px">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label for="q-texto">{{ _('Nova pergunta') }}</label><input id="q-texto" type="text" name="texto" maxlength="200" list="q-exemplos" required placeholder="{{ _(EXEMPLOS[0]) }}">
+        <datalist id="q-exemplos">{% for x in EXEMPLOS %}<option value="{{ _(x) }}">{% endfor %}</datalist></div>
+      <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+        <div class="campo"><label for="q-tipo">{{ _('Tipo de resposta') }}</label><select id="q-tipo" name="tipo">{% for k, rot in TIPOS.items() %}<option value="{{ k }}">{{ rot|traduz }}</option>{% endfor %}</select></div>
+        <div class="campo"><label for="q-avisar">{{ _('Avisar o gestor (só sim ou não)') }}</label><select id="q-avisar" name="avisar_se">
+          <option value="">{{ _('Não avisar') }}</option><option value="sim">{{ _('Se a resposta for Sim') }}</option><option value="nao">{{ _('Se a resposta for Não') }}</option></select></div>
+      </div>
+      <button class="botao" type="submit">{{ _('Criar pergunta') }}</button>
+    </form>
+  </div>
+  <div class="cartao">
+    <h2>{{ _('Respostas dos últimos 14 dias') }}</h2>
+    {% if respostas %}
+    <ul class="lista-alertas">
+      {% for r in respostas %}
+      <li style="display:block"><strong>{{ r.u.nome }}</strong> <span class="suave pequeno">{{ DIAS[r.dia.weekday()] }} {{ r.dia.strftime('%d/%m') }}</span>
+        {% for x in r.itens %}<br><span class="pequeno">{{ x.pergunta.texto }}: <strong>{% if x.valor == 'sim' %}{{ _('Sim') }}{% elif x.valor == 'nao' %}{{ _('Não') }}{% elif x.valor %}{{ x.valor }}{% else %}<span class="suave">{{ _('pulou') }}</span>{% endif %}</strong></span>{% endfor %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="suave pequeno">{{ _('Nenhuma resposta ainda.') }}</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

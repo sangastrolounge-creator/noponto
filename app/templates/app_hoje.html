@@ -1,0 +1,275 @@
+{% extends "app_base.html" %}
+{% block saudacao %}{{ _('Olá, {v1}', v1=(u.primeiro_nome)) }}{% endblock %}
+{% block conteudo %}
+{% if perguntas_fim %}
+<section class="cartao avaliar-turno" id="perguntas">
+  <h2>{{ _('Antes de ir embora') }}</h2>
+  <p class="suave pequeno" style="margin-top:0">{{ _('Dia {v1}. Responda rapidinho:', v1=perguntas_fim.dia.strftime('%d/%m')) }}</p>
+  <form method="post" action="/app/perguntas" class="perguntas-fim">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% for q in perguntas_fim.perguntas %}
+    <div class="campo"><label{% if q.tipo != 'sim_nao' %} for="p{{ q.id }}"{% endif %}>{{ q.texto }}</label>
+      {% if q.tipo == 'sim_nao' %}<div class="tri-grade dois">
+        <label class="tri-opcao"><input type="radio" name="p_{{ q.id }}" value="sim" required><span><strong>{{ _('Sim') }}</strong></span></label>
+        <label class="tri-opcao"><input type="radio" name="p_{{ q.id }}" value="nao"><span><strong>{{ _('Não') }}</strong></span></label></div>
+      {% elif q.tipo == 'numero' %}<input id="p{{ q.id }}" type="text" inputmode="decimal" name="p_{{ q.id }}" maxlength="20">
+      {% else %}<input id="p{{ q.id }}" type="text" name="p_{{ q.id }}" maxlength="300">{% endif %}</div>
+    {% endfor %}
+    <div class="acoes"><button class="botao" type="submit">{{ _('Enviar') }}</button>
+      <button class="botao link" type="submit" name="pular" value="1" formnovalidate>{{ _('Agora não') }}</button></div>
+  </form>
+</section>
+{% elif avaliar_dia %}
+<section class="cartao avaliar-turno" id="avaliar">
+  <h2>{{ _('Como foi o seu turno?') }}</h2>
+  <p class="suave pequeno" style="margin-top:0">{{ _('Dia {v1}. Só o gestor vê a sua resposta.', v1=avaliar_dia.strftime('%d/%m')) }}</p>
+  <form method="post" action="/app/avaliar">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="estrelas-escolha" role="radiogroup" aria-label="{{ _('Nota de 1 a 5') }}">
+      {% for n in range(5, 0, -1) %}<input type="radio" name="nota" value="{{ n }}" id="nota{{ n }}" required><label for="nota{{ n }}" title="{{ _('{v1} de 5', v1=n) }}">★</label>{% endfor %}
+    </div>
+    <input type="text" name="comentario" maxlength="300" placeholder="{{ _('Quer contar algo? (opcional)') }}" style="margin-top:8px">
+    <div class="acoes" style="margin-top:10px">
+      <button class="botao" type="submit">{{ _('Enviar') }}</button>
+      <button class="botao link" type="submit" name="nota" value="pular" formnovalidate>{{ _('Agora não') }}</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+<section class="cartao-ponto">
+  <div class="suave pequeno">{{ DIAS[agora.weekday()] }}, {{ agora.strftime('%d/%m') }}</div>
+  <div class="relogio" id="relogio">{{ agora.strftime('%H:%M') }}</div>
+  <div class="suave" style="margin-top:6px">
+    {% if turno and turno.folga %}{{ _('Hoje é sua folga.') }}
+    {% elif turno %}{{ _('Seu turno:') }} <strong>{{ _('{v1} às {v2}', v1=(turno.inicio), v2=(turno.fim)) }}</strong>{% if turno.intervalo_inicio and turno.intervalo_min %}<br>{{ _('Intervalo às') }} <strong>{{ turno.intervalo_inicio }}</strong> {{ _('({v1} min)', v1=(turno.intervalo_min)) }}{% endif %}{% if turno.local %} · {{ turno.local.nome }}{% endif %}{% if turno.obs %}<br>{{ turno.obs }}{% endif %}
+    {% else %}{{ _('Você não está na escala de hoje.') }}{% endif %}
+  </div>
+  {% set pausa = e.intervalo_obrigatorio and turno and not turno.folga and turno.intervalo_min %}
+  {% set n = batidas|length %}
+  {% set so_totem = not gps_liberado(e) %}
+  {% if so_totem %}<p class="alerta" style="margin-top:14px">{{ _('Na sua empresa o ponto é batido no totem (o tablet da empresa).') }} {{ _('Use o seu PIN nele ou digite abaixo o código que aparece na tela.') if tem_totem else _('Fale com o gestor para ativar o totem.') }}</p>{% endif %}
+  <button type="button" id="bater" class="botao-ponto {{ 'saida' if aberta }}" {{ 'hidden' if so_totem }}>{{ (_('Sair para o intervalo') if pausa and n == 1 else _('Bater saída')) if aberta else (_('Voltar do intervalo') if pausa and n == 2 else _('Bater ponto')) }}</button>
+  <div class="suave pequeno">{% if aberta %}{{ _('Você entrou às {v1}.', v1=(local(e, aberta.momento))) }}{% if pausa and n == 1 %} {{ _('Seu intervalo é de {v1} min: bata a saída ao parar e a entrada ao voltar.', v1=(turno.intervalo_min)) }}{% endif %}{% elif pausa and n == 2 %}{{ _('Você saiu para o intervalo às {v1}.', v1=(local(e, batidas[-1].momento))) }}{% elif not so_totem %}{{ _('Vamos conferir se você está na empresa.') }}{% endif %}</div>
+  <div id="retorno" class="retorno" role="status" hidden></div>
+  {% if tem_totem %}
+  <details class="totem-app" {{ 'open' if codigo or so_totem }}>
+    <summary>{{ _('Usar o código do totem') }}</summary>
+    <p class="suave pequeno">{{ _('Digite os 6 números que aparecem no tablet da empresa. Não precisa de GPS.') }}</p>
+    <div class="linha-codigo">
+      <input type="text" id="codigo" inputmode="numeric" autocomplete="off" maxlength="6" value="{{ codigo }}" aria-label="{{ _('Código do totem') }}" placeholder="000000">
+      <button class="botao" type="button" id="bater-codigo">{{ _('Bater com o código') }}</button>
+    </div>
+  </details>
+  <details class="totem-app">
+    <summary>{{ _('Trocar o PIN do totem') if u.pin_hash else _('Criar PIN para o totem') }}</summary>
+    <p class="suave pequeno">{{ _('Com o PIN você bate o ponto direto no tablet da empresa, sem o celular.') }}{% if u.pin_erros >= 5 %} <strong>{{ _('Seu PIN está bloqueado: crie um novo.') }}</strong>{% endif %}</p>
+    <form method="post" action="/app/pin">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label for="pin">{{ _('PIN (4 a 6 números)') }}</label><input type="password" id="pin" name="pin" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" required autocomplete="off"></div>
+      <div class="campo"><label for="pin-senha">{{ _('Sua senha do aplicativo') }}</label><input type="password" id="pin-senha" name="senha" required autocomplete="current-password"></div>
+      <button class="botao claro" type="submit" style="width:100%">{{ _('Salvar PIN') }}</button>
+    </form>
+  </details>
+  {% endif %}
+  {% if push_chave %}
+  <div style="margin-top:10px">
+    <button class="botao mini claro" type="button" id="ativar-lembretes" hidden>{{ _('Ativar lembretes de ponto') }}</button>
+    <span class="suave pequeno" id="lembretes-estado"></span>
+  </div>
+  {% endif %}
+  {% if batidas %}
+  <div class="batidas">
+    {% for b in batidas %}<span class="etiqueta {{ 'ok' if b.tipo == 'entrada' else 'azul' }}">{{ _('Entrada') if b.tipo == 'entrada' else _('Saída') }} {{ local(e, b.momento) }}</span>{% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="cartao">
+  <h2>{{ _('Tarefas de hoje') }}</h2>
+  {% if tarefas %}
+  <ul class="checklist">
+    {% for i in tarefas %}
+    <li class="{{ 'feita' if i.feita }}">
+      <form method="post" action="/app/tarefas/{{ i.t.id }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="dia" value="{{ dia.isoformat() }}">
+        <button type="submit" aria-pressed="{{ 'true' if i.feita else 'false' }}">
+          <span class="caixinha">{{ '✓' if i.feita }}</span>
+          <span><span class="titulo-tarefa">{{ i.t.titulo }}</span>
+          {% if i.feita %}<small>{{ _('{v1} às {v2}', v1=(_('Você') if i.feita.usuario_id == u.id else i.feita.usuario.primeiro_nome), v2=(local(e, i.feita.feito_em))) }}</small>
+          {% elif i.t.usuario_id %}<small>{{ _('só sua') }}</small>{% endif %}</span>
+        </button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="suave" style="margin:0">{{ _('Nenhuma tarefa para hoje.') }}</p>
+  {% endif %}
+</section>
+
+<section class="cartao">
+  <h2>{{ _('Próximos dias') }}</h2>
+  {% if proximos %}
+  <ul class="lista-dias">
+    {% for t in proximos %}
+    <li><span>{{ DIAS[t.data.weekday()] }} {{ t.data.strftime('%d/%m') }}</span>
+      <span>{% if t.folga %}<span class="etiqueta">{{ _('Folga') }}</span>{% else %}<strong>{{ _('{v1} às {v2}', v1=(t.inicio), v2=(t.fim)) }}</strong>{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="suave" style="margin:0">{{ _('Sua escala dos próximos dias ainda não foi publicada.') }}</p>
+  {% endif %}
+</section>
+
+{% if exige_foto(e) %}
+<dialog id="camera">
+  <h2 style="margin-bottom:4px">{{ _('Foto para o ponto') }}</h2>
+  <p class="suave pequeno">{{ _('Enquadre o seu rosto e toque no botão.') }}</p>
+  <video id="video" autoplay playsinline muted></video>
+  <div class="acoes" style="justify-content:flex-end;margin-top:12px">
+    <button class="botao claro" type="button" id="cam-cancelar">{{ _('Cancelar') }}</button>
+    <button class="botao" type="button" id="cam-tirar">{{ _('Tirar foto e registrar') }}</button>
+  </div>
+</dialog>
+<input type="file" id="foto-arquivo" accept="image/*" capture="user" hidden>
+{% endif %}
+<script>
+(function () {
+  var EXIGE_FOTO = {{ 'true' if exige_foto(e) else 'false' }};
+  var USA_GPS = {{ 'true' if gps_liberado(e) else 'false' }};
+  var botao = document.getElementById("bater"), ret = document.getElementById("retorno"),
+      relogio = document.getElementById("relogio");
+  var desvio = new Date("{{ agora.strftime('%Y-%m-%dT%H:%M:%S') }}").getTime() - Date.now();
+  setInterval(function () {
+    var d = new Date(Date.now() + desvio);
+    relogio.textContent = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+  }, 5000);
+  function mostrar(tipo, texto) { ret.hidden = false; ret.className = "retorno " + tipo; ret.textContent = texto; }
+  // Reduz a imagem (vídeo ou arquivo) para um JPEG pequeno.
+  function reduzir(fonte, largura, altura) {
+    var escala = Math.min(1, 480 / Math.max(largura, altura)), c = document.createElement("canvas");
+    c.width = Math.round(largura * escala); c.height = Math.round(altura * escala);
+    c.getContext("2d").drawImage(fonte, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.7);
+  }
+  // Abre a câmera da frente e devolve a foto; se o navegador não deixar, usa a câmera do sistema.
+  function tirarFoto(pronto, falhou) {
+    var dlg = document.getElementById("camera"), video = document.getElementById("video"),
+        arquivo = document.getElementById("foto-arquivo"), fluxo = null;
+    function fechar() { if (fluxo) fluxo.getTracks().forEach(function (t) { t.stop(); }); fluxo = null; if (dlg.open) dlg.close(); }
+    function peloArquivo() {
+      arquivo.value = "";
+      arquivo.onchange = function () {
+        var f = arquivo.files[0];
+        if (!f) { falhou(t("Nenhuma foto tirada.")); return; }
+        var img = new Image();
+        img.onload = function () { pronto(reduzir(img, img.naturalWidth, img.naturalHeight)); URL.revokeObjectURL(img.src); };
+        img.onerror = function () { falhou(t("Não consegui ler a foto. Tente de novo.")); };
+        img.src = URL.createObjectURL(f);
+      };
+      arquivo.click();
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { peloArquivo(); return; }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false }).then(function (s) {
+      fluxo = s; video.srcObject = s; dlg.showModal();
+      document.getElementById("cam-tirar").onclick = function () {
+        if (!video.videoWidth) return;
+        var foto = reduzir(video, video.videoWidth, video.videoHeight);
+        fechar(); pronto(foto);
+      };
+      document.getElementById("cam-cancelar").onclick = function () { fechar(); falhou(""); };
+      dlg.oncancel = function () { fechar(); falhou(""); };
+    }).catch(function (err) {
+      if (err && err.name === "NotAllowedError") falhou(t("Você precisa permitir o uso da câmera para bater o ponto. Libere nas configurações do navegador e tente de novo."));
+      else peloArquivo();
+    });
+  }
+  botao.addEventListener("click", function () {
+    if (USA_GPS && !navigator.geolocation) { mostrar("erro", t("Este navegador não informa a localização. Abra pelo Chrome ou Safari.")); return; }
+    botao.disabled = true;
+    if (EXIGE_FOTO) {
+      tirarFoto(localizar, function (msg) { if (msg) mostrar("erro", msg); else ret.hidden = true; botao.disabled = false; });
+    } else localizar(null);
+  });
+  function enviar(dados) {
+    mostrar("info", t("Registrando o ponto…"));
+    fetch("/app/ponto", {
+      method: "POST", headers: { "Content-Type": "application/json", "X-CSRF": "{{ csrf }}" },
+      body: JSON.stringify(dados)
+    }).then(function (r) {
+      return r.json().then(function (j) { return { ok: r.ok, j: j }; });
+    }).then(function (x) {
+      if (x.ok) { mostrar("ok", x.j.mensagem); setTimeout(function () { location.href = "/app"; }, 1800); }
+      else if (x.j.codigo === "precisa_motivo" && !dados.motivo) {
+        var motivo = window.prompt(x.j.erro + "
+
+" + t("Motivo (ex.: entrega externa, evento, GPS errado):"));
+        if (motivo && motivo.trim()) { dados.motivo = motivo.trim().slice(0, 200); enviar(dados); }
+        else { mostrar("erro", t("Sem o motivo, o ponto fora da área não é registrado.")); botao.disabled = false; }
+      }
+      else { mostrar("erro", x.j.erro || x.j.detail || t("Não foi possível registrar.")); botao.disabled = false; }
+    }).catch(function () {
+      mostrar("erro", t("Sem conexão ou sessão expirada. Confira a internet, recarregue a página e tente de novo."));
+      botao.disabled = false;
+    });
+  }
+  var botaoCodigo = document.getElementById("bater-codigo");
+  if (botaoCodigo) botaoCodigo.addEventListener("click", function () {
+    var codigo = document.getElementById("codigo").value.replace(/[^0-9]/g, "");
+    if (codigo.length !== 6) { mostrar("erro", t("Digite os 6 números que aparecem no totem.")); return; }
+    if (EXIGE_FOTO) tirarFoto(function (foto) { enviar({ codigo: codigo, foto: foto }); },
+                              function (msg) { if (msg) mostrar("erro", msg); });
+    else enviar({ codigo: codigo });
+  });
+  function localizar(foto) {
+    if (!USA_GPS) { enviar({ foto: foto }); return; }
+    mostrar("info", t("Obtendo sua localização…"));
+    navigator.geolocation.getCurrentPosition(function (p) {
+      enviar({ lat: p.coords.latitude, lng: p.coords.longitude, precisao: p.coords.accuracy, foto: foto });
+    }, function (err) {
+      var msg = t("Não foi possível obter sua localização. Tente de novo ao ar livre.");
+      if (err.code === 1) msg = t("Você precisa permitir o acesso à localização para bater o ponto. Libere nas configurações do navegador e tente de novo.");
+      if (err.code === 3) msg = t("O GPS demorou demais. Confira se a localização do celular está ligada e tente de novo.");
+      mostrar("erro", msg); botao.disabled = false;
+    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  }
+  {% if push_chave %}
+  document.addEventListener("DOMContentLoaded", function () {
+    ligarAvisos(document.getElementById("ativar-lembretes"), document.getElementById("lembretes-estado"),
+                "{{ push_chave }}", "{{ csrf }}", t("Lembretes de ponto ativados."));
+  });
+  {% endif %}
+})();
+</script>
+{% if aberta and e.cerca_turno and gps_liberado(e) %}
+<p class="suave pequeno cerca-aviso" id="cerca-estado">{{ _('Com o app aberto durante o turno, a empresa confere se você está na área de trabalho. Nada é lido com o app fechado.') }}</p>
+<script>
+(function () {
+  if (!navigator.geolocation) return;
+  var foraDesde = null, el = document.getElementById("cerca-estado"), intervalo = 120000;
+  function conferir() {
+    if (document.hidden) return;
+    navigator.geolocation.getCurrentPosition(function (p) {
+      var minutos = foraDesde ? Math.floor((Date.now() - foraDesde) / 60000) : 0;
+      var corpo = new URLSearchParams({lat: p.coords.latitude, lng: p.coords.longitude, precisao: p.coords.accuracy, fora_desde_min: minutos});
+      fetch("/app/cerca", {method: "POST", headers: {"X-CSRF": "{{ csrf }}"}, body: corpo, credentials: "same-origin"})
+        .then(function (r) { return r.json(); }).then(function (j) {
+          if (!j.ativo) return;
+          if (j.dentro === false) {
+            if (!foraDesde) foraDesde = Date.now();
+            el.className = "alerta pequeno cerca-aviso";
+            el.textContent = t("Você está fora da área de trabalho, com o ponto aberto. Se saiu, bata a saída.");
+          } else if (j.dentro === true) {
+            foraDesde = null; el.className = "suave pequeno cerca-aviso";
+            el.textContent = t("Você está na área de trabalho.");
+          }
+        }).catch(function () {});
+    }, function () {}, {enableHighAccuracy: true, timeout: 20000, maximumAge: 60000});
+  }
+  conferir(); setInterval(conferir, intervalo);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) conferir(); });
+})();
+</script>
+{% endif %}
+{% endblock %}

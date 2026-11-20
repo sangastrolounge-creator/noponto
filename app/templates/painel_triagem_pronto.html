@@ -1,0 +1,28 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="tri">
+  <div class="tri-topo">
+    <div class="tri-ok" aria-hidden="true">✓</div>
+    <h1>{{ _('Pronto! {v1} está configurada', v1=e.nome) }}</h1>
+    <p class="suave">{{ _('Veja o que deixamos preparado e os próximos passos. Tudo pode ser mudado em Configurações.') }}</p>
+  </div>
+  <div class="cartao">
+    <h2>{{ _('O que foi configurado') }}</h2>
+    <ul class="tri-feito">{% for f in feito %}<li>{{ f }}</li>{% endfor %}</ul>
+  </div>
+  {% if plano %}
+  <div class="cartao tri-plano">
+    <div><h2 style="margin:0">{{ _('Plano recomendado: {v1}', v1=plano.nome) }}</h2>
+      <p class="suave pequeno" style="margin:4px 0 0">{{ _('Pelo tamanho da equipe e o número de locais. O teste grátis vale para todos os recursos.') }}</p></div>
+    <a class="botao claro" href="/painel/assinatura">{{ _('Ver planos') }}</a>
+  </div>
+  {% endif %}
+  <div class="cartao">
+    <h2>{{ _('Próximos passos') }}</h2>
+    <ol class="tri-passos">
+      {% for texto, rotulo, link in dicas %}<li><span>{{ texto }}</span> <a class="botao mini {{ 'claro' if not loop.first }}" href="{{ link }}">{{ rotulo }}</a></li>{% endfor %}
+    </ol>
+  </div>
+  <p style="text-align:center"><a class="botao" href="/painel">{{ _('Ir para o painel') }}</a> <a class="botao link" href="/painel/comecar">{{ _('Refazer as respostas') }}</a></p>
+</div>
+{% endblock %}

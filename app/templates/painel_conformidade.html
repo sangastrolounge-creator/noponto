@@ -1,0 +1,39 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Conformidade') }}</h1>
+    <p class="suave" style="margin:0">{{ _('As regras da CLT que o sistema confere para {v1}, num lugar só. Atualiza toda vez que você abre a página.', v1=e.nome) }}</p></div>
+</div>
+
+<div class="conf-topo cartao">
+  {% set cor = 'ok' if c.nota >= 90 else 'atencao' if c.nota >= 60 else 'problema' %}
+  <div class="conf-nota {{ cor }}" role="img" aria-label="{{ _('Nota {v1} de 100', v1=c.nota) }}" style="--p: {{ c.nota }}">
+    <strong>{{ c.nota }}</strong><span>{{ _('de 100') }}</span>
+  </div>
+  <div>
+    <h2 style="margin:0 0 4px">{% if c.problemas %}{{ _('{v1} problema(s) para resolver', v1=c.problemas) }}{% elif c.atencao %}{{ _('Tudo em ordem, com {v1} ponto(s) de atenção', v1=c.atencao) }}{% else %}{{ _('Tudo em ordem') }}{% endif %}</h2>
+    <p class="suave pequeno" style="margin:0">{{ _('Vermelho: pode gerar multa ou ação trabalhista. Amarelo: confira em breve. Verde: em dia.') }}</p>
+  </div>
+</div>
+
+<div class="conf-lista">
+  {% for i in c.itens %}
+  <section class="cartao conf-item {{ i.situacao }}" id="c-{{ i.chave }}">
+    <div class="conf-cabeca">
+      <span class="conf-selo {{ i.situacao }}" aria-hidden="true">{% if i.situacao == 'ok' %}✓{% elif i.situacao == 'atencao' %}!{% else %}✕{% endif %}</span>
+      <div style="flex:1">
+        <h3>{{ i.titulo|traduz }}</h3>
+        <p>{{ i.resumo|traduz }}</p>
+      </div>
+      {% if i.acao %}<a class="botao mini {{ 'claro' if i.situacao != 'problema' }}" href="{{ i.acao[1] }}">{{ i.acao[0]|traduz }}</a>{% endif %}
+    </div>
+    {% if i.detalhes %}
+    <details class="conf-detalhes"><summary class="pequeno">{{ _('Ver {v1} item(ns)', v1=i.detalhes|length) }}</summary>
+      <ul>{% for d in i.detalhes %}<li>{{ d }}</li>{% endfor %}</ul>
+    </details>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+<p class="ajuda">{{ _('A central resume regras da CLT que o sistema consegue conferir com a escala e o ponto. Convenções coletivas podem ter regras diferentes. Não é orientação jurídica: confira com o seu contador ou advogado trabalhista.') }}</p>
+{% endblock %}

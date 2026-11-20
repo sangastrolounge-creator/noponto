@@ -1,0 +1,34 @@
+# Projeto independente do cmv-app e do avalia-app: rede, volume e banco próprios.
+name: turno-app
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - dados:/dados
+    ports:
+      # Acesso direto só de dentro da VPS (testes, túnel).
+      - "127.0.0.1:8096:8000"
+    labels:
+      # Só fica público quando o .env tiver PUBLICAR=true e APP_HOST com o domínio.
+      - traefik.enable=${PUBLICAR:-false}
+      - traefik.docker.network=turno-app_default
+      # APP_REGRA_EXTRA acrescenta endereços que redirecionam ao principal, ex.:
+      #   APP_REGRA_EXTRA=' || Host(`www.dominio.com.br`) || Host(`antigo.exemplo`)'
+      - traefik.http.routers.turno.rule=Host(`${APP_HOST:-turno.invalid}`)${APP_REGRA_EXTRA:-}
+      - traefik.http.routers.turno.entrypoints=websecure
+      - traefik.http.routers.turno.tls.certresolver=letsencrypt
+      - traefik.http.services.turno.loadbalancer.server.port=8000
+    mem_limit: 300m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/saude')"]
+      start_period: 20s
+      start_interval: 2s
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  dados:

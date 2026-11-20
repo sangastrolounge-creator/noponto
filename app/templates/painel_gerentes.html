@@ -1,0 +1,66 @@
+{% extends "painel_base.html" %}
+{% macro caixas(g) %}
+  <div class="perm-grade">
+    {% for k, nome in PERMISSOES.items() %}
+    <label class="marcar"><input type="checkbox" name="p_{{ k }}" value="1" {{ 'checked' if g and k in perms[g.id] }}><span>{{ nome }}</span></label>
+    {% endfor %}
+  </div>
+{% endmacro %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Gerentes e permissões') }}</h1>
+    <p class="suave" style="margin:0">{{ _('Convide outras pessoas para o painel e escolha o que cada uma pode fazer. Configurações, Assinatura e esta tela ficam só com o dono da conta.') }}</p></div>
+  <a class="botao claro" href="/painel/equipe">{{ _('Voltar para Equipe') }}</a>
+</div>
+
+{% for g in gerentes %}
+<div class="cartao" id="g{{ g.id }}">
+  <div class="mural-topo" style="justify-content:space-between">
+    <div><strong>{{ g.nome }}</strong> <span class="suave pequeno">{{ g.email }}</span>
+      {% if g.dono %}<span class="etiqueta azul">{{ _('Dono') }}</span>{% elif not g.ativo %}<span class="etiqueta erro">{{ _('Desativado') }}</span>{% elif g.convite_token %}<span class="etiqueta alerta">{{ _('Ainda não criou a senha') }}</span>{% else %}<span class="etiqueta ok">{{ _('Ativo') }}</span>{% endif %}</div>
+  </div>
+  {% if g.dono %}
+  <p class="suave pequeno" style="margin:8px 0 0">{{ _('O dono pode tudo, inclusive Configurações, Assinatura e os gerentes.') }}</p>
+  {% else %}
+  {% if links[g.id] and g.ativo %}
+  <div class="campo" style="margin-top:10px"><label>{{ _('Link de primeiro acesso (envie só para esta pessoa)') }}</label>
+    <input type="text" readonly value="{{ links[g.id] }}" onclick="this.select()" aria-label="{{ _('Link de primeiro acesso') }}"></div>
+  {% endif %}
+  <form method="post" action="/painel/gerentes/{{ g.id }}" style="margin-top:10px">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="acao" value="salvar">
+    <label class="pequeno" style="font-weight:700">{{ _('Pode usar') }}</label>
+    {{ caixas(g) }}
+    <label class="marcar" style="margin-top:8px"><input type="checkbox" name="na_escala" value="1" {{ 'checked' if g.na_escala }}><span>{{ _('Também trabalha na escala e bate o ponto') }}</span></label>
+    <div class="acoes" style="margin-top:10px">
+      <button class="botao" type="submit">{{ _('Salvar permissões') }}</button>
+    </div>
+  </form>
+  <div class="acoes" style="margin-top:8px">
+    <form method="post" action="/painel/gerentes/{{ g.id }}" class="inline" data-confirma="{{ _('Gerar um novo link de acesso? A senha atual desta pessoa deixa de valer.') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="novo_link">
+      <button class="botao link pequeno" type="submit">{{ _('Novo link de acesso') }}</button></form>
+    <form method="post" action="/painel/gerentes/{{ g.id }}" class="inline" {% if g.ativo %}data-confirma="{{ _('Desativar {v1}? A pessoa não entra mais no painel.', v1=g.primeiro_nome) }}"{% endif %}>
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="{{ 'desativar' if g.ativo else 'reativar' }}">
+      <button class="botao link pequeno" type="submit">{{ _('Desativar') if g.ativo else _('Reativar') }}</button></form>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+<form method="post" action="/painel/gerentes" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Novo gerente') }}</h2>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+    <div class="campo"><label for="n-nome">{{ _('Nome') }}</label><input type="text" id="n-nome" name="nome" maxlength="120" required></div>
+    <div class="campo"><label for="n-email">{{ _('E-mail (login)') }}</label><input type="email" id="n-email" name="email" required></div>
+    <div class="campo"><label for="n-cargo">{{ _('Cargo (opcional)') }}</label><input type="text" id="n-cargo" name="cargo" maxlength="80" placeholder="{{ _('Ex.: Gerente da cozinha') }}"></div>
+    <div class="campo"><label for="n-cel">{{ _('Celular (opcional)') }}</label><input type="tel" id="n-cel" name="celular"></div>
+  </div>
+  <label class="pequeno" style="font-weight:700">{{ _('Pode usar') }}</label>
+  {{ caixas(None) }}
+  <label class="marcar" style="margin-top:8px"><input type="checkbox" name="na_escala" value="1"><span>{{ _('Também trabalha na escala e bate o ponto') }}</span></label>
+  <button class="botao" type="submit" style="margin-top:12px">{{ _('Cadastrar e gerar o link') }}</button>
+  <p class="ajuda">{{ _('A pessoa abre o link, cria a própria senha e passa a entrar com o e-mail. Tudo o que ela fizer fica no histórico com o nome dela.') }}</p>
+</form>
+{% endblock %}

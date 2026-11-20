@@ -1,0 +1,99 @@
+{% extends "painel_base.html" %}
+{% from "_planos.html" import cartoes %}
+{% from "master/_sit.html" import etiqueta %}
+{% block conteudo %}
+{% set s = situacao(e) %}
+{% set rotulos = {'pix': 'Pix', 'boleto': _('Boleto'), 'cartao': _('Cartão'), 'dinheiro': _('Dinheiro'), 'outro': '—'} %}
+<div class="cabecalho"><div><h1>{{ _('Assinatura') }} {{ etiqueta(e) }}</h1><p class="suave" style="margin:0">{{ _('Seu plano, a validade e como pagar.') }}</p></div></div>
+
+{% if s == 'vencida' %}
+<div class="aviso erro"><strong>{{ _('Sua assinatura venceu') if e.pago_ate else _('Seu período de teste terminou') }}{% if validade(e) %} {{ _('em {v1}', v1=(validade(e)|data('%d/%m/%Y'))) }}{% endif %}.</strong> {{ _('O painel fica fechado até o pagamento ser confirmado. O ponto dos funcionários continua sendo registrado, e nada foi apagado.') }}</div>
+{% endif %}
+
+<div class="grade">
+  <div class="numero"><div class="rotulo">{{ _('Plano') }}</div><div class="valor" style="font-size:1.4rem">{{ e.plano.nome if e.plano else (_('Cortesia') if e.isenta else _('Sem plano')) }}</div><div class="nota">{% if e.plano and e.plano.gratis %}{{ _('sem cobrança') }}{% elif e.plano %}{{ _('{v1} por mês', v1=(e.plano.preco_centavos|dinheiro)) }}{% endif %}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Validade') }}</div><div class="valor" style="font-size:1.4rem">{% if e.isenta or s == 'gratis' %}{{ _('Não vence') }}{% else %}{{ validade(e)|data('%d/%m/%Y') or '—' }}{% endif %}</div><div class="nota">{% if s == 'gratis' %}{{ _('plano grátis') }}{% elif s == 'teste' %}{{ _('período de teste, {v1} dia(s) restante(s)', v1=(dias_restantes(e))) }}{% elif s == 'ativa' %}{{ _('{v1} dia(s) restante(s)', v1=(dias_restantes(e))) }}{% endif %}</div></div>
+  {% if e.plano and e.plano.por_pessoa %}<div class="numero"><div class="rotulo">{{ _('Pessoas cobradas') }}</div><div class="valor" style="font-size:1.4rem">{{ cobradas }}</div><div class="nota">{{ _('trabalharam nos últimos 30 dias · próxima cobrança: {v1}', v1=(e.plano.valor_mensal(cobradas)|dinheiro)) }}</div></div>{% endif %}
+  <div class="numero"><div class="rotulo">{{ _('Funcionários ativos') }}</div><div class="valor" style="font-size:1.4rem">{{ usados }}{% if limite %}<span class="suave" style="font-size:1rem"> {{ _('de {v1}', v1=(limite)) }}</span>{% endif %}</div><div class="nota">{{ _('limite do seu plano') if limite else _('sem limite') }}</div></div>
+</div>
+
+{% if aberta %}
+<div class="{{ 'aviso erro' if aberta.status == 'vencido' else 'alerta' }}">
+  {{ _('Há uma cobrança vencida') if aberta.status == 'vencido' else _('Há uma cobrança aguardando pagamento') }}:
+  <strong>{{ aberta.valor_centavos|dinheiro }}</strong>{% if aberta.plano_nome %} · {{ aberta.plano_nome }}{% endif %}.
+  <a href="{{ aberta.fatura_url }}" target="_blank" rel="noopener">{{ _('Abrir cobrança') }}</a>
+  <span class="pequeno">{{ _('· Já pagou? A liberação é automática;') }} <a href="/painel/assinatura">{{ _('atualize esta página') }}</a>.</span>
+</div>
+{% endif %}
+
+{% if s != 'cortesia' %}
+  {% if asaas_ok and e.asaas_assinatura_id %}
+  <div class="cartao">
+    <h2>{{ _('Cobrança automática ativa') }}</h2>
+    <p class="suave">{{ _('Todo mês uma nova cobrança é gerada e enviada para o seu e-mail. No cartão, o débito é automático. Para mudar de plano, encerre a cobrança automática e assine de novo.') }}</p>
+    <form method="post" action="/painel/assinatura/cancelar" data-confirma="{{ _('Encerrar a cobrança automática? O acesso continua até a data já paga.') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="botao claro" type="submit">{{ _('Encerrar cobrança automática') }}</button>
+    </form>
+  </div>
+  {% elif asaas_ok and planos|rejectattr('gratis')|list %}
+  <form method="post" action="/painel/assinatura/pagar" class="cartao">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <h2>{{ _('Regularizar') if s == 'vencida' else (_('Assinar') if s == 'teste' else _('Renovar ou mudar de plano')) }}</h2>
+    <div class="campo">
+      <label>{{ _('Plano') }}</label>
+      {% set pagos_planos = planos|rejectattr('gratis')|list %}
+      {% set marcado = e.plano_id if e.plano_id in pagos_planos|map(attribute='id')|list else (pagos_planos[0].id if pagos_planos else 0) %}
+      {% for p in pagos_planos %}
+      <label class="opcao-plano">
+        <input type="radio" name="plano" value="{{ p.id }}" {{ 'checked' if p.id == marcado }} required>
+        <span><strong>{{ p.nome }}</strong> {% if p.por_pessoa %}{{ _('· {v1}/pessoa/mês', v1=(p.por_pessoa_centavos|dinheiro)) }}{% if p.base_centavos %} {{ _('+ {v1} de base', v1=(p.base_centavos|dinheiro)) }}{% endif %}{% if p.minimo_centavos %} {{ _('(mínimo {v1})', v1=(p.minimo_centavos|dinheiro)) }}{% endif %} · {{ _('hoje daria {v1}/mês', v1=(p.valor_mensal(cobradas)|dinheiro)) }}{% else %}{{ _('· {v1}/mês', v1=(p.preco_centavos|dinheiro)) }}{% endif %}<br><span class="suave pequeno">{{ _('Funcionários ilimitados') if p.limite_funcionarios == 0 else _('Até ') ~ p.limite_funcionarios ~ _(' funcionários') }}{% if p.limite_funcionarios and usados > p.limite_funcionarios %} {{ _('· você tem {v1} ativos', v1=(usados)) }}{% endif %}</span></span>
+      </label>
+      {% endfor %}
+    </div>
+    {% if not e.asaas_cliente_id %}
+    <div class="campo" style="max-width:320px"><label for="cpf_cnpj">{{ _('CPF ou CNPJ') }}</label><input id="cpf_cnpj" type="text" name="cpf_cnpj" inputmode="numeric" maxlength="18" value="{{ e.cpf_cnpj }}" required><div class="ajuda">{{ _('Exigido para emitir a cobrança.') }}</div></div>
+    {% endif %}
+    <div class="campo">
+      <label>{{ _('Como pagar') }}</label>
+      <label class="opcao-plano"><input type="radio" name="modo" value="automatica" checked><span><strong>{{ _('Cobrança automática mensal') }}</strong><br><span class="suave pequeno">{{ _('Uma cobrança por mês, por Pix, boleto ou cartão.') }} {% if s in ('teste', 'ativa') and dias_restantes(e) and dias_restantes(e) > 2 %}{{ _('A primeira vence em {v1}, quando terminam os dias que você já tem.', v1=(validade(e)|data('%d/%m/%Y'))) }}{% endif %} {{ _('Encerre quando quiser.') }}</span></span></label>
+      <label class="opcao-plano"><input type="radio" name="modo" value="avulso"><span><strong>{{ _('Pagar só 30 dias') }}</strong><br><span class="suave pequeno">{{ _('Uma cobrança única agora; os dias são somados aos que você já tem.') }}</span></span></label>
+    </div>
+    <button class="botao" type="submit">{{ _('Ir para o pagamento') }}</button>
+    <div class="ajuda">{{ _('Você será levado à página segura do Asaas. A liberação é automática assim que o pagamento é confirmado.') }}</div>
+  </form>
+  {% if gratis and not e.asaas_assinatura_id and not (s == 'gratis' and e.plano_id == gratis.id) and s != 'cortesia' %}
+  <form method="post" action="/painel/assinatura/gratis" class="cartao" data-confirma="{{ _('Passar para o plano {v1}? Valem os limites do plano.', v1=(gratis.nome)) }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <h2>{{ _('Ou continue de graça') }}</h2>
+    <p class="suave">{{ _('Plano {v1}: até {v2} funcionários e {v3} local de ponto, sem prazo para acabar.', v1=(gratis.nome), v2=(gratis.limite_funcionarios or '∞'), v3=(gratis.limite_locais or '∞')) }}{% if not gratis.com_pagamento %} {{ _('Não inclui a folha de pagamento nem a revisão do Claude.') }}{% endif %}</p>
+    <button class="botao claro" type="submit">{{ _('Usar o plano {v1}', v1=(gratis.nome)) }}</button>
+  </form>
+  {% endif %}
+  {% else %}
+  <div class="cartao">
+    <h2>{{ _('Como pagar') }}</h2>
+    {% if plat.instrucoes_pagamento %}<p style="white-space:pre-line">{{ plat.instrucoes_pagamento }}</p>
+    {% else %}<p class="suave">{{ _('Fale com o suporte para assinar ou renovar. A liberação é feita assim que o pagamento é confirmado.') }}</p>{% endif %}
+  </div>
+  {% endif %}
+  {% if plat.whatsapp %}<p class="pequeno"><a target="_blank" rel="noopener" href="{{ zap(plat.whatsapp, _('Olá! Quero falar sobre a assinatura do ') ~ app_nome ~ _(' da empresa ') ~ e.nome ~ '.') }}">{{ _('Falar com o suporte no WhatsApp') }}</a></p>{% endif %}
+{% endif %}
+
+{% if pagos %}
+<div class="cartao">
+  <h2>{{ _('Pagamentos') }}</h2>
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Data') }}</th><th>{{ _('Valor') }}</th><th>{{ _('Plano') }}</th><th>{{ _('Forma') }}</th></tr></thead>
+    <tbody>{% for p in pagos %}<tr><td>{{ (p.pago_em or p.criado_em)|data('%d/%m/%Y') }}</td><td>{{ p.valor_centavos|dinheiro }}</td><td>{{ p.plano_nome or '—' }}</td><td>{{ rotulos.get(p.forma, p.forma) }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+
+{% if planos and not (asaas_ok and not e.asaas_assinatura_id and s != 'cortesia') %}
+<div class="cartao">
+  <h2>{{ _('Planos') }}</h2>
+  {{ cartoes(planos, 'mostra', e.plano_id, 0) }}
+</div>
+{% endif %}
+{% endblock %}

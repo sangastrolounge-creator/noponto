@@ -1,0 +1,23 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Avisos para você') }}</h1><p class="suave" style="margin:0">{{ _('O que a plataforma avisa para as contas Master, por e-mail e no celular.') }}</p></div></div>
+
+<div class="cartao">
+  {% if not email_ok %}<div class="alerta">{{ _('O envio de e-mails está desligado: os avisos só chegam no celular.') }} <a href="/master/email">{{ _('Configurar o e-mail') }}</a></div>{% endif %}
+  <p class="pequeno">{{ _('Quem recebe:') }} {% for c in contas %}<strong>{{ c.nome }}</strong> ({{ c.email }}){{ ', ' if not loop.last }}{% endfor %}</p>
+  <p class="ajuda">{{ _('No celular: entre no painel pelo celular e toque em “Receber avisos neste aparelho”, na tela Hoje.') }}</p>
+</div>
+
+<form method="post" action="/master/avisos" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Me avise quando') }}</h2>
+  {% for t, nome in TIPOS_AVISO.items() %}
+  <label class="marcar campo"><input type="checkbox" name="t_{{ t }}" value="1" {{ 'checked' if t not in desligados }}><span>{{ _(nome) }}</span></label>
+  {% endfor %}
+  <div class="acoes">
+    <button class="botao" type="submit" name="acao" value="salvar">{{ _('Salvar') }}</button>
+    <button class="botao claro" type="submit" name="acao" value="testar">{{ _('Enviar um aviso de teste') }}</button>
+  </div>
+  <p class="ajuda">{{ _('O resumo dos testes grátis sai uma vez por dia, às 9h de Brasília, só quando há alguma empresa na lista.') }}</p>
+</form>
+{% endblock %}

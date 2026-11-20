@@ -1,0 +1,41 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Plataforma') }}</h1><p class="suave" style="margin:0">{{ _('Marca, página inicial, teste grátis e como o cliente paga.') }}</p></div></div>
+<form method="post" action="/master/plataforma" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Marca e página inicial') }}</h2>
+  <div class="campo"><label for="nome">{{ _('Nome da plataforma') }}</label><input id="nome" type="text" name="nome" value="{{ p.nome or app_nome }}" maxlength="60" required style="max-width:320px"></div>
+  <div class="campo"><label for="titulo">{{ _('Título da página inicial') }}</label><input id="titulo" type="text" name="titulo" value="{{ p.titulo }}" maxlength="200"><div class="ajuda">{{ _('Em branco, usa o título padrão.') }}</div></div>
+  <div class="campo"><label for="subtitulo">{{ _('Texto de apoio') }}</label><textarea id="subtitulo" name="subtitulo" maxlength="600">{{ p.subtitulo }}</textarea></div>
+
+  <h2 style="margin-top:8px">{{ _('Cadastro e teste') }}</h2>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    <div class="campo"><label for="dias_teste">{{ _('Dias de teste grátis') }}</label><input id="dias_teste" type="number" name="dias_teste" min="0" max="90" value="{{ p.dias_teste }}"><div class="ajuda">{{ _('Vale para novos cadastros. 0 = sem teste.') }}</div></div>
+    <div class="campo"><label for="carencia_teste_dias">{{ _('Carência depois do teste (dias)') }}</label><input id="carencia_teste_dias" type="number" name="carencia_teste_dias" min="0" max="30" value="{{ p.carencia_teste_dias }}"><div class="ajuda">{{ _('Dias que a empresa ainda usa depois do fim do teste, sem assinar. 0 = fecha no fim do teste.') }}</div></div>
+    <div class="campo"><label for="carencia_dias">{{ _('Carência depois do vencimento (dias)') }}</label><input id="carencia_dias" type="number" name="carencia_dias" min="0" max="30" value="{{ p.carencia_dias }}"><div class="ajuda">{{ _('Dias que a empresa assinante ainda usa depois do vencimento, enquanto o Asaas tenta cobrar de novo.') }}</div></div>
+    <label class="marcar campo"><input type="checkbox" name="cadastro_aberto" value="1" {{ 'checked' if p.cadastro_aberto }}><span>{{ _('Cadastro público') }}<br><span class="ajuda">{{ _('Ligado, qualquer pessoa cria a conta da empresa pela página inicial. Desligado, só você cria empresas aqui no Master.') }}</span></span></label>
+  </div>
+
+  <h2 style="margin-top:8px">{{ _('Pagamento e suporte') }}</h2>
+  {% if asaas_ok and webhook_ok %}
+  <div class="aviso">{{ _('Asaas conectado: as empresas pagam por Pix, boleto ou cartão na tela Assinatura e são liberadas sozinhas.') }}</div>
+  {% elif asaas_ok %}
+  <div class="alerta">{{ _('Asaas com chave, mas sem o token de aviso (ASAAS_WEBHOOK_TOKEN): os pagamentos só são reconhecidos quando a empresa abre a tela Assinatura.') }}</div>
+  {% else %}
+  <div class="alerta">{{ _('Asaas não configurado: a cobrança é manual. A empresa vê o texto de “Como pagar” na tela Assinatura, e você registra o pagamento na ficha dela para liberar.') }}</div>
+  {% endif %}
+  <div class="campo"><label for="whatsapp">{{ _('WhatsApp do suporte (com DDD)') }}</label><input id="whatsapp" type="tel" name="whatsapp" value="{{ p.whatsapp }}" maxlength="20" placeholder="98999990000" style="max-width:260px"><div class="ajuda">{{ _('Aparece na página inicial e na tela Assinatura das empresas.') }}</div></div>
+  <div class="campo"><label for="instrucoes_pagamento">{{ _('Como pagar') }}</label><textarea id="instrucoes_pagamento" name="instrucoes_pagamento" maxlength="2000" placeholder="{{ _('Ex.: Pague por Pix na chave 00.000.000/0001-00 e envie o comprovante pelo WhatsApp.') }}">{{ p.instrucoes_pagamento }}</textarea><div class="ajuda">{{ _('Mostrado às empresas só quando o Asaas não está configurado.') }}</div></div>
+
+  <h2 style="margin-top:8px" id="legal">{{ _('Termos de Uso e Privacidade') }}</h2>
+  <p class="ajuda" style="margin-top:-4px">{{ _('Estes dados aparecem nas páginas') }} <a href="/terms" target="_blank">{{ _('Termos de Uso') }}</a> {{ _('e') }} <a href="/privacy" target="_blank">{{ _('Política de Privacidade') }}</a>. {{ _('Use os dados do CNPJ da empresa dona da plataforma.') }}</p>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <div class="campo"><label for="razao_social">{{ _('Razão social e CNPJ') }}</label><input id="razao_social" type="text" name="razao_social" value="{{ p.razao_social }}" maxlength="160" placeholder="No Ponto Tecnologia Ltda, CNPJ 00.000.000/0001-00"><div class="ajuda">{{ _('Em branco, usa o nome da plataforma.') }}</div></div>
+    <div class="campo"><label for="email_legal">{{ _('E-mail do encarregado de dados (LGPD)') }}</label><input id="email_legal" type="email" name="email_legal" value="{{ p.email_legal }}" maxlength="200" placeholder="privacidade@noponto.app.br"></div>
+    <div class="campo"><label for="estado_lei">{{ _('Foro (cidade/UF)') }}</label><input id="estado_lei" type="text" name="estado_lei" value="{{ p.estado_lei }}" maxlength="40" placeholder="São Luís/MA"><div class="ajuda">{{ _('Normalmente a cidade da sede da empresa.') }}</div></div>
+    <div class="campo"><label for="pais_servidores">{{ _('País onde ficam os servidores') }}</label><input id="pais_servidores" type="text" name="pais_servidores" value="{{ p.pais_servidores }}" maxlength="60" placeholder="Brasil"><div class="ajuda">{{ _('Mude se trocar a hospedagem de lugar.') }}</div></div>
+  </div>
+  <div class="campo"><label for="endereco">{{ _('Endereço para correspondência') }}</label><input id="endereco" type="text" name="endereco" value="{{ p.endereco }}" maxlength="300" placeholder="Rua Exemplo, 100, Centro, São Luís/MA, 65000-000"></div>
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+{% endblock %}

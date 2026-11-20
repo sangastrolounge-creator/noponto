@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Folha de ponto — {v1} — {v2} a {v3}', v1=(r.u.nome), v2=(ini.strftime('%d/%m/%Y')), v3=(fim.strftime('%d/%m/%Y'))) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+{% set banco = e.controle == 'banco' %}
+{% set pn = linha.fechamento.pct_normal if linha else e.pct_extra_normal %}
+{% set pe = linha.fechamento.pct_especial if linha else e.pct_extra_especial %}
+{% set pnot = linha.fechamento.pct_noturno if linha else e.pct_noturno %}
+<div class="folha">
+  <div class="folha-barra nao-imprime">
+    {{ seletor() }}
+    <a class="botao claro" href="{{ volta }}">{{ _('Voltar') }}</a>
+    <button class="botao" type="button" onclick="window.print()">{{ _('Imprimir ou salvar em PDF') }}</button>
+  </div>
+  {% if flash %}<div class="aviso {{ 'erro' if flash.tipo == 'erro' }} nao-imprime">{{ flash.texto }}</div>{% endif %}
+
+  <header class="folha-topo">
+    <div>
+      <h1>{{ _('Folha de ponto') }}</h1>
+      <div>{{ e.nome }}{% if e.endereco %} · {{ e.endereco }}{% endif %}</div>
+    </div>
+    <div class="direita">
+      <strong>{{ r.u.nome }}</strong>{% if r.u.cargo %} · {{ r.u.cargo }}{% endif %}<br>
+      {{ _('{v1} a {v2}', v1=(ini.strftime('%d/%m/%Y')), v2=(fim.strftime('%d/%m/%Y'))) }}
+      {% if not linha %}<br><span class="etiqueta alerta">{{ _('período ainda aberto') }}</span>{% endif %}
+    </div>
+  </header>
+
+  <div class="rolagem"><table class="tabela-folha">
+    <thead><tr><th>{{ _('Dia') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Batidas') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Previsto') }}</th><th>{{ _('Extra') }}</th><th>{{ _('Atraso/saída') }}</th><th>{{ _('Observações') }}</th></tr></thead>
+    <tbody>
+    {% for d in r.dias %}
+    <tr class="{{ 'dia-especial' if d.especial }}">
+      <td style="white-space:nowrap">{{ DIAS[d.dia.weekday()] }} {{ d.dia.strftime('%d/%m') }}</td>
+      <td style="white-space:nowrap">{% if d.turno and d.turno.folga %}{{ _('Folga') }}{% elif d.turno %}{{ d.turno.inicio }}–{{ d.turno.fim }}{% else %}—{% endif %}</td>
+      <td>{% for a, b in d.pares %}<span style="white-space:nowrap">{{ local(e, a.momento) if a else '?' }}{{ '*' if a and a.manual }} → {{ local(e, b.momento) if b else '?' }}{{ '*' if b and b.manual }}</span>{{ ', ' if not loop.last }}{% endfor %}</td>
+      <td>{{ fmt_min(d.trabalhado) if d.trabalhado else '' }}</td>
+      <td>{{ fmt_min(d.previsto) if d.previsto else '' }}</td>
+      <td>{{ fmt_min(d.extra) if d.extra else '' }}</td>
+      <td>{{ fmt_min(d.debito) if d.debito else '' }}</td>
+      <td class="pequeno">{{ d.obs|map('traduz')|join('; ') }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr>
+      <td colspan="3"><strong>{{ _('Totais') }}</strong></td>
+      <td><strong>{{ fmt_min(r.trabalhado) }}</strong></td><td><strong>{{ fmt_min(r.previsto) }}</strong></td>
+      <td><strong>{{ fmt_min(r.extra_normal + r.extra_especial) }}</strong></td><td><strong>{{ fmt_min(r.debito) }}</strong></td><td></td>
+    </tr></tfoot>
+  </table></div>
+  <p class="ajuda">{{ _('* batida lançada à mão pelo gestor.') }}</p>
+
+  <div class="folha-resumo">
+    <div><span>{{ _('Extras em dia normal ({v1}%)', v1=(pn)) }}</span><strong>{{ fmt_min(r.extra_normal) }}</strong></div>
+    <div><span>{{ _('Extras em folga/feriado ({v1}%)', v1=(pe)) }}</span><strong>{{ fmt_min(r.extra_especial) }}</strong></div>
+    {% if r.extra_normal or r.extra_especial %}<div><span>{{ _('Extras com acréscimo') }}</span><strong>{{ fmt_min(com_acrescimo(r.extra_normal, r.extra_especial, pn, pe)) }}</strong></div>{% endif %}
+    {% if r.noturno %}<div><span>{{ _('Horas noturnas (adicional de {v1}%)', v1=(pnot)) }}</span><strong>{{ fmt_min(r.noturno) }}</strong></div>{% endif %}
+    <div><span>{{ _('Atrasos e saídas antecipadas') }}</span><strong>{{ fmt_min(r.debito) }}</strong></div>
+    <div><span>{{ _('Faltas') }}</span><strong>{{ _('{v1} dia(s)', v1=(r.faltas)) }}{% if r.falta_min %} · {{ fmt_min(r.falta_min) }}{% endif %}</strong></div>
+    <div><span>{{ _('Atestados e afastamentos') }}</span><strong>{{ _('{v1} dia(s)', v1=(r.dias_ausencia)) }}</strong></div>
+    {% if r.dsr_perdidos %}<div><span>{{ _('DSR descontado (semana com falta)') }}</span><strong>{{ _('{v1} dia(s) · {v2}', v1=(r.dsr_perdidos), v2=(fmt_min(r.dsr_perdido_min))) }}</strong></div>{% endif %}
+    {% if r.dsr_extras %}<div><span>{{ _('DSR sobre horas extras') }}</span><strong>{{ fmt_min(r.dsr_extras) }}</strong></div>{% endif %}
+    {% if r.intervalo_suprimido %}<div><span>{{ _('Intervalo não concedido (art. 71, §4º)') }}</span><strong>{{ fmt_min(r.intervalo_suprimido) }}</strong></div>{% endif %}
+    {% if r.ajustes %}<div><span>{{ _('Ajustes manuais') }}</span><strong>{{ fmt_saldo(r.ajustes) }}</strong></div>{% endif %}
+    {% if banco %}
+    <div><span>{{ _('Saldo anterior do banco') }}</span><strong>{{ fmt_saldo(r.saldo_anterior) }}</strong></div>
+    <div class="destaque"><span>{{ _('Saldo do banco de horas') }}</span><strong>{{ fmt_saldo(r.saldo_final) }}</strong></div>
+    {% else %}
+    <div class="destaque"><span>{{ _('Saldo do período') }}</span><strong>{{ fmt_saldo(r.saldo_periodo) }}</strong></div>
+    {% endif %}
+  </div>
+  {% if r.ajustes %}
+  <p class="pequeno">{{ _('Ajustes manuais:') }} {% for a in r.ajustes_itens %}{{ a.data.strftime('%d/%m') }} {{ fmt_saldo(a.minutos) }} ({{ a.motivo }}){{ '; ' if not loop.last }}{% endfor %}</p>
+  {% endif %}
+
+  <div class="folha-assinatura">
+    {% if linha and linha.aceite_em %}
+    <p><strong>{{ _('Assinada eletronicamente por {v1}', v1=(r.u.nome)) }}</strong> {{ _('em {v1}, com confirmação de senha (IP {v2}).', v1=(local(e, linha.aceite_em, '%d/%m/%Y às %H:%M')), v2=(linha.aceite_ip)) }}</p>
+    {% else %}
+    <div class="linhas-assinatura so-imprime">
+      <div>{{ _('Funcionário') }}</div><div>{{ _('Empresa') }}</div>
+    </div>
+    {% if linha and linha.contestacao %}<p class="nao-imprime"><span class="etiqueta erro">{{ _('Contestada') }}</span> {{ linha.contestacao }}</p>{% endif %}
+    {% if not linha %}<p class="suave pequeno nao-imprime">{{ _('Esta folha ainda pode mudar: o período não foi fechado.') }}</p>
+    {% elif modo == 'gestor' %}<p class="suave pequeno nao-imprime">{{ _('Aguardando a assinatura de {v1} no aplicativo.', v1=(r.u.primeiro_nome)) }}</p>{% endif %}
+    {% endif %}
+  </div>
+
+  {% if modo == 'app' and linha and not linha.aceite_em %}
+  <div class="cartao nao-imprime">
+    <h2>{{ _('Conferi e concordo') }}</h2>
+    <p class="suave pequeno">{{ _('Confira os dias acima. Ao assinar, você confirma que as horas estão corretas.') }}</p>
+    <form method="post" action="/app/folha/{{ linha.id }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label for="senha">{{ _('Sua senha') }}</label><input type="password" id="senha" name="senha" required autocomplete="current-password"></div>
+      <button class="botao" type="submit" name="acao" value="aceitar" style="width:100%">{{ _('Assinar a folha') }}</button>
+    </form>
+    <details style="margin-top:14px">
+      <summary>{{ _('Algo está errado') }}</summary>
+      <form method="post" action="/app/folha/{{ linha.id }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="campo"><label for="texto">{{ _('O que está errado?') }}</label><input type="text" id="texto" name="texto" maxlength="500" minlength="5" required value="{{ linha.contestacao }}" placeholder="{{ _('Ex.: no dia 12 eu saí às 18h, não às 17h') }}"></div>
+        <button class="botao claro" type="submit" name="acao" value="contestar">{{ _('Avisar o gestor') }}</button>
+      </form>
+    </details>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

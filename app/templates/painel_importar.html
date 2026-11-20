@@ -1,0 +1,48 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Importar a equipe') }}</h1>
+    <p class="suave" style="margin:0">{{ _('Traga todo mundo de uma vez a partir de uma planilha (CSV), por exemplo exportada do sistema do contador ou do Excel.') }}</p></div>
+  <a class="botao claro" href="/painel/equipe">{{ _('Voltar para a equipe') }}</a>
+</div>
+{% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+
+{% if not linhas %}
+<form method="post" action="/painel/importar-equipe" enctype="multipart/form-data" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('1. Prepare a planilha') }}</h2>
+  <p class="pequeno">{{ _('Uma pessoa por linha. Colunas aceitas: Nome, Celular, E-mail, Função, Salário (ou Valor da hora), Jornada, Dependentes, Gorjeta, Admissão, Nascimento, Contrato. Só o nome e o celular são obrigatórios. No Excel, salve como “CSV (separado por ponto e vírgula)”.') }}</p>
+  <p><a class="botao claro mini" href="/painel/importar-equipe/modelo.csv">{{ _('Baixar o modelo') }}</a></p>
+  <h2>{{ _('2. Envie o arquivo') }}</h2>
+  <div class="campo"><input type="file" name="arquivo" accept=".csv,text/csv" required aria-label="{{ _('Arquivo CSV') }}"></div>
+  <button class="botao" type="submit">{{ _('Ver a prévia') }}</button>
+  <p class="ajuda">{{ _('Nada é salvo antes de você conferir a prévia e confirmar.') }}</p>
+</form>
+{% else %}
+{% set boas = linhas|rejectattr('erros')|list %}
+<form method="post" action="/painel/importar-equipe/confirmar" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <textarea name="conteudo" hidden>{{ conteudo }}</textarea>
+  <h2>{{ _('Prévia: {v1} pessoa(s) prontas, {v2} com erro', v1=boas|length, v2=linhas|length - boas|length) }}</h2>
+  {% if vagas is not none and boas|length > vagas %}<div class="alerta">{{ _('O seu plano tem {v1} vaga(s) livres: só as primeiras {v1} pessoas entram.', v1=vagas) }}</div>{% endif %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Linha') }}</th><th>{{ _('Nome') }}</th><th>{{ _('Celular') }}</th><th>{{ _('Função') }}</th><th>{{ _('Salário') }}</th><th>{{ _('Situação') }}</th></tr></thead>
+    <tbody>
+    {% for x in linhas %}{% set d = x.dados %}
+    <tr>
+      <td>{{ x.linha }}</td><td class="nome-forte">{{ d.nome or '—' }}</td><td>{{ d.celular or '—' }}</td>
+      <td>{{ d.cargo or '—' }}{% if d.gorjeta %} <span class="etiqueta pequeno">{{ _('gorjeta') }}</span>{% endif %}</td>
+      <td>{{ (d.valor|dinheiro ~ (_(' por hora') if d.tipo_valor == 'hora' else '')) if d.valor else '—' }}</td>
+      <td>{% if x.erros %}<span class="etiqueta erro">{{ x.erros|map('traduz')|join('; ') }}</span>{% else %}<span class="etiqueta ok">{{ _('ok') }}</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="acoes" style="margin-top:12px">
+    {% if boas %}<button class="botao" type="submit">{{ _('Importar {v1} pessoa(s)', v1=boas|length) }}</button>{% endif %}
+    <a class="botao claro" href="/painel/importar-equipe">{{ _('Enviar outro arquivo') }}</a>
+  </div>
+  <p class="ajuda">{{ _('As linhas com erro ficam de fora. Corrija na planilha e envie de novo, ou cadastre essas pessoas uma a uma.') }}</p>
+</form>
+{% endif %}
+{% endblock %}

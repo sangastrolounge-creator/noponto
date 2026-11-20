@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block titulo %}{% block nome_doc %}{% endblock %} — {{ L.marca }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<main class="legal">
+  <div class="legal-topo">
+    <a class="marca" href="/"><img src="/static/logo.png" alt="">{{ L.marca }}</a>
+    {{ seletor() }}
+  </div>
+  <nav class="legal-abas" aria-label="{{ _('Documentos legais') }}">
+    <a href="/terms" class="{{ 'ativa' if doc == 'terms' }}">{{ _('Termos de Uso') }}</a>
+    <a href="/privacy" class="{{ 'ativa' if doc == 'privacy' }}">{{ _('Política de Privacidade') }}</a>
+  </nav>
+  <article class="cartao legal-texto">
+    {% block texto %}{% endblock %}
+  </article>
+  <p class="suave pequeno" style="text-align:center"><a href="/">{{ L.marca }}</a> · <a href="/entrar">{{ _('Entrar') }}</a></p>
+</main>
+{% endblock %}

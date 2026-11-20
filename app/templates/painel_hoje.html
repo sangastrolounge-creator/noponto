@@ -1,0 +1,180 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div>
+    <h1>{{ _('Hoje, {v1} {v2}', v1=(DIAS[dia.weekday()]|lower), v2=(dia.strftime('%d/%m'))) }}</h1>
+    <p class="suave" style="margin:0">{{ _('Atualiza sozinho a cada minuto.') }}</p>
+  </div>
+  {% if push_chave %}
+  <div>
+    <button class="botao claro" type="button" id="ativar-avisos" hidden>{{ _('Receber avisos neste aparelho') }}</button>
+    <span class="suave pequeno" id="avisos-estado"></span>
+  </div>
+  {% endif %}
+</div>
+
+{% if ajustes_pendentes or aparelhos_pendentes %}
+<div class="alerta">
+  {% if ajustes_pendentes %}<a href="/painel/ponto">{{ _('{v1} pedido(s) de ajuste de ponto', v1=(ajustes_pendentes)) }}</a> {{ _('aguardando sua resposta.') }}{% endif %}
+  {% if aparelhos_pendentes %}<a href="/painel/equipe">{{ _('{v1} aparelho(s) novo(s)', v1=(aparelhos_pendentes)) }}</a> {{ _('aguardando liberação.') }}{% endif %}
+</div>
+{% endif %}
+
+{% if not e.triagem_em and pode(u, 'dono') %}
+<div class="cartao tri-convite">
+  <div><strong>{{ _('Configure em 2 minutos') }}</strong><br><span class="suave pequeno">{{ _('Responda 7 perguntas e deixamos funções, checklist, regras do seu estado e modelos de turno prontos.') }}</span></div>
+  <a class="botao" href="/painel/comecar">{{ _('Começar') }}</a>
+</div>
+{% endif %}
+{% if sm and (sm.abaixo or sm.abaixo_depois) %}
+<div class="alerta" id="salario-minimo">
+  {% if sm.abaixo %}<strong>{{ _('{v1} valor(es) da hora abaixo do salário mínimo', v1=sm.abaixo|length) }}</strong> ({{ sm.normal.fonte|traduz }}: {{ sm.normal.centavos|dinheiro }}{% if sm.gorjeta.centavos != sm.normal.centavos %}, {{ _('com gorjeta') }} {{ sm.gorjeta.centavos|dinheiro }}{% endif %}):
+    {% for x in sm.abaixo %}{{ x.u.nome }}{% if x.funcao %} · {{ x.funcao }}{% endif %} {{ x.valor|dinheiro }}{{ ', ' if not loop.last }}{% endfor %}.
+    <a href="/painel/pagamento#dados">{{ _('Corrigir') }}</a>{% endif %}
+  {% if sm.abaixo_depois %}{% if sm.abaixo %}<br>{% endif %}{{ _('A partir de {v1}, o mínimo passa a {v2}', v1=sm.proxima.data.strftime('%d/%m/%Y'), v2=(sm.proxima.normal.centavos|dinheiro)) }}{% if sm.proxima.gorjeta.centavos != sm.proxima.normal.centavos %} ({{ _('com gorjeta') }} {{ sm.proxima.gorjeta.centavos|dinheiro }}){% endif %}: {% for x in sm.abaixo_depois %}{{ x.u.nome }} {{ x.valor|dinheiro }}{{ ', ' if not loop.last }}{% endfor %}.{% endif %}
+</div>
+{% endif %}
+
+{% if not tem_equipe %}
+<div class="cartao">
+  <h2>{{ _('Primeiros passos') }}</h2>
+  <ol style="margin:0;padding-left:20px">
+    <li><a href="/painel/config">{{ _('Informe onde fica a empresa') }}</a>{{ _(', para o ponto conferir a localização.') }}</li>
+    <li><a href="/painel/equipe">{{ _('Cadastre os funcionários') }}</a> {{ _('e envie o link de acesso de cada um.') }}</li>
+    <li><a href="/painel/escala">{{ _('Monte a escala da semana.') }}</a></li>
+    <li><a href="/painel/tarefas">{{ _('Crie o checklist diário') }}</a> {{ _('(opcional).') }}</li>
+  </ol>
+</div>
+{% endif %}
+
+<div class="grade">
+  <div class="numero"><div class="rotulo">{{ _('Escalados') }}</div><div class="valor">{{ n.escalados }}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Trabalhando agora') }}</div><div class="valor">{{ n.presentes }}</div></div>
+  <div class="numero {{ 'atencao' if n.atrasados }}"><div class="rotulo">{{ _('Atrasos') }}</div><div class="valor">{{ n.atrasados }}</div></div>
+  <div class="numero {{ 'ruim' if n.ausentes }}"><div class="rotulo">{{ _('Sem ponto') }}</div><div class="valor">{{ n.ausentes }}</div></div>
+  {% if resumo %}{% set r0 = resumo[0] %}
+  <div class="numero"><div class="rotulo">{{ _('Custo da equipe hoje') }}</div><div class="valor">{{ r0.custo|dinheiro }}</div><div class="nota">{{ _('{v1} trabalhadas até agora', v1=fmt_min(r0.minutos)) }}</div></div>
+  <div class="numero {{ 'atencao' if r0.pct and r0.pct > 35 }}"><div class="rotulo">{{ _('Custo / vendas') }}</div><div class="valor">{{ (r0.pct|string) ~ '%' if r0.pct is not none else '—' }}</div><div class="nota">{{ _('vendas: {v1}', v1=(r0.vendas|dinheiro)) if r0.vendas else _('informe as vendas abaixo') }}</div></div>
+  {% endif %}
+  <div class="numero"><div class="rotulo">{{ _('Tarefas feitas') }}</div><div class="valor">{{ n.tarefas_feitas }}<span class="suave" style="font-size:1rem;font-weight:500"> {{ _('de {v1}', v1=(tarefas|length)) }}</span></div></div>
+</div>
+
+<div class="duas">
+  <div>
+    <div class="cartao">
+      <h2>{{ _('Equipe de hoje') }}</h2>
+      {% if linhas or soltas %}
+      <div class="rolagem"><table>
+        <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Entrada') }}</th><th>{{ _('Saída') }}</th><th>{{ _('Situação') }}</th></tr></thead>
+        <tbody>
+        {% for l in linhas %}
+        <tr>
+          <td><span class="nome-forte">{{ l.u.nome }}</span>{% if l.u.cargo %}<br><span class="suave pequeno">{{ l.u.cargo }}</span>{% endif %}</td>
+          <td>{{ _('Folga') if l.t.folga else l.t.inicio ~ '–' ~ l.t.fim }}{% if l.t.local %}<br><span class="suave pequeno">{{ l.t.local.nome }}</span>{% endif %}</td>
+          {% set ent = l.batidas|selectattr('tipo', 'equalto', 'entrada')|first %}
+          {% set sai = l.batidas|selectattr('tipo', 'equalto', 'saida')|list|last %}
+          <td>{% if ent %}{% if ent.foto %}<a href="/painel/ponto/foto/{{ ent.id }}" target="_blank" rel="noopener"><img class="mini-foto" src="/painel/ponto/foto/{{ ent.id }}" alt="{{ _('Foto da entrada de {v1}', v1=(l.u.primeiro_nome)) }}" loading="lazy"></a>{% endif %}{{ local(e, ent.momento) }}{% else %}—{% endif %}</td>
+          <td>{{ local(e, sai.momento) if sai and l.batidas[-1].tipo == 'saida' else '—' }}</td>
+          <td><span class="etiqueta {{ l.sit.cor }}">{{ _(l.sit.texto) }}</span>
+            {% if l.sit.cod == 'sem_ponto' and l.u.celular %}<br><a class="pequeno" target="_blank" rel="noopener" href="{{ zap(l.u.celular, _('Oi ') ~ l.u.primeiro_nome ~ _(', seu turno começou às ') ~ l.t.inicio ~ _(' e o ponto ainda não foi batido. Está tudo bem?')) }}">{{ _('Chamar no WhatsApp') }}</a>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        {% for b in soltas %}
+        <tr>
+          <td><span class="nome-forte">{{ b.usuario.nome }}</span></td>
+          <td class="suave">{{ _('fora da escala') }}</td>
+          <td>{{ local(e, b.momento) if b.tipo == 'entrada' else '—' }}</td>
+          <td>{{ local(e, b.momento) if b.tipo == 'saida' else '—' }}</td>
+          <td><span class="etiqueta">{{ _('Sem escala') }}</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <div class="vazio">{{ _('Ninguém escalado para hoje.') }} <a href="/painel/escala">{{ _('Montar a escala') }}</a></div>
+      {% endif %}
+    </div>
+
+    <div class="cartao">
+      <h2>{{ _('Checklist de hoje') }}</h2>
+      {% if tarefas %}
+      <ul class="checklist">
+        {% for i in tarefas %}
+        <li class="{{ 'feita' if i.feita }}">
+          <form method="post" action="/app/tarefas/{{ i.t.id }}">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="dia" value="{{ dia.isoformat() }}">
+            <input type="hidden" name="volta" value="/painel">
+            <button type="submit" aria-pressed="{{ 'true' if i.feita else 'false' }}">
+              <span class="caixinha">{{ '✓' if i.feita }}</span>
+              <span><span class="titulo-tarefa">{{ i.t.titulo }}</span>
+              <small>{% if i.feita %}{{ _('{v1} às {v2}', v1=(i.feita.usuario.primeiro_nome), v2=(local(e, i.feita.feito_em))) }}{% elif i.t.usuario %}{{ _('para {v1}', v1=(i.t.usuario.primeiro_nome)) }}{% else %}{{ _('equipe toda') }}{% endif %}</small></span>
+            </button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="vazio">{{ _('Nenhuma tarefa para hoje.') }} <a href="/painel/tarefas">{{ _('Criar checklist') }}</a></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="cartao">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+      <h2 style="margin:0">{{ _('Avisos') }}{% if alertas %} ({{ alertas|length }}){% endif %}</h2>
+      {% if alertas %}
+      <form method="post" action="/painel/alertas/lidos" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="botao mini claro" type="submit">{{ _('Marcar como vistos') }}</button>
+      </form>
+      {% endif %}
+    </div>
+    {% if alertas %}
+    <ul class="lista-alertas">
+      {% for a in alertas %}
+      <li><span class="ponto-cor {{ a.tipo }}"></span><span>{{ _(a.texto) }}<br><span class="suave pequeno">{{ local(e, a.criado_em, '%d/%m %H:%M') }}</span></span></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="vazio">{{ _('Nenhum aviso novo.') }}</div>
+    {% endif %}
+    {% if not alertas_liberados(e) %}<p class="ajuda">{{ _('Os alertas de atraso e de não comparecimento não estão no seu plano.') }} <a href="/painel/assinatura">{{ _('Ver planos') }}</a></p>{% endif %}
+  </div>
+</div>
+
+{% if resumo %}
+<div class="cartao" id="vendas">
+  <h2>{{ _('Vendas e custo da equipe') }}</h2>
+  <p class="suave pequeno">{{ _('Digite as vendas do dia (o total do caixa). O sistema calcula quanto a equipe custou e quanto isso representa das vendas.') }}</p>
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Dia') }}</th><th>{{ _('Vendas') }}</th><th>{{ _('Horas') }}</th><th>{{ _('Custo da equipe') }}</th><th>{{ _('% das vendas') }}</th></tr></thead>
+    <tbody>
+    {% for r in resumo %}
+    <tr>
+      <td style="white-space:nowrap">{{ DIAS[r.dia.weekday()] }} {{ r.dia.strftime('%d/%m') }}{{ _(' · hoje') if loop.first }}</td>
+      <td><form method="post" action="/painel/vendas" style="margin:0;display:flex;gap:6px;align-items:center">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="data" value="{{ r.dia.isoformat() }}"><input type="hidden" name="volta" value="/painel#vendas">
+        <input type="text" name="valor" inputmode="decimal" value="{{ '%.2f'|format(r.vendas / 100) if r.vendas else '' }}" placeholder="0.00" aria-label="{{ _('Vendas de {v1}', v1=r.dia.strftime('%d/%m')) }}" style="width:110px;min-width:90px">
+        <button class="botao mini claro" type="submit">{{ _('Salvar') }}</button></form></td>
+      <td>{{ fmt_min(r.minutos) }}</td>
+      <td>{{ r.custo|dinheiro }}{% if r.sem_valor %}<br><span class="etiqueta alerta pequeno" title="{{ r.sem_valor|join(', ') }}">{{ _('{v1} sem valor da hora', v1=(r.sem_valor|length)) }}</span>{% endif %}</td>
+      <td>{% if r.pct is not none %}<strong class="{{ 'erro-texto' if r.pct > 35 }}">{{ r.pct }}%</strong>{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="ajuda">{{ _('Custo estimado: horas trabalhadas × valor da hora de cada um (salário ÷ jornada mensal). Encargos, hora extra e gorjeta não entram; o valor exato sai na folha. Em restaurantes, o custo da equipe costuma ficar entre 25% e 35% das vendas.') }}</p>
+</div>
+{% endif %}
+
+<script>
+setTimeout(function () { if (!document.querySelector("dialog[open], .tour")) location.reload(); }, 60000);
+{% if push_chave %}
+document.addEventListener("DOMContentLoaded", function () {
+  ligarAvisos(document.getElementById("ativar-avisos"), document.getElementById("avisos-estado"),
+              "{{ push_chave }}", "{{ csrf }}", t("Avisos ativados neste aparelho."));
+});
+{% endif %}
+</script>
+{% endblock %}

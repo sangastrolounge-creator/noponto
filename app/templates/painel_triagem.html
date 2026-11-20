@@ -1,0 +1,135 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+{% macro opcao(nome, valor, rotulo, sub='', marcado=False) -%}
+<label class="tri-opcao"><input type="radio" name="{{ nome }}" value="{{ valor }}" {{ 'checked' if marcado }} required><span><strong>{{ rotulo }}</strong>{% if sub %}<small>{{ sub }}</small>{% endif %}</span></label>
+{%- endmacro %}
+<div class="tri">
+  <div class="tri-topo">
+    <h1>{{ _('Vamos configurar o {v1}', v1=app_nome) }}</h1>
+    <p class="suave">{{ _('7 perguntas rápidas. Com as respostas, deixamos funções, checklist, fuso horário, jornada e modelos de turno prontos. Dá para mudar tudo depois.') }}</p>
+    <div class="tri-barra" aria-hidden="true"><span id="tri-progresso"></span></div>
+    <p class="suave pequeno" id="tri-passo" aria-live="polite"></p>
+  </div>
+  {% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+  <form method="post" action="/painel/comecar" class="cartao tri-form" id="tri-form" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+
+    <fieldset class="tri-etapa" data-passo="1">
+      <legend>{{ _('Qual é o tipo do seu negócio?') }}</legend>
+      <div class="tri-grade">
+        {% for k, s in SEGMENTOS.items() %}{{ opcao('segmento', k, s[0]|traduz, marcado=(v.segmento or e.segmento) == k) }}{% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="tri-etapa" data-passo="2">
+      <legend>{{ _('Quantas pessoas trabalham com você?') }}</legend>
+      <div class="tri-grade">
+        {% for k, p in PORTES.items() %}{{ opcao('porte', k, _(p[0]), _('pessoas'), (v.porte or e.porte) == k) }}{% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="tri-etapa" data-passo="3">
+      <legend>{{ _('Em quantos lugares a equipe trabalha?') }}</legend>
+      <div class="tri-grade">
+        {% for k in LOCAIS %}{{ opcao('locais', k, k, _('local(is)'), v.locais == k or (not v.locais and k == '1')) }}{% endfor %}
+      </div>
+      <div id="tri-locais" hidden>
+        <p class="pequeno">{{ _('Dê um nome para os outros locais (o principal é a própria empresa). Você marca o endereço depois.') }}</p>
+        {% for i in range(4) %}<input type="text" name="local_nome" maxlength="80" placeholder="{{ _('Ex.: Loja do centro') if i == 0 else '' }}" aria-label="{{ _('Nome do local {v1}', v1=i + 2) }}">{% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="tri-etapa" data-passo="4">
+      <legend>{{ _('Onde fica a empresa?') }}</legend>
+      <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+        <div class="campo"><label for="tri-estado">{{ _('Estado (UF)') }}</label><select id="tri-estado" name="estado" required>
+          <option value="">{{ _('Escolha') }}</option>
+          {% for sigla, nome in estados.items() %}<option value="{{ sigla }}" {{ 'selected' if (v.estado or e.uf) == sigla }}>{{ nome }}</option>{% endfor %}</select></div>
+      </div>
+      <p class="ajuda">{{ _('Com a UF, o sistema acerta o fuso horário do ponto.') }}</p>
+    </fieldset>
+
+    <fieldset class="tri-etapa" data-passo="5">
+      <legend>{{ _('Qual é o horário de funcionamento?') }}</legend>
+      <div class="linha-form" style="grid-template-columns:1fr 1fr">
+        <div class="campo"><label for="tri-abre">{{ _('Abre às') }}</label><input type="time" id="tri-abre" name="abre" value="{{ v.abre or e.abre }}" required></div>
+        <div class="campo"><label for="tri-fecha">{{ _('Fecha às') }}</label><input type="time" id="tri-fecha" name="fecha" value="{{ v.fecha or e.fecha }}" required></div>
+      </div>
+      <p class="ajuda">{{ _('Usamos o horário para criar os modelos de turno (abertura, fechamento...). Fecha depois da meia-noite? Coloque a hora normalmente, ex.: 02:00.') }}</p>
+    </fieldset>
+
+    <fieldset class="tri-etapa" data-passo="6">
+      <legend>{{ _('Sobre a equipe') }}</legend>
+      <p class="tri-pergunta">{{ _('Alguém recebe gorjeta?') }}</p>
+      <div class="tri-grade dois">{{ opcao('gorjeta', 'sim', _('Sim'), marcado=v.gorjeta == 'sim') }}{{ opcao('gorjeta', 'nao', _('Não'), marcado=v.gorjeta == 'nao') }}</div>
+      <p class="tri-pergunta">{{ _('Tem alguém com menos de 18 anos?') }}</p>
+      <div class="tri-grade dois">{{ opcao('menores', 'sim', _('Sim'), marcado=v.menores == 'sim') }}{{ opcao('menores', 'nao', _('Não'), marcado=v.menores == 'nao') }}</div>
+      <p class="tri-pergunta">{{ _('Como a equipe vai bater o ponto?') }}</p>
+      <div class="tri-grade">{% for k, rot in PONTO.items() %}{{ opcao('ponto', k, _(rot), marcado=v.ponto == k) }}{% endfor %}</div>
+    </fieldset>
+
+    <fieldset class="tri-etapa" data-passo="7">
+      <legend>{{ _('E as horas a mais da equipe?') }}</legend>
+      <div class="tri-grade">{% for k, rot in FREQUENCIAS.items() %}{{ opcao('frequencia', k, _(rot), marcado=(v.frequencia or (e.controle if e.triagem_em else '')) == k) }}{% endfor %}</div>
+      <div class="campo" style="margin-top:12px"><label for="tri-prov">{{ _('Quem faz a sua folha de pagamento?') }}</label><select id="tri-prov" name="provedor">
+        {% for k, rot in PROVEDORES.items() %}<option value="{{ k }}" {{ 'selected' if (v.provedor or e.provedor_folha) == k }}>{{ _(rot) }}</option>{% endfor %}</select>
+        <div class="ajuda">{{ _('O sistema fecha o ponto do mês e gera a planilha para o contador, ou calcula a folha aqui mesmo.') }}</div></div>
+    </fieldset>
+
+    <div class="tri-acoes">
+      <button class="botao claro" type="button" id="tri-voltar">{{ _('Voltar') }}</button>
+      <a class="botao link pequeno" href="/painel">{{ _('Pular por agora') }}</a>
+      <button class="botao" type="button" id="tri-seguir">{{ _('Continuar') }}</button>
+      <button class="botao" type="submit" id="tri-fim">{{ _('Configurar') }}</button>
+    </div>
+  </form>
+</div>
+<script>
+(function () {
+  var etapas = [].slice.call(document.querySelectorAll(".tri-etapa")), atual = 0;
+  var g = function (id) { return document.getElementById(id); };
+  function locais() {
+    var m = document.querySelector("input[name=locais]:checked");
+    g("tri-locais").hidden = !m || m.value === "1";
+  }
+  document.querySelectorAll("input[name=locais]").forEach(function (r) { r.addEventListener("change", locais); }); locais();
+  function valido(i) {
+    var campos = etapas[i].querySelectorAll("[required]"), ok = true;
+    campos.forEach(function (c) {
+      if (c.type === "radio") { if (!etapas[i].querySelector("input[name='" + c.name + "']:checked")) ok = false; }
+      else if (!c.value) ok = false;
+    });
+    return ok;
+  }
+  function mostrar(i) {
+    atual = i;
+    etapas.forEach(function (f, j) { f.hidden = j !== i; });
+    g("tri-voltar").hidden = i === 0;
+    g("tri-seguir").hidden = i === etapas.length - 1;
+    g("tri-fim").hidden = i !== etapas.length - 1;
+    g("tri-progresso").style.width = ((i + 1) / etapas.length * 100) + "%";
+    g("tri-passo").textContent = t("Passo") + " " + (i + 1) + " " + t("de") + " " + etapas.length;
+    var primeiro = etapas[i].querySelector("input,select"); if (primeiro && i) primeiro.focus({preventScroll: true});
+  }
+  g("tri-seguir").addEventListener("click", function () {
+    if (!valido(atual)) { etapas[atual].classList.add("tri-falta"); return; }
+    etapas[atual].classList.remove("tri-falta"); mostrar(atual + 1);
+  });
+  g("tri-voltar").addEventListener("click", function () { mostrar(Math.max(0, atual - 1)); });
+  etapas.forEach(function (f) {
+    f.querySelectorAll("input[type=radio]").forEach(function (r) {
+      r.addEventListener("change", function () {
+        f.classList.remove("tri-falta");
+        var nomes = {}; f.querySelectorAll("input[type=radio]").forEach(function (x) { nomes[x.name] = 1; });
+        var todos = Object.keys(nomes).every(function (n) { return f.querySelector("input[name='" + n + "']:checked"); });
+        if (todos && Object.keys(nomes).length === 1 && f.dataset.passo !== "3" && atual < etapas.length - 1) setTimeout(function () { mostrar(atual + 1); }, 180);
+      });
+    });
+  });
+  g("tri-form").addEventListener("submit", function (ev) {
+    for (var i = 0; i < etapas.length; i++) { if (!valido(i)) { ev.preventDefault(); mostrar(i); etapas[i].classList.add("tri-falta"); return; } }
+  });
+  mostrar({{ 0 if not erro else 0 }});
+})();
+</script>
+{% endblock %}
