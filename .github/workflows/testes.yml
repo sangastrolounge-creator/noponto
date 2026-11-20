@@ -13,6 +13,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt httpx
+      - name: Conferir a sintaxe dos scripts
+        run: for f in app/static/*.js; do node --check "$f" || exit 1; done
       - name: Rodar os testes (cada arquivo sozinho)
         run: |
           falhou=0

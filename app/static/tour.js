@@ -71,7 +71,7 @@
       { a: "a[href='/painel/ponto/problemas']", t: t("Problemas de ponto"), x: t("Saídas esquecidas e saídas automáticas para conferir. O número mostra quantos esperam por você.") },
       { a: "form[action='/painel/ponto'][method=get]", t: t("Período e funcionário"), x: t("Escolha as datas e, se quiser, uma pessoa só.") },
       { a: "h2:Pedidos de ajuste", t: t("Pedidos de ajuste"), x: t("Quando alguém esquece de bater o ponto, pede o ajuste pelo aplicativo. Você aceita ou recusa aqui.") },
-      { a: "h2:Resumo do período", t: t("Resumo"), x: t("Dias trabalhados, horas e atrasos de cada funcionário no período.") },
+      { a: "h2:Resumo por funcionário", t: t("Resumo"), x: t("Dias trabalhados, horas e atrasos de cada funcionário no período.") },
       { a: "h2:Dia a dia", t: t("Dia a dia"), x: t("Cada batida com a hora. Toque em “foto” para ver a foto. Toque na hora para anular uma batida errada: ela sai das contas, mas fica guardada no histórico.") },
       { a: "form[action='/painel/ponto/manual']", t: t("Lançar à mão"), x: t("Para incluir uma batida que faltou. Ela fica marcada como lançada pelo gestor.") },
       { a: "a[href^='/painel/ponto.csv']", t: t("Planilha"), x: t("Baixa as batidas e as horas do período, no idioma da tela, para abrir no Excel.") },
@@ -84,6 +84,7 @@
       { a: "a[href^='/painel/folha']", t: t("Folha de ponto"), x: t("Abre a folha do funcionário, com o dia a dia, para imprimir ou salvar em PDF.") },
       { a: "form[action='/painel/fechamento'][method=post] button", t: t("Fechar o período"), x: t("Depois de conferir, feche. As batidas e a escala desse período ficam travadas, e cada funcionário confere e assina a folha pelo aplicativo.") },
       { a: "h2:Períodos fechados", t: t("Períodos fechados"), x: t("Quantas folhas já foram assinadas, a planilha para o contador e, se precisar corrigir algo, reabrir o último período.") }
+    ],
     problemas: [
       { t: t("Problemas de ponto"), x: t("As saídas esquecidas dos últimos 14 dias e as saídas registradas automaticamente, para você resolver de uma vez.") },
       { a: "form[action='/painel/ponto/problemas'] table", t: t("Horário sugerido"), x: t("Cada linha já vem com o horário do fim da escala. Confira, mude se precisar e deixe marcado o que quer resolver.") },
