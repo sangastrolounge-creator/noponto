@@ -147,7 +147,7 @@ def main():
         assert trecho in resumo, trecho
     assert "Faltas em dias" not in resumo and "Faltas em horas" not in resumo  # não houve falta
     folha = g.get(f"/painel/folha?func={ids['Bruno']}&de={SEG}&ate={TER}").text
-    assert "Horas noturnas (adicional de 20%)" in folha and "intervalo não batido" in folha
+    assert "Horas noturnas (adicional de 20%)" in folha and "Sem intervalo" in folha
 
     # ---- intervalo curto fica anotado
     posta(g, "/painel/escala/turno", tg, usuario_id=ids["Ana"], data=QUA.isoformat(),

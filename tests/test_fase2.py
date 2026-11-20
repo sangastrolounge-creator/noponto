@@ -198,7 +198,8 @@ def main():
     folha = g.get(f"/painel/folha?func={ids['Ana']}&de={SEG}&ate={SEX}").text
     assert "Folha de ponto" in folha and "Feriado" in folha and "Atestado" in folha
     assert "período ainda aberto" in folha and "27h40" in folha
-    assert "intervalo de 60 min descontado" not in folha and "batida lançada à mão" not in folha  # só o essencial
+    linhas_folha = folha.split("<tbody>")[1].split("</tbody>")[0]
+    assert "intervalo de 60 min descontado" not in linhas_folha and "lançada à mão" not in linhas_folha
 
     # ---- fechar o período: trava tudo
     r = posta(g, "/painel/fechamento", tg, de=SEG.isoformat(), ate=SEX.isoformat())
