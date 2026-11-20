@@ -15,7 +15,7 @@ PAINEL = [("hoje", "/painel"), ("escala", "/painel/escala"), ("ponto", "/painel/
           ("ajuste", "/painel/ponto/ajuste"), ("equipe", "/painel/equipe"),
           ("config", "/painel/config"), ("vendas", "/master/pagina/previa"),
           ("master", "/master"), ("app", "/app")]
-TELAS = {"pc": dict(viewport={"width": 1440, "height": 2400}),
+TELAS = {"pc": dict(viewport={"width": 1440, "height": 1000}),
          "cel": dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
                      device_scale_factor=2)}
 so = set(sys.argv[1:])
@@ -47,6 +47,14 @@ def main():
                 for nome, url in PAINEL:
                     if not so or nome in so:
                         fotografar(pag, f"{nome}-{sufixo}", url)
+                if not so or "desligamento" in so:
+                    pag.goto(BASE + "/painel/equipe", wait_until="networkidle")
+                    pag.click("[data-desligamento]")
+                    pag.wait_for_timeout(600)
+                    pag.screenshot(path=str(SAIDA / f"desligamento-{sufixo}.png"))
+                    pag.click("dialog[open] [data-passo=excluir]")
+                    pag.wait_for_timeout(300)
+                    pag.screenshot(path=str(SAIDA / f"desligamento-excluir-{sufixo}.png"))
                 ctx.close()
         nav.close()
     print("capturas:", len(list(SAIDA.glob("*.png"))))
