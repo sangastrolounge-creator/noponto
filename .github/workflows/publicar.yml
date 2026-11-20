@@ -29,9 +29,14 @@ jobs:
           # Colada pelo navegador pode vir com \r, espaços ou sem a quebra de linha final.
           printf '%s\n' "$CHAVE" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' > ~/.ssh/vps
           chmod 600 ~/.ssh/vps
-          echo "linhas: $(wc -l < ~/.ssh/vps)"
-          head -1 ~/.ssh/vps | grep -q 'BEGIN OPENSSH PRIVATE KEY' || echo "!! a primeira linha não é o BEGIN"
-          tail -1 ~/.ssh/vps | grep -q 'END OPENSSH PRIVATE KEY' || echo "!! a última linha não é o END"
+          # Se colaram só o miolo (sem as linhas BEGIN/END), completa.
+          if ! grep -q 'BEGIN OPENSSH PRIVATE KEY' ~/.ssh/vps; then
+            { echo '-----BEGIN OPENSSH PRIVATE KEY-----'; cat ~/.ssh/vps; } > ~/.ssh/vps.t && mv ~/.ssh/vps.t ~/.ssh/vps
+          fi
+          if ! grep -q 'END OPENSSH PRIVATE KEY' ~/.ssh/vps; then
+            echo '-----END OPENSSH PRIVATE KEY-----' >> ~/.ssh/vps
+          fi
+          chmod 600 ~/.ssh/vps
           ssh-keygen -lf ~/.ssh/vps || { echo "!! chave ilegível: copie o arquivo inteiro de novo"; exit 1; }
           echo "$VPS_HOST $VPS_HOSTKEY" > ~/.ssh/known_hosts
       - name: Enviar e publicar
