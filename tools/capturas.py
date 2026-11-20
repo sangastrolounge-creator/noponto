@@ -15,7 +15,7 @@ PAINEL = [("hoje", "/painel"), ("escala", "/painel/escala"), ("ponto", "/painel/
           ("ajuste", "/painel/ponto/ajuste"), ("equipe", "/painel/equipe"),
           ("config", "/painel/config"), ("vendas", "/master/pagina/previa"),
           ("master", "/master"), ("app", "/app")]
-TELAS = {"pc": dict(viewport={"width": 1440, "height": 900}),
+TELAS = {"pc": dict(viewport={"width": 1440, "height": 2400}),
          "cel": dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
                      device_scale_factor=2)}
 so = set(sys.argv[1:])
