@@ -204,8 +204,11 @@ def main():
     for nome in ("Ana", "Bruno", "Caio", "Duda"):
         dados[f"taxa_{ids[nome]}"] = "10.00"
         dados[f"sal_{ids[nome]}"] = ""
-    dados[f"gorjeta_{ids['Ana']}"] = dados[f"gorjeta_{ids['Bruno']}"] = "1"
     posta(g, "/painel/pagamento/dados", tg, **dados)
+    with SessionLocal() as db:     # "recebe gorjeta" vem da ficha
+        for nome in ("Ana", "Bruno"):
+            db.get(Usuario, ids[nome]).gorjeta = True
+        db.commit()
     posta(g, "/painel/fechamento", tg, de=DOM.isoformat(), ate=SAB.isoformat())
     fech = re.search(r'<option value="(\d+)">15/11/2026 a 21/11/2026', g.get("/painel/pagamento").text).group(1)
     url = posta(g, "/painel/pagamento/gerar", tg, fechamento_id=fech).headers["location"]
