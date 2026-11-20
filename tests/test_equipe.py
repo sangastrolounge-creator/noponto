@@ -257,7 +257,7 @@ def main():
     with SessionLocal() as db:
         e = db.get(Empresa, 1)
         assert e.plano.nome == "Grátis" and situacao(e) == "gratis"
-    assert "Pagamento não está no seu plano" in g.get("/painel/pagamento").text
+    assert "A folha de pagamento não está no seu plano" in g.get("/painel/pagamento").text
     r = g.get(url)
     assert r.status_code == 303 and r.headers["location"] == "/painel/pagamento"
     posta(g, "/painel/locais", tg, nome="Food truck", lat="25.78", lng="-80.20", raio_m="100")
