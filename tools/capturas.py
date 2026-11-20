@@ -13,7 +13,7 @@ SAIDA = Path("capturas")
 PUBLICAS = [("inicio", "/"), ("entrar", "/entrar"), ("cadastro", "/cadastro")]
 PAINEL = [("hoje", "/painel"), ("escala", "/painel/escala"), ("ponto", "/painel/ponto"),
           ("ajuste", "/painel/ponto/ajuste"), ("equipe", "/painel/equipe"),
-          ("config", "/painel/config"), ("relatorios", "/painel/relatorios"), ("vendas", "/master/pagina/previa"),
+          ("config", "/painel/config"), ("relatorios", "/painel/relatorios"), ("folha", "/painel/folha?func=5"), ("vendas", "/master/pagina/previa"),
           ("master", "/master"), ("app", "/app")]
 TELAS = {"pc": dict(viewport={"width": 1440, "height": 1000}),
          "cel": dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
