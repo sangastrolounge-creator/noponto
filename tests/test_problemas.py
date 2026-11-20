@@ -32,7 +32,7 @@ LAT, LNG = 25.77, -80.19
 
 def as_(hora, d):
     h, m = hora.split(":")
-    relogio["agora"] = datetime(d.year, d.month, d.day, int(h), int(m)) + timedelta(hours=5)
+    relogio["agora"] = datetime(d.year, d.month, d.day, int(h), int(m)) + timedelta(hours=3)
 
 
 def novo():
@@ -66,7 +66,7 @@ def main():
     posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Diner", nome="Gil", email="gil@d.com", senha="segredo1")
     tg = csrf(g, "/painel/config")
     posta(g, "/painel/config", tg, nome="Diner", lat=str(LAT), lng=str(LNG), raio_m="150",
-          tolerancia_min="10", fuso="America/New_York", bloquear_fora="1", ajuste_dias="7",
+          tolerancia_min="10", fuso="America/Sao_Paulo", bloquear_fora="1", ajuste_dias="7",
           fotos_dias="45", estado="FL", semana_inicio="6", frequencia="weekly",
           periodo_ancora=DOM.isoformat(), intervalo_padrao_min="30", tolerancia_dia_min="7",
           pct_noturno="0", pct_feriado="0")

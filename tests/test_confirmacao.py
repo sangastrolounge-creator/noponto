@@ -30,7 +30,7 @@ banco.agora = lambda: relogio["agora"]
 
 def as_(hora, d):   # Flórida em novembro: UTC-5
     h, m = hora.split(":")
-    relogio["agora"] = datetime(d.year, d.month, d.day, int(h), int(m)) + timedelta(hours=5)
+    relogio["agora"] = datetime(d.year, d.month, d.day, int(h), int(m)) + timedelta(hours=3)
 
 
 def novo():
@@ -59,7 +59,7 @@ def main():
                               "email": "gil@mb.com", "senha": "segredo1"})
     tg = csrf(g, "/painel/config")
     g.post("/painel/config", data={"csrf": tg, "nome": "Miami Bistro", "lat": "25.77", "lng": "-80.19", "raio_m": "150",
-                                   "tolerancia_min": "10", "fuso": "America/New_York", "bloquear_fora": "1",
+                                   "tolerancia_min": "10", "fuso": "America/Sao_Paulo", "bloquear_fora": "1",
                                    "ajuste_dias": "7", "fotos_dias": "45", "estado": "FL", "semana_inicio": "6",
                                    "frequencia": "weekly", "periodo_ancora": (SEG - timedelta(days=1)).isoformat(),
                                    "intervalo_padrao_min": "30", "tolerancia_dia_min": "7",

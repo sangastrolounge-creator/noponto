@@ -68,7 +68,7 @@ def main():
     assert r.headers["location"] == "/painel/comecar/pronto"
     with SessionLocal() as db:
         e = db.scalar(select(Empresa).where(Empresa.nome == "Pike Grill"))
-        assert (e.segmento, e.porte, e.estado, e.fuso, e.cidade_minimo) == ("restaurante", "16-30", "WA", "America/Los_Angeles", "seattle")
+        assert (e.segmento, e.porte, e.estado, e.fuso, e.cidade_minimo) == ("restaurante", "16-30", "WA", "America/Sao_Paulo", "seattle")
         assert (e.abre, e.fecha, e.frequencia, e.provedor_folha) == ("11:00", "23:00", "biweekly", "gusto")
         assert e.saida_auto_min == 60 and e.entrada_antecipada_min == 15 and e.triagem_em
         funcoes = {f["nome"]: f["gorjeta"] for f in json.loads(e.funcoes_padrao)}
@@ -80,7 +80,7 @@ def main():
 
     p = g.get("/painel/comecar/pronto").text
     assert "Pronto! Pike Grill está configurada" in p
-    assert "Salário mínimo em uso: $21.30 por hora (Seattle)" in p
+    assert "Salário mínimo em uso: R$ 21,30 por hora (Seattle)" in p
     assert "Garçom ($)" in p and "Abertura 11:00–17:30" in p
     assert "Criar totem" in p and "data de nascimento" in p and "Definir o local" in p
     assert "Configure em 2 minutos" not in g.get("/painel").text

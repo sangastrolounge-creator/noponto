@@ -31,7 +31,7 @@ push.avisar_gestores = lambda *a, **k: avisos.append(a)
 
 def as_(hora, d):   # Flórida em novembro: UTC-5
     h, m = hora.split(":")
-    relogio["agora"] = datetime(d.year, d.month, d.day, int(h), int(m)) + timedelta(hours=5)
+    relogio["agora"] = datetime(d.year, d.month, d.day, int(h), int(m)) + timedelta(hours=3)
 
 
 def novo():
@@ -49,7 +49,7 @@ def entrar(token):
 
 
 PLANILHA = ("Name;Phone;Email;Role;Hourly rate;Tips;Hire date;Birth date\n"
-            "Ana Souza;305 555-0101;ana@x.com;Server;$12.50;yes;03/15/2025;\n"
+            "Ana Souza;305 555-0101;ana@x.com;Server;R$ 12,50;yes;03/15/2025;\n"
             "Leo Lima;(305) 555-0102;;Cook;18;no;;2010-06-01\n"
             ";305 555-0103;;;;;;\n"
             "Bia Reis;123;;;;;;\n"
@@ -64,7 +64,7 @@ def main():
                               "email": "gil@mp.com", "senha": "segredo1"})
     tg = csrf(g, "/painel/config")
     g.post("/painel/config", data={"csrf": tg, "nome": "Miami Pizza", "lat": "25.77", "lng": "-80.19", "raio_m": "150",
-                                   "tolerancia_min": "10", "fuso": "America/New_York", "bloquear_fora": "1",
+                                   "tolerancia_min": "10", "fuso": "America/Sao_Paulo", "bloquear_fora": "1",
                                    "ajuste_dias": "7", "fotos_dias": "45", "estado": "FL", "semana_inicio": "6",
                                    "frequencia": "weekly", "periodo_ancora": (SEG - timedelta(days=1)).isoformat(),
                                    "intervalo_padrao_min": "30", "tolerancia_dia_min": "7",
@@ -128,12 +128,12 @@ def main():
     assert "Responda Sim ou Não" in ana_c.get("/app").text
     ana_c.post("/app/perguntas", data={"csrf": ta, "p_1": "sim", "p_2": "abc"})
     assert "Use só números" in ana_c.get("/app").text
-    ana_c.post("/app/perguntas", data={"csrf": ta, "p_1": "sim", "p_2": "$32.50"})
+    ana_c.post("/app/perguntas", data={"csrf": ta, "p_1": "sim", "p_2": "R$ 32,50"})
     t = ana_c.get("/app").text
     assert "Antes de ir embora" not in t and "Como foi o seu turno?" in t   # a avaliação vem depois
     assert avisos and avisos[-1][1] == "Fim de turno: Ana" and "respondeu Sim" in avisos[-1][2]
     p = g.get("/painel/perguntas").text
-    assert "Ana Souza" in p and "<strong>Sim</strong>" in p and "$32.50" in p
+    assert "Ana Souza" in p and "<strong>Sim</strong>" in p and "R$ 32,50" in p
     with SessionLocal() as db:
         assert len(list(db.scalars(select(RespostaTurno)))) == 2
     # desligar a pergunta

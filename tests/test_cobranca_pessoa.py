@@ -87,7 +87,7 @@ def main():
         assert (inter.base_centavos, inter.por_pessoa_centavos, inter.preco_centavos) == (2000, 600, 2600)
         ids = {"ini": ini.id, "inter": inter.id}
     vitrine = novo().get("/").text
-    assert "$4.00" in vitrine and "/pessoa/mês" in vitrine and "mínimo $29.00/mês" in vitrine and "+ $20.00/mês de base" in vitrine
+    assert "R$ 4,00" in vitrine and "/pessoa/mês" in vitrine and "mínimo R$ 29,00/mês" in vitrine and "+ R$ 20,00/mês de base" in vitrine
 
     # ---- empresa com 3 pessoas, 2 trabalharam nos últimos 30 dias
     g = novo()
@@ -114,7 +114,7 @@ def main():
 
     # ---- checkout cobra o valor de hoje
     t = g.get("/painel/assinatura").text
-    assert "hoje daria $26.00/mês" in t and "hoje daria $29.00/mês" in t
+    assert "hoje daria R$ 26,00/mês" in t and "hoje daria R$ 29,00/mês" in t
     g.post("/painel/assinatura/pagar", data={"csrf": tg, "plano": ids["inter"]})
     ck = [c for c in chamadas if c[0] == "checkout"][-1][1]
     assert ck["line_items"][0]["price_data"]["unit_amount"] == 2600
@@ -139,7 +139,7 @@ def main():
         e = db.get(Empresa, eid)
         assert (e.pessoas_cobradas, e.valor_assinatura_centavos) == (3, 3800)
     t = g.get("/painel/assinatura").text
-    assert "Pessoas cobradas" in t and "próxima fatura: $38.00" in t
+    assert "Pessoas cobradas" in t and "próxima fatura: R$ 38,00" in t
 
     # ---- cerca por plano: Inicial não inclui
     with SessionLocal() as db:

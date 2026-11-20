@@ -31,7 +31,7 @@ push.avisar_usuarios = lambda lista: avisos.extend(lista)
 
 def as_(hora, d):
     h, m = hora.split(":")
-    relogio["agora"] = datetime(d.year, d.month, d.day, int(h), int(m)) + timedelta(hours=5)
+    relogio["agora"] = datetime(d.year, d.month, d.day, int(h), int(m)) + timedelta(hours=3)
 
 
 def novo():
@@ -52,7 +52,7 @@ def main():
     posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Cafe", nome="Gil", email="gil@c.com", senha="segredo1")
     tg = csrf(g, "/painel/config")
     posta(g, "/painel/config", tg, nome="Cafe", lat="25.77", lng="-80.19", raio_m="150",
-          tolerancia_min="10", fuso="America/New_York", bloquear_fora="1", ajuste_dias="7",
+          tolerancia_min="10", fuso="America/Sao_Paulo", bloquear_fora="1", ajuste_dias="7",
           fotos_dias="45", estado="FL", semana_inicio="6", frequencia="weekly",
           periodo_ancora="2026-11-15", intervalo_padrao_min="30", tolerancia_dia_min="7",
           pct_noturno="0", pct_feriado="0")
@@ -71,8 +71,8 @@ def main():
     posta(g, "/painel/escala/turno", tg, usuario_id=ids["Ana"], data=(SEG + timedelta(days=1)).isoformat(),
           modo="trabalho", inicio="08:00", fim="12:00", intervalo="0", repetir="dia")
     grade = g.get(f"/painel/escala?semana={SEG}").text
-    assert "8h00 na semana · $160.00" in grade, grade[:0]
-    assert "Total do dia" in grade and "$80.00" in grade
+    assert "8h00 na semana · R$ 160,00" in grade, grade[:0]
+    assert "Total do dia" in grade and "R$ 80,00" in grade
     assert "Publicar e avisar (1)" in grade
 
     # ---- publicar: avisa só quem tem escala; publicar de novo sem mudança não avisa ninguém
@@ -99,13 +99,13 @@ def main():
         c = custos.custo_do_dia(db, e, SEG)
     assert c["centavos"] == 8000 + 10000 and c["minutos"] == 240 + 480 + 60 and c["sem_valor"] == ["Caio"], c
     tela = g.get("/painel").text
-    assert "Custo da equipe hoje" in tela and "$180.00" in tela and "informe as vendas" in tela
+    assert "Custo da equipe hoje" in tela and "R$ 180,00" in tela and "informe as vendas" in tela
     assert "1 sem valor da hora" in tela
 
     # ---- vendas do dia: $720 -> 25%
     posta(g, "/painel/vendas", tg, data=SEG.isoformat(), valor="720.00")
     tela = g.get("/painel").text
-    assert "25.0%" in tela and "vendas: $720.00" in tela
+    assert "25.0%" in tela and "vendas: R$ 720,00" in tela
     posta(g, "/painel/vendas", tg, data=(SEG + timedelta(days=3)).isoformat(), valor="10")   # futuro
     assert "Informe o dia" in g.get("/painel").text
     posta(g, "/painel/vendas", tg, data=SEG.isoformat(), valor="")     # apagar
@@ -118,7 +118,7 @@ def main():
     lc = novo()
     posta(lc, f"/convite/{token}", csrf(lc, f"/convite/{token}"), senha="senha123")
     assert "Custo da equipe hoje" not in lc.get("/painel").text
-    assert "$160.00" not in lc.get(f"/painel/escala?semana={SEG}").text
+    assert "R$ 160,00" not in lc.get(f"/painel/escala?semana={SEG}").text
     r = posta(lc, "/painel/vendas", csrf(lc, "/painel"), data=SEG.isoformat(), valor="1.00")
     assert r.headers["location"] == "/painel"
     print("OK: custo da equipe, vendas e publicar escala passou")

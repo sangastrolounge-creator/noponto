@@ -76,13 +76,13 @@ def telas():
                               "email": "gil@t.com", "senha": "segredo1"})
     tg = csrf(g, "/painel/config")
     g.post("/painel/config", data={"csrf": tg, "nome": "Taco", "lat": "47.6", "lng": "-122.3", "raio_m": "150",
-                                   "tolerancia_min": "10", "fuso": "America/Los_Angeles", "bloquear_fora": "1",
+                                   "tolerancia_min": "10", "fuso": "America/Sao_Paulo", "bloquear_fora": "1",
                                    "ajuste_dias": "7", "fotos_dias": "45", "estado": "WA", "semana_inicio": "6",
                                    "frequencia": "weekly", "periodo_ancora": "2026-11-15",
                                    "intervalo_padrao_min": "30", "tolerancia_dia_min": "7",
                                    "pct_noturno": "0", "pct_feriado": "0"})
     t = g.get("/painel/config").text
-    assert 'id="salario-minimo"' in t and "$17.13" in t and 'value="seattle"' in t and 'value="denver"' not in t
+    assert 'id="salario-minimo"' in t and "R$ 17,13" in t and 'value="seattle"' in t and 'value="denver"' not in t
     for nome, cel in (("Ana Souza", "2065550001"), ("Bia Reis", "2065550002"), ("Caio Lima", "2065550003")):
         g.post("/painel/equipe", data={"csrf": tg, "nome": nome, "celular": cel})
     with SessionLocal() as db:
@@ -94,14 +94,14 @@ def telas():
     painel = g.get("/painel").text
     assert "abaixo do salário mínimo" not in painel
     # o estado sobe para 17,73 em 01/01/2027: Bia (17,50) já aparece no aviso do aumento
-    assert "A partir de 01/01/2027, o mínimo passa a $17.73" in painel and "Bia Reis $17.50" in painel
-    assert "Ana Souza $18.00" not in painel
+    assert "A partir de 01/01/2027, o mínimo passa a R$ 17,73" in painel and "Bia Reis R$ 17,50" in painel
+    assert "Ana Souza R$ 18,00" not in painel
     # cidade: Seattle
     r = g.post("/painel/config/salario-minimo", data={"csrf": tg, "cidade": "denver"})
     assert "Escolha uma cidade do estado" in g.get("/painel/config").text
     g.post("/painel/config/salario-minimo", data={"csrf": tg, "cidade": "seattle"})
     t = g.get("/painel/config").text
-    assert "Em uso agora: $21.30 por hora (Seattle)" in t and "A partir de 01/01/2027: $22.14" in t
+    assert "Em uso agora: R$ 21,30 por hora (Seattle)" in t and "A partir de 01/01/2027: R$ 22,14" in t
     painel = g.get("/painel").text
     assert "2 valor(es) da hora abaixo do salário mínimo" in painel and "Ana Souza" in painel and "Bia Reis" in painel
     assert "Caio" not in painel.split('id="salario-minimo"')[1].split("</div>")[0]
@@ -112,16 +112,16 @@ def telas():
                                             f"isento_{ids['Caio']}": "1", f"taxa_{ids['Caio']}": "0",
                                             f"sal_{ids['Caio']}": "900.00"})
     t = g.get("/painel/pagamento").text
-    assert "Atenção: valor da hora abaixo do salário mínimo do local: Bia Reis ($21.00 &lt; $21.30)" in t, t[:0]
+    assert "Atenção: valor da hora abaixo do salário mínimo do local: Bia Reis (R$ 21,00 &lt; R$ 21,30)" in t, t[:0]
     painel = g.get("/painel").text
     assert "1 valor(es) da hora abaixo" in painel
-    assert "A partir de 01/01/2027, o mínimo passa a $22.14" in painel and "Ana Souza $22.00" in painel
+    assert "A partir de 01/01/2027, o mínimo passa a R$ 22,14" in painel and "Ana Souza R$ 22,00" in painel
     # ficha: salvar um valor abaixo avisa
     ficha = g.get(f"/painel/equipe/{ids['Bia']}").text
     assert ficha
     # mínimo próprio: maior valor vale
     g.post("/painel/config/salario-minimo", data={"csrf": tg, "cidade": "", "proprio": "23.00"})
-    assert "Em uso agora: $23.00 por hora (Valor informado pela empresa)" in g.get("/painel/config").text
+    assert "Em uso agora: R$ 23,00 por hora (Valor informado pela empresa)" in g.get("/painel/config").text
     g.post("/painel/config/salario-minimo", data={"csrf": tg, "cidade": "", "proprio": "abc"})
     assert "Use valores em dólares" in g.get("/painel/config").text
 

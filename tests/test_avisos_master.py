@@ -81,7 +81,7 @@ def main():
     evento(c, "invoice.paid", {**base, "id": "in_0", "amount_paid": 0}, "evt_0")
     assert len(do_master()) == n
     evento(c, "invoice.paid", {**base, "id": "in_1", "amount_paid": 5900}, "evt_1")
-    assert "Pagamento confirmado: Taco Bar ($59.00)" in do_master()[-1][1]
+    assert "Pagamento confirmado: Taco Bar (R$ 59,00)" in do_master()[-1][1]
     evento(c, "invoice.paid", {**base, "id": "in_1", "amount_paid": 5900}, "evt_1")   # repetido
     assert len(do_master()) == n + 1
     evento(c, "invoice.payment_failed", {**base, "id": "in_2", "amount_due": 5900}, "evt_2")

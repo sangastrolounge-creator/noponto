@@ -122,7 +122,7 @@ def main():
     tela = r.text
     assert r.status_code == 200, (r.status_code, r.headers.get("location"))
     assert "Vencido: pagar em dobro" in tela and "Ana Souza" in tela, tela[-3000:]
-    assert "Caio PJ" not in tela.split('id="lancar"')[0]
+    assert "Caio PJ" not in tela.split("Saldos da equipe")[1].split('id="lancar"')[0]   # PJ fica de fora
     assert "54 dia(s)" in tela and 'href="/painel/ferias"' in tela
 
     # ---- conformidade: férias vencidas são problema
