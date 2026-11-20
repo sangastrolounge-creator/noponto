@@ -196,8 +196,9 @@ def main():
         assert trecho in resumo, trecho
     assert "Adicional noturno" not in resumo                 # ninguém trabalhou à noite
     folha = g.get(f"/painel/folha?func={ids['Ana']}&de={SEG}&ate={SEX}").text
-    assert "Folha de ponto" in folha and "feriado: Consciência Negra" in folha
-    assert "atestado médico" in folha and "período ainda aberto" in folha and "27h40" in folha
+    assert "Folha de ponto" in folha and "Feriado" in folha and "Atestado" in folha
+    assert "período ainda aberto" in folha and "27h40" in folha
+    assert "intervalo de 60 min descontado" not in folha and "batida lançada à mão" not in folha  # só o essencial
 
     # ---- fechar o período: trava tudo
     r = posta(g, "/painel/fechamento", tg, de=SEG.isoformat(), ate=SEX.isoformat())

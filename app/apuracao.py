@@ -12,7 +12,13 @@ from .regras import VALIDA
 
 TIPOS_AUSENCIA = {
     "atestado": "Atestado médico", "ferias": "Férias", "licenca": "Licença",
-    "afastamento": "Afastamento (INSS)", "abono": "Falta abonada", "outro": "Outro",
+    "afastamento": "Afastamento (INSS)", "abono": "Falta abonada", "suspensao": "Suspensão disciplinar",
+    "outro": "Outro",
+}
+# Observações curtas da folha de ponto (o detalhe fica nas outras colunas e no resumo).
+MARCAS_AUSENCIA = {
+    "atestado": "Atestado", "ferias": "Férias", "licenca": "Licença", "afastamento": "Afastamento",
+    "abono": "Falta abonada", "suspensao": "Suspensão", "outro": "Ausência",
 }
 
 
@@ -234,6 +240,10 @@ def apurar(db: Session, e: Empresa, ini: date, fim: date, usuario_id: int | None
             falta = False
             if trabalha and not bats and regras.intervalo(t)[1] < agora_l:
                 falta = True
+            # Suspensão disciplinar: o dia de escala não é pago (conta como falta, inclusive no DSR).
+            suspensao = bool(aus and aus.tipo == "suspensao" and t and not t.folga and not feriado)
+            if suspensao:
+                previsto, falta = regras.minutos_turno(t), True
             dif = 0 if (falta or andamento or incompleto or sem_escala) else trabalhado - previsto
             if sem_escala and not andamento:
                 obs.append("trabalhou sem escala: defina o dia na Escala")
@@ -247,7 +257,8 @@ def apurar(db: Session, e: Empresa, ini: date, fim: date, usuario_id: int | None
                 obs.append(f"feriado: {feriado}")
             if aus:
                 obs.append(TIPOS_AUSENCIA.get(aus.tipo, "Ausência").lower())
-                tot["dias_ausencia"] += 1
+                if aus.tipo != "suspensao":
+                    tot["dias_ausencia"] += 1
             if falta:
                 obs.append("falta")
                 tot["faltas"] += 1
@@ -265,6 +276,23 @@ def apurar(db: Session, e: Empresa, ini: date, fim: date, usuario_id: int | None
             if sob:
                 obs.append(f"sobreaviso: {regras.fmt_min(sob)}")
                 tot["sobreaviso"] += sob
+            marcas = []
+            if falta and not suspensao:
+                marcas.append("Falta")
+            if aus:
+                marcas.append(MARCAS_AUSENCIA.get(aus.tipo, "Ausência"))
+            if feriado:
+                marcas.append("Feriado")
+            if t and t.folga and bats:
+                marcas.append("Folga trabalhada")
+            if sem_escala and not andamento:
+                marcas.append("Sem escala")
+            if incompleto:
+                marcas.append("Batida incompleta")
+            if suprimido:
+                marcas.append("Intervalo suprimido")
+            if sob:
+                marcas.append("Sobreaviso")
             mots = motivos.get((uid, d), [])
             if not falta:
                 tot["previsto"] += previsto
@@ -273,7 +301,7 @@ def apurar(db: Session, e: Empresa, ini: date, fim: date, usuario_id: int | None
             tot["debito"] += debito
             dias.append(dict(dia=d, turno=t, feriado=feriado, ausencia=aus, pares=pares,
                              trabalhado=trabalhado, previsto=previsto, extra=extra,
-                             debito=debito, falta=falta, obs=obs,
+                             debito=debito, falta=falta, obs=obs, marcas=marcas,
                              especial=not trabalha and not sem_escala, sem_escala=sem_escala,
                              noturno=noturno, intervalo_suprimido=suprimido,
                              sobreaviso=sob, sobreavisos=sobreavisos.get((uid, d), []),

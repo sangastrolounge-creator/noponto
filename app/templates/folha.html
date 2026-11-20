@@ -27,7 +27,7 @@
   </header>
 
   <div class="rolagem"><table class="tabela-folha">
-    <thead><tr><th>{{ _('Dia') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Batidas') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Previsto') }}</th><th>{{ _('Extra') }}</th><th>{{ _('Atraso/saída') }}</th><th>{{ _('Observações') }}</th></tr></thead>
+    <thead><tr><th>{{ _('Dia') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Batidas') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Previsto') }}</th><th>{{ _('Extra') }}</th><th>{{ _('Atraso/saída') }}</th><th>{{ _('Noturno') }}</th><th>{{ _('Observações') }}</th></tr></thead>
     <tbody>
     {% for d in r.dias %}
     <tr class="{{ 'dia-especial' if d.especial }}">
@@ -38,17 +38,19 @@
       <td>{{ fmt_min(d.previsto) if d.previsto else '' }}</td>
       <td>{{ fmt_min(d.extra) if d.extra else '' }}</td>
       <td>{{ fmt_min(d.debito) if d.debito else '' }}</td>
-      <td class="pequeno">{{ d.obs|map('traduz')|join('; ') }}</td>
+      <td>{{ fmt_min(d.noturno) if d.noturno else '' }}</td>
+      <td class="pequeno">{{ d.marcas|map('traduz')|join(', ') }}</td>
     </tr>
     {% endfor %}
     </tbody>
     <tfoot><tr>
       <td colspan="3"><strong>{{ _('Totais') }}</strong></td>
       <td><strong>{{ fmt_min(r.trabalhado) }}</strong></td><td><strong>{{ fmt_min(r.previsto) }}</strong></td>
-      <td><strong>{{ fmt_min(r.extra_normal + r.extra_especial) }}</strong></td><td><strong>{{ fmt_min(r.debito) }}</strong></td><td></td>
+      <td><strong>{{ fmt_min(r.extra_normal + r.extra_especial) }}</strong></td><td><strong>{{ fmt_min(r.debito) }}</strong></td>
+      <td><strong>{{ fmt_min(r.noturno) if r.noturno else '' }}</strong></td><td></td>
     </tr></tfoot>
   </table></div>
-  <p class="ajuda">{{ _('* batida lançada à mão pelo gestor.') }}</p>
+  <p class="ajuda">{{ _('* batida lançada à mão pelo gestor.') }}{% if r.noturno %} {{ _('Noturno: horas entre 22h e 5h, já com a hora reduzida quando aplicada.') }}{% endif %}</p>
 
   <div class="folha-resumo">
     <div><span>{{ _('Extras em dia normal ({v1}%)', v1=(pn)) }}</span><strong>{{ fmt_min(r.extra_normal) }}</strong></div>
