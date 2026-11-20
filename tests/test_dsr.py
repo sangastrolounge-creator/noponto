@@ -109,9 +109,10 @@ def main():
     a, b = apurado("Ana"), apurado("Bruno")
     # descanso = as 4 folgas da escala (sáb. e dom.) + o feriado; os outros 9 dias são úteis
     assert (a["dias_uteis"], a["dias_descanso"]) == (9, 5)
-    # Ana: 3 faltas em 2 semanas -> perde 2 descansos (8 h cada)
+    # Ana: 3 faltas em 2 semanas -> perde todos os descansos dessas semanas (8 h cada):
+    # semana 1 = sábado, domingo e o feriado de sexta (3); semana 2 = sábado e domingo (2)
     assert (a["faltas"], h(a["falta_min"]), a["dsr_perdidos"], h(a["dsr_perdido_min"])) == (
-        3, "24h00", 2, "16h00"), a
+        3, "24h00", 5, "40h00"), a
     # 2 h a 50% = 3 h; 3 h ÷ 9 dias úteis × 5 descansos = 1h40
     assert (h(a["extra_normal"]), h(a["dsr_extras"])) == ("2h00", "1h40")
     # Bruno: atestado não tira o DSR; 4 h no feriado a 100% = 8 h; 8 h ÷ 9 × 5 = 4h27
@@ -138,9 +139,9 @@ def main():
     assert "sem escala" not in g.get(f"/painel/fechamento?de={SEG}&ate={FIM}").text
 
     tela = g.get(f"/painel/fechamento?de={SEG}&ate={FIM}").text
-    assert "<th>DSR</th>" in tela and "−2 dia(s)" in tela and "+1h40 s/ extras" in tela and "+4h27 s/ extras" in tela
+    assert "<th>DSR</th>" in tela and "−5 dia(s)" in tela and "+1h40 s/ extras" in tela and "+4h27 s/ extras" in tela
     resumo = g.get(f"/painel/fechamento/resumo?de={SEG}&ate={FIM}").text
-    for trecho in ("DSR descontado", "2 dia(s) · 16h00", "DSR sobre extras", "1h40", "4h27", "6h07",
+    for trecho in ("DSR descontado", "5 dia(s) · 40h00", "DSR sobre extras", "1h40", "4h27", "6h07",
                    "÷ dias úteis × folgas da escala e feriados"):
         assert trecho in resumo, trecho
     folha = g.get(f"/painel/folha?func={ids['Ana']}&de={SEG}&ate={FIM}").text
@@ -149,7 +150,7 @@ def main():
     # ---- banco de horas: sem reflexo das extras; o desconto por falta continua
     config(g, tg, controle="banco")
     a = apurado("Ana")
-    assert (a["dsr_extras"], a["dsr_perdidos"]) == (0, 2)
+    assert (a["dsr_extras"], a["dsr_perdidos"]) == (0, 5)
     assert "só é calculado no controle por hora extra" in g.get(f"/painel/fechamento?de={SEG}&ate={FIM}").text
     # ---- desligado: nada é aplicado e as colunas somem do resumo
     config(g, tg, dsr_faltas="", dsr_extras="")
@@ -167,10 +168,10 @@ def main():
         linhas = {l.usuario.nome.split()[0]: (l.dsr_perdidos, l.dsr_perdido_min, l.dsr_extras)
                   for l in f.linhas}
         fid = f.id
-    assert linhas == {"Ana": (2, 960, 100), "Bruno": (0, 0, 267), "Carla": (0, 0, 0)}, linhas
+    assert linhas == {"Ana": (5, 2400, 100), "Bruno": (0, 0, 267), "Carla": (0, 0, 0)}, linhas
     planilha = g.get(f"/painel/fechamento/{fid}/planilha.csv").text
     assert "DSR descontado (dias);DSR descontado (horas);DSR sobre horas extras (em horas normais)" in planilha
-    assert "não assinada;2;16h00;1h40" in planilha and "não assinada;0;0h00;4h27" in planilha
+    assert "não assinada;5;40h00;1h40" in planilha and "não assinada;0;0h00;4h27" in planilha
     assert "DSR:" in g.get("/painel/historico").text
     print("OK: DSR passou")
 

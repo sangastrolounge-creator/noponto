@@ -145,7 +145,7 @@ def main():
     # indenizatório (fora da base de INSS e FGTS): 20 h × 13,64 × 1,5 = R$ 409,09
     assert val == {"salario": 300000, "extra_normal": 4091, "dsr_extras": 1750,
                    "intervalo_suprimido": 40909,
-                   "faltas": 10909, "dsr_perdido": 10909, "inss": 23131}, val
+                   "faltas": 10909, "dsr_perdido": 21818, "inss": 23131}, val
     assert (ana.bruto, ana.descontos, ana.liquido, ana.fgts) == (346750, 44949, 301801, 22722)
     tela = g.get(folha_url).text
     assert "R$ 3.018,01" in tela and "Sem salário cadastrado" in tela
