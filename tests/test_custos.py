@@ -60,10 +60,11 @@ def main():
         posta(g, "/painel/equipe", tg, nome=nome, celular=cel)
     with SessionLocal() as db:
         ids = {u.nome.split()[0]: u.id for u in db.scalars(select(Usuario))}
+    # Ana R$ 4.400 / 220 h = R$ 20,00 a hora; Bruno R$ 2.200 / 220 h = R$ 10,00; Caio sem salário
     posta(g, "/painel/pagamento/dados", tg, **{
-        f"taxa_{ids['Ana']}": "20.00", f"sal_{ids['Ana']}": "",
-        f"taxa_{ids['Bruno']}": "0", f"isento_{ids['Bruno']}": "1", f"sal_{ids['Bruno']}": "700.00",
-        f"taxa_{ids['Caio']}": "", f"sal_{ids['Caio']}": ""})
+        f"sal_{ids['Ana']}": "4.400,00", f"jor_{ids['Ana']}": "220", f"dep_{ids['Ana']}": "0", f"vt_{ids['Ana']}": "",
+        f"sal_{ids['Bruno']}": "2.200,00", f"jor_{ids['Bruno']}": "220", f"dep_{ids['Bruno']}": "0", f"vt_{ids['Bruno']}": "",
+        f"sal_{ids['Caio']}": "", f"jor_{ids['Caio']}": "220", f"dep_{ids['Caio']}": "0", f"vt_{ids['Caio']}": ""})
 
     # ---- escala: Ana seg e ter 8h-12h; custo previsto por pessoa e por dia
     posta(g, "/painel/escala/turno", tg, usuario_id=ids["Ana"], data=SEG.isoformat(), modo="trabalho",
@@ -88,7 +89,7 @@ def main():
     posta(g, "/painel/escala/publicar", tg, semana=SEG.isoformat())
     assert avisos[-1][0] == ids["Ana"] and avisos[-1][1] == "Escala atualizada"
 
-    # ---- custo real do dia: Ana 4 h a $20, Bruno exempt ($700/semana = $100/dia), Caio sem valor
+    # ---- custo real do dia: Ana 4 h a R$ 20, Bruno 8 h a R$ 10, Caio sem valor
     as_("20:00", SEG)
     for nome, ent, sai in (("Ana", "08:00", "12:00"), ("Bruno", "09:00", "17:00"), ("Caio", "10:00", "11:00")):
         for tipo, hora in (("entrada", ent), ("saida", sai)):
@@ -97,15 +98,15 @@ def main():
     with SessionLocal() as db:
         e = db.get(Empresa, 1)
         c = custos.custo_do_dia(db, e, SEG)
-    assert c["centavos"] == 8000 + 10000 and c["minutos"] == 240 + 480 + 60 and c["sem_valor"] == ["Caio"], c
+    assert c["centavos"] == 8000 + 8000 and c["minutos"] == 240 + 480 + 60 and c["sem_valor"] == ["Caio"], c
     tela = g.get("/painel").text
-    assert "Custo da equipe hoje" in tela and "R$ 180,00" in tela and "informe as vendas" in tela
+    assert "Custo da equipe hoje" in tela and "R$ 160,00" in tela and "informe as vendas" in tela
     assert "1 sem valor da hora" in tela
 
-    # ---- vendas do dia: $720 -> 25%
-    posta(g, "/painel/vendas", tg, data=SEG.isoformat(), valor="720.00")
+    # ---- vendas do dia: R$ 640 -> 25%
+    posta(g, "/painel/vendas", tg, data=SEG.isoformat(), valor="640,00")
     tela = g.get("/painel").text
-    assert "25.0%" in tela and "vendas: R$ 720,00" in tela
+    assert "25.0%" in tela and "vendas: R$ 640,00" in tela
     posta(g, "/painel/vendas", tg, data=(SEG + timedelta(days=3)).isoformat(), valor="10")   # futuro
     assert "Informe o dia" in g.get("/painel").text
     posta(g, "/painel/vendas", tg, data=SEG.isoformat(), valor="")     # apagar
@@ -119,7 +120,7 @@ def main():
     posta(lc, f"/convite/{token}", csrf(lc, f"/convite/{token}"), senha="senha123")
     assert "Custo da equipe hoje" not in lc.get("/painel").text
     assert "R$ 160,00" not in lc.get(f"/painel/escala?semana={SEG}").text
-    r = posta(lc, "/painel/vendas", csrf(lc, "/painel"), data=SEG.isoformat(), valor="1.00")
+    r = posta(lc, "/painel/vendas", csrf(lc, "/painel"), data=SEG.isoformat(), valor="1,00")
     assert r.headers["location"] == "/painel"
     print("OK: custo da equipe, vendas e publicar escala passou")
 

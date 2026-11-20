@@ -71,8 +71,8 @@ def main():
     with SessionLocal() as db:
         ids = {u.nome.split()[0]: u.id for u in db.scalars(select(Usuario))}
         ana_u = db.get(Usuario, ids["Ana"])
-        ana_u.cargo, ana_u.taxa_hora_centavos = "Cook", 2000
-        db.get(Usuario, ids["Bia"]).cargo = "Server"
+        ana_u.cargo, ana_u.salario_centavos = "Cozinha", 440000      # R$ 4.400 / 220 h = R$ 20 a hora
+        db.get(Usuario, ids["Bia"]).cargo = "Garçom"
         convite = ana_u.convite_token
         db.commit()
     ana = novo()
@@ -133,12 +133,12 @@ def main():
     assert "1 atraso(s), 20 min" in rel
     assert '<span class="etiqueta erro">1</span>' in rel     # Bia faltou
     assert "Faltou gente na cozinha" in rel
-    assert "R$ 153,33" in rel                 # Ana: 3h40 + 4h = 7h40 x $20
+    assert "R$ 153,33" in rel                 # Ana: 3h40 + 4h = 7h40 x R$ 20
     resp = g.get(url + "&formato=csv")
     assert resp.headers["content-type"].startswith("text/csv")
     linhas = resp.text.lstrip("﻿").splitlines()
-    assert linhas[1].startswith("Ana Souza,Cook,2,8.0,7.67,-0.33,50,1,0,2"), linhas[1]
-    assert linhas[2].startswith("Bia Reis,Server,1,4.0,0.0,-4.0,,0,1,"), linhas[2]
+    assert linhas[1].startswith("Ana Souza;Cozinha;2;8,0;7,67;-0,33;50;1;0;2,0;153,33"), linhas[1]
+    assert linhas[2].startswith("Bia Reis;Garçom;1;4,0;0,0;-4,0;;0;1;"), linhas[2]
 
     # ---- desligar a avaliação: não pergunta mais
     posta(g, "/painel/config/avaliar-turno", tg, ligado="")

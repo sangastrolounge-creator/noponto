@@ -27,9 +27,8 @@ relogio = {"agora": datetime(2026, 11, 19, 15, 0)}
 banco.agora = lambda: relogio["agora"]
 
 
-def emp(estado, cidade="", proprio=0, proprio_g=0):
-    return N(estado=estado, cidade_minimo=cidade, minimo_proprio_centavos=proprio,
-             minimo_gorjeta_proprio_centavos=proprio_g)
+def emp(proprio=0):
+    return N(minimo_proprio_centavos=proprio)
 
 
 def novo():
@@ -43,87 +42,53 @@ def csrf(cli, caminho):
 def tabela():
     hoje = date(2026, 11, 19)
     m = sm.minimo
-    assert m(emp("TX"), hoje) == {"centavos": 725, "fonte": "Federal"}
-    assert m(emp("TX"), hoje, True)["centavos"] == 213
-    assert m(emp("GA"), hoje)["centavos"] == 725           # estado abaixo do federal: vale o federal
-    assert m(emp("FL"), hoje)["centavos"] == 1500 and m(emp("FL"), hoje, True)["centavos"] == 1198
-    assert m(emp("FL"), date(2026, 9, 1))["centavos"] == 725   # antes de 30/09/2026 não há valor na tabela
-    assert m(emp("CA"), hoje, True)["centavos"] == 1690    # sem tip credit
-    assert m(emp("CA"), date(2027, 1, 1))["centavos"] == 1740
-    assert m(emp("WA", "seattle"), hoje) == {"centavos": 2130, "fonte": "Seattle"}
-    assert m(emp("WA", "seattle"), date(2027, 1, 2))["centavos"] == 2214
-    assert m(emp("CA", "seattle"), hoje)["centavos"] == 1690   # cidade de outro estado é ignorada
-    assert m(emp("OR", "ornaourbano"), hoje)["centavos"] == 1455  # região abaixo do padrão do estado
-    assert m(emp("OR"), hoje)["centavos"] == 1555
-    assert m(emp("IL", "chicago"), hoje, True)["centavos"] == 1432
-    assert m(emp("NY", "nyc"), hoje, True)["centavos"] == 1135
-    assert m(emp("NM", "lascruces"), hoje, True)["centavos"] == 1301 - 900  # crédito do estado
-    assert m(emp("TX", "", 1000, 500), hoje) == {"centavos": 1000, "fonte": "Valor informado pela empresa"}
-    p = sm.proxima_mudanca(emp("WA", "seattle"), hoje)
-    assert p["data"] == date(2027, 1, 1) and p["normal"]["centavos"] == 2214
-    assert sm.proxima_mudanca(emp("TX"), hoje) is None
-    assert sm.proxima_mudanca(emp("CA", "sanfrancisco"), hoje) is None   # 17,40 do estado < 19,61 da cidade
-    for estado, lista in sm.ESTADOS.items():
-        assert all(a[0] < b[0] for a, b in zip(lista, lista[1:])), estado
-        assert all(x[2] is None or x[2] <= x[1] for x in lista), estado
-    for chave, (_, estado, lista, _) in sm.CIDADES.items():
-        assert estado in sm.ESTADOS, chave
+    assert m(emp(), hoje) == {"centavos": 162100, "fonte": "Salário mínimo nacional", "hora": 737}
+    assert m(emp(), date(2025, 6, 1))["centavos"] == 151800
+    assert m(emp(175000), hoje) == {"centavos": 175000, "fonte": "Piso informado pela empresa", "hora": 795}
+    assert m(emp(150000), hoje)["centavos"] == 162100          # piso abaixo do nacional: vale o nacional
+    p = sm.proxima_mudanca(emp(), date(2025, 12, 1))
+    assert p["data"] == date(2026, 1, 1) and p["normal"]["centavos"] == 162100
+    assert sm.proxima_mudanca(emp(), hoje) is None
+    assert sm.proporcional(m(emp(), hoje), 180) == 132627          # jornada de 36 h por semana
+    assert all(a[0] < b[0] for a, b in zip(sm.NACIONAL, sm.NACIONAL[1:]))
 
 
 def telas():
     g = novo()
-    g.post("/cadastro", data={"csrf": csrf(g, "/cadastro"), "aceito": "1", "empresa": "Taco", "nome": "Gil",
+    g.post("/cadastro", data={"csrf": csrf(g, "/cadastro"), "aceito": "1", "empresa": "Padaria", "nome": "Gil",
                               "email": "gil@t.com", "senha": "segredo1"})
     tg = csrf(g, "/painel/config")
-    g.post("/painel/config", data={"csrf": tg, "nome": "Taco", "lat": "47.6", "lng": "-122.3", "raio_m": "150",
-                                   "tolerancia_min": "10", "fuso": "America/Sao_Paulo", "bloquear_fora": "1",
-                                   "ajuste_dias": "7", "fotos_dias": "45", "estado": "WA", "semana_inicio": "6",
-                                   "frequencia": "weekly", "periodo_ancora": "2026-11-15",
-                                   "intervalo_padrao_min": "30", "tolerancia_dia_min": "7",
-                                   "pct_noturno": "0", "pct_feriado": "0"})
     t = g.get("/painel/config").text
-    assert 'id="salario-minimo"' in t and "R$ 17,13" in t and 'value="seattle"' in t and 'value="denver"' not in t
-    for nome, cel in (("Ana Souza", "2065550001"), ("Bia Reis", "2065550002"), ("Caio Lima", "2065550003")):
+    assert 'id="salario-minimo"' in t
+    assert "Em uso agora: R$ 1.621,00 por mês para 220 horas (Salário mínimo nacional), ou R$ 7,37 por hora." in t
+    for nome, cel in (("Ana Souza", "98999990001"), ("Bia Reis", "98999990002"), ("Caio Lima", "98999990003")):
         g.post("/painel/equipe", data={"csrf": tg, "nome": nome, "celular": cel})
     with SessionLocal() as db:
         ids = {u.nome.split()[0]: u.id for u in db.scalars(select(Usuario).where(Usuario.papel == "funcionario"))}
-    # Ana 18.00, Bia 17.50 (passa no estado, não em Seattle), Caio exempt
-    g.post("/painel/pagamento/dados", data={"csrf": tg, f"taxa_{ids['Ana']}": "18.00", f"taxa_{ids['Bia']}": "17.50",
-                                            f"taxa_{ids['Caio']}": "0", f"isento_{ids['Caio']}": "1",
-                                            f"sal_{ids['Caio']}": "900.00"})
-    painel = g.get("/painel").text
-    assert "abaixo do salário mínimo" not in painel
-    # o estado sobe para 17,73 em 01/01/2027: Bia (17,50) já aparece no aviso do aumento
-    assert "A partir de 01/01/2027, o mínimo passa a R$ 17,73" in painel and "Bia Reis R$ 17,50" in painel
-    assert "Ana Souza R$ 18,00" not in painel
-    # cidade: Seattle
-    r = g.post("/painel/config/salario-minimo", data={"csrf": tg, "cidade": "denver"})
-    assert "Escolha uma cidade do estado" in g.get("/painel/config").text
-    g.post("/painel/config/salario-minimo", data={"csrf": tg, "cidade": "seattle"})
-    t = g.get("/painel/config").text
-    assert "Em uso agora: R$ 21,30 por hora (Seattle)" in t and "A partir de 01/01/2027: R$ 22,14" in t
-    painel = g.get("/painel").text
-    assert "2 valor(es) da hora abaixo do salário mínimo" in painel and "Ana Souza" in painel and "Bia Reis" in painel
-    assert "Caio" not in painel.split('id="salario-minimo"')[1].split("</div>")[0]
-    pag = g.get("/painel/pagamento").text
-    assert pag.count("Abaixo do mínimo") == 2
-    # salvar valores: aviso de erro com os nomes
-    g.post("/painel/pagamento/dados", data={"csrf": tg, f"taxa_{ids['Ana']}": "22.00", f"taxa_{ids['Bia']}": "21.00",
-                                            f"isento_{ids['Caio']}": "1", f"taxa_{ids['Caio']}": "0",
-                                            f"sal_{ids['Caio']}": "900.00"})
+        db.get(Usuario, ids["Caio"]).classificacao = "pj"        # PJ não entra na conferência
+        db.get(Usuario, ids["Caio"]).salario_centavos = 100000
+        db.commit()
+    # Ana R$ 1.500 em 220 h (abaixo); Bia R$ 1.400 em 180 h (acima do proporcional de R$ 1.326,27)
+    g.post("/painel/pagamento/dados", data={"csrf": tg, f"sal_{ids['Ana']}": "1.500,00", f"jor_{ids['Ana']}": "220",
+                                            f"dep_{ids['Ana']}": "0", f"vt_{ids['Ana']}": "",
+                                            f"sal_{ids['Bia']}": "1.400,00", f"jor_{ids['Bia']}": "180",
+                                            f"dep_{ids['Bia']}": "0", f"vt_{ids['Bia']}": ""})
     t = g.get("/painel/pagamento").text
-    assert "Atenção: valor da hora abaixo do salário mínimo do local: Bia Reis (R$ 21,00 &lt; R$ 21,30)" in t, t[:0]
+    assert "Atenção: salário abaixo do mínimo proporcional à jornada: Ana Souza (R$ 1.500,00 &lt; R$ 1.621,00)" in t, t[:0]
     painel = g.get("/painel").text
-    assert "1 valor(es) da hora abaixo" in painel
-    assert "A partir de 01/01/2027, o mínimo passa a R$ 22,14" in painel and "Ana Souza R$ 22,00" in painel
-    # ficha: salvar um valor abaixo avisa
-    ficha = g.get(f"/painel/equipe/{ids['Bia']}").text
-    assert ficha
-    # mínimo próprio: maior valor vale
-    g.post("/painel/config/salario-minimo", data={"csrf": tg, "cidade": "", "proprio": "23.00"})
-    assert "Em uso agora: R$ 23,00 por hora (Valor informado pela empresa)" in g.get("/painel/config").text
-    g.post("/painel/config/salario-minimo", data={"csrf": tg, "cidade": "", "proprio": "abc"})
-    assert "Use valores em dólares" in g.get("/painel/config").text
+    alerta = painel.split('id="salario-minimo"')[1].split("</div>")[0]
+    assert "abaixo do salário mínimo" in alerta and "Ana Souza" in alerta
+    assert "Bia" not in alerta and "Caio" not in alerta
+    # piso da categoria: R$ 1.750 por 220 h; Bia (180 h) precisa de R$ 1.431,82
+    g.post("/painel/config/salario-minimo", data={"csrf": tg, "proprio": "1.750,00"})
+    t = g.get("/painel/config").text
+    assert "Em uso agora: R$ 1.750,00 por mês para 220 horas (Piso informado pela empresa)" in t
+    with SessionLocal() as db:
+        from app.db import Empresa
+        nomes = [x["u"].nome for x in sm.abaixo(db, db.get(Empresa, 1), date(2026, 11, 19))]
+    assert nomes == ["Ana Souza", "Bia Reis"], nomes
+    g.post("/painel/config/salario-minimo", data={"csrf": tg, "proprio": "abc"})
+    assert "Use o valor mensal do piso" in g.get("/painel/config").text
 
 
 def main():

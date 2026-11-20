@@ -35,9 +35,9 @@ def csrf(cli, caminho):
     return re.search(r'name="csrf" value="([^"]+)"', cli.get(caminho).text).group(1)
 
 
-RESPOSTAS = {"segmento": "restaurante", "porte": "16-30", "locais": "2-3", "estado": "WA", "cidade": "seattle",
+RESPOSTAS = {"segmento": "restaurante", "porte": "16-30", "locais": "2-3", "estado": "MT",
              "abre": "11:00", "fecha": "23:00", "gorjeta": "sim", "menores": "sim", "ponto": "ambos",
-             "frequencia": "biweekly", "provedor": "gusto"}
+             "frequencia": "extra", "provedor": "noponto"}
 
 
 def main():
@@ -64,31 +64,37 @@ def main():
     r = g.post("/painel/comecar", data={"csrf": tg, **{**RESPOSTAS, "fecha": "11:00"}})
     assert r.status_code == 400 and "hora em que abre" in r.text
 
-    r = g.post("/painel/comecar", data={"csrf": tg, **RESPOSTAS, "local_nome": ["Capitol Hill", "Ballard", ""]})
+    r = g.post("/painel/comecar", data={"csrf": tg, **{**RESPOSTAS, "estado": "XX"}})
+    assert r.status_code == 400 and "Escolha o estado (UF)" in r.text
+    r = g.post("/painel/comecar", data={"csrf": tg, **{**RESPOSTAS, "frequencia": "biweekly"}})
+    assert r.status_code == 400 and "Escolha como as horas a mais são tratadas" in r.text
+
+    r = g.post("/painel/comecar", data={"csrf": tg, **RESPOSTAS, "local_nome": ["Centro", "Shopping", ""]})
     assert r.headers["location"] == "/painel/comecar/pronto"
     with SessionLocal() as db:
         e = db.scalar(select(Empresa).where(Empresa.nome == "Pike Grill"))
-        assert (e.segmento, e.porte, e.estado, e.fuso, e.cidade_minimo) == ("restaurante", "16-30", "WA", "America/Sao_Paulo", "seattle")
-        assert (e.abre, e.fecha, e.frequencia, e.provedor_folha) == ("11:00", "23:00", "biweekly", "gusto")
+        assert (e.segmento, e.porte, e.uf, e.fuso) == ("restaurante", "16-30", "MT", "America/Manaus")
+        assert (e.abre, e.fecha, e.controle, e.provedor_folha) == ("11:00", "23:00", "extra", "noponto")
         assert e.saida_auto_min == 60 and e.entrada_antecipada_min == 15 and e.triagem_em
         funcoes = {f["nome"]: f["gorjeta"] for f in json.loads(e.funcoes_padrao)}
         assert funcoes["Garçom"] is True and funcoes["Cozinha"] is False
         assert len(json.loads(e.modelos_turno)) == 3
-        assert sorted(l.nome for l in db.scalars(select(Local).where(Local.empresa_id == e.id))) == ["Ballard", "Capitol Hill"]
+        assert sorted(l.nome for l in db.scalars(select(Local).where(Local.empresa_id == e.id))) == ["Centro", "Shopping"]
         assert db.scalar(select(Tarefa).where(Tarefa.empresa_id == e.id, Tarefa.titulo == "Fechar o caixa"))
         n_tarefas = len(list(db.scalars(select(Tarefa).where(Tarefa.empresa_id == e.id))))
 
     p = g.get("/painel/comecar/pronto").text
     assert "Pronto! Pike Grill está configurada" in p
-    assert "Salário mínimo em uso: R$ 21,30 por hora (Seattle)" in p
-    assert "Garçom ($)" in p and "Abertura 11:00–17:30" in p
-    assert "Criar totem" in p and "data de nascimento" in p and "Definir o local" in p
+    assert "Mato Grosso: fuso horário America/Manaus" in p
+    assert "Salário mínimo em uso: R$ 1.621,00 por mês" in p, p
+    assert "Hora extra paga no mês" in p and "Abertura 11:00–17:30" in p
+    assert "Criar totem" in p and "data de nascimento" in p and "Definir o local" in p and "Abrir Pagamento" in p
     assert "Configure em 2 minutos" not in g.get("/painel").text
 
-    # usar no app: modelos na escala, sugestões na ficha, cargos no turno aberto
+    # usar no app: modelos na escala, sugestões na ficha
     esc = g.get("/painel/escala").text
-    assert 'data-ini="11:00" data-fim="17:30"' in esc and "<option>Bartender</option>" in esc
-    assert '<option value="Hostess">' in g.get("/painel/equipe/novo").text
+    assert 'data-ini="11:00" data-fim="17:30"' in esc
+    assert "Garçom" in g.get("/painel/equipe/novo").text
 
     # refazer: não duplica tarefas
     g.post("/painel/comecar", data={"csrf": tg, **{**RESPOSTAS, "segmento": "cafe", "gorjeta": "nao"}})
@@ -97,15 +103,17 @@ def main():
         assert len(list(db.scalars(select(Tarefa).where(Tarefa.empresa_id == e.id)))) == n_tarefas
         assert all(not f["gorjeta"] for f in json.loads(e.funcoes_padrao))
 
-    # Califórnia liga as pausas; porte grande em cidade com escala justa sugere a regra
+    # só celular, sem menores e com contador: sem totem, sem data de nascimento, sem Pagamento
     h = novo()
-    h.post("/cadastro", data={"csrf": csrf(h, "/cadastro"), "aceito": "1", "empresa": "SF Big", "nome": "Hal",
-                              "email": "hal@sf.com", "senha": "segredo1"})
+    h.post("/cadastro", data={"csrf": csrf(h, "/cadastro"), "aceito": "1", "empresa": "Loja SP", "nome": "Hal",
+                              "email": "hal@sp.com", "senha": "segredo1"})
     th = csrf(h, "/painel/comecar")
-    h.post("/painel/comecar", data={"csrf": th, **{**RESPOSTAS, "estado": "CA", "cidade": "sanfrancisco", "porte": "76+",
-                                                    "locais": "1", "ponto": "celular", "menores": "nao"}})
+    h.post("/painel/comecar", data={"csrf": th, **{**RESPOSTAS, "estado": "SP", "segmento": "varejo",
+                                                    "locais": "1", "ponto": "celular", "menores": "nao",
+                                                    "provedor": "contador", "frequencia": "banco"}})
     p = h.get("/painel/comecar/pronto").text
-    assert "pausas de 10 minutos ligada" in p and "escala justa" in p and "Criar totem" not in p
+    assert "São Paulo: fuso horário America/Sao_Paulo" in p and "Banco de horas" in p
+    assert "Criar totem" not in p and "data de nascimento" not in p and "Abrir Pagamento" not in p
     print("OK: configuração guiada passou")
 
 

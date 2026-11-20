@@ -71,8 +71,8 @@ def main():
         us = {u.nome.split()[0]: u for u in db.scalars(select(Usuario).where(Usuario.papel == "funcionario"))}
         ids = {k: u.id for k, u in us.items()}
         tokens = {k: u.convite_token for k, u in us.items()}
-        for k, c in (("Ana", 1500), ("Bia", 1800), ("Caio", 1500), ("Dan", 1500)):
-            us[k].taxa_hora_centavos = c
+        for k, c in (("Ana", 165000), ("Bia", 198000), ("Caio", 165000), ("Dan", 165000)):
+            us[k].salario_centavos = c          # Bia: R$ 1.980 / 220 h = R$ 9,00 a hora
         db.add(Disponibilidade(empresa_id=us["Caio"].empresa_id, usuario_id=ids["Caio"], dia_semana=QUA.weekday(), tipo="nao"))
         db.commit()
 
@@ -129,15 +129,16 @@ def main():
     r = g.get(f"/painel/escala/sugestoes?data={QUA}&inicio=09:00&fim=17:00").json()
     nomes = [p["nome"] for p in r["pessoas"]]
     assert "Ana Souza" not in nomes                                    # já trabalha na quarta
-    assert nomes[0] == "Bia Reis" and r["pessoas"][0]["ok"] and r["pessoas"][0]["custo"] == 14400
+    assert nomes[0] == "Bia Reis" and r["pessoas"][0]["ok"] and r["pessoas"][0]["custo"] == 7200
     caio = next(p for p in r["pessoas"] if p["nome"] == "Caio Lima")
     dan = next(p for p in r["pessoas"] if p["nome"] == "Dan Cruz")
     assert "fora da disponibilidade" in caio["motivos"]
     assert dan["motivos"] == [] and nomes.index("Dan Cruz") > nomes.index("Bia Reis")   # 32 + 8 = 40 h: sem extra, mas mais horas
-    turno(g, tg, ids["Dan"], SEG - timedelta(days=1), "08:00", "12:00")   # domingo 15/11, mesma semana de trabalho: 36 h
+    turno(g, tg, ids["Dan"], SEG - timedelta(days=1), "08:00", "12:00")   # domingo 15/11 é da semana anterior
+    turno(g, tg, ids["Dan"], TER, "08:00", "14:00")                       # 38 h + 8 = 46 h: 2 h além das 44
     r2 = g.get(f"/painel/escala/sugestoes?data={QUA}&inicio=09:00&fim=17:00").json()
     dan = next(p for p in r2["pessoas"] if p["nome"] == "Dan Cruz")
-    assert dan["motivos"] == ["4h00 de hora extra"], dan
+    assert dan["motivos"] == ["2h00 de hora extra"], dan
     assert g.get("/painel/escala/sugestoes?data=x").status_code == 400
     assert "Ver quem pode" in g.get(f"/painel/escala?semana={SEG}").text
 

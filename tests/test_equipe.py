@@ -97,7 +97,7 @@ def main():
     assert turno(ids["Ana"], QUA)[1:3] == ("08:00", "17:00")
 
     # ================================================= turno aberto (cargo Server)
-    r = posta(g, "/painel/ofertas", tg, data=SAB.isoformat(), inicio="08:00", fim="12:00",
+    r = posta(g, "/painel/ofertas", tg, data=SAB.isoformat(), inicio="08:00", fim="13:00",
               intervalo="0", cargo="Server", quantos="1", obs="brunch")
     assert r.status_code == 303
     assert "3 pessoa(s)" in flash(g, "/painel/escala")
@@ -116,9 +116,9 @@ def main():
     assert "Pedido enviado" in flash(bruno, "/app/escala")
     assert "Aguardando o gestor" in bruno.get("/app/escala").text
     grade = g.get(f"/painel/escala?semana={SEG}").text
-    assert "1 para aprovar" in grade and "44h00 na semana: 4h00 de hora extra" in grade, grade[:0]
+    assert "1 para aprovar" in grade and "45h00 na semana: 1h00 além das 44 horas" in grade, grade[:0]
     posta(g, f"/painel/ofertas/{oid}", tg, acao="aprovar")
-    assert turno(ids["Bruno"], SAB)[1:3] == ("08:00", "12:00")
+    assert turno(ids["Bruno"], SAB)[1:3] == ("08:00", "13:00")
     with SessionLocal() as db:
         assert db.get(Oferta, oid).situacao == "aprovada"
     assert any(a[0] == ids["Bruno"] and a[1] == "Turno aprovado" for a in avisos if len(a) == 4)

@@ -53,52 +53,52 @@ def alertas(tipo):
 def main():
     as_("07:00", DOM)
     g = novo()
-    posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Diner", nome="Gil", email="gil@d.com", senha="segredo1")
+    posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Padaria", nome="Gil", email="gil@d.com", senha="segredo1")
     tg = csrf(g, "/painel/config")
-    posta(g, "/painel/config", tg, nome="Diner", lat="25.77", lng="-80.19", raio_m="150",
+    posta(g, "/painel/config", tg, nome="Padaria", lat="-2.53", lng="-44.30", raio_m="150",
           tolerancia_min="10", fuso="America/Sao_Paulo", bloquear_fora="1", ajuste_dias="7",
-          fotos_dias="45", estado="FL", semana_inicio="6", frequencia="weekly",
-          periodo_ancora=DOM.isoformat(), intervalo_padrao_min="30", tolerancia_dia_min="7",
-          pct_noturno="0", pct_feriado="0")
-    for nome, cel in (("Ana Souza", "3055550001"), ("Bia Reis", "3055550002")):
+          fotos_dias="45", controle="extra", intervalo_padrao_min="60", intervalo_auto="1",
+          tolerancia_dia_min="10")
+    for nome, cel in (("Ana Souza", "98999990001"), ("Bia Reis", "98999990002")):
         posta(g, "/painel/equipe", tg, nome=nome, celular=cel)
     with SessionLocal() as db:
         ids = {u.nome.split()[0]: u.id for u in db.scalars(select(Usuario))}
-        db.get(Usuario, ids["Bia"]).isento = True   # exempt: sem hora extra, sem aviso
+        db.get(Usuario, ids["Bia"]).classificacao = "pj"   # prestador PJ: sem hora extra, sem aviso
         db.commit()
-    # padrão: aviso 120 min antes; a regra aparece na tela das regras automáticas
-    assert 'name="aviso_extra_min" min="0" max="720" value="120"' in g.get("/painel/ponto/problemas").text
-    # segunda a quinta: 9 h por dia (36 h)
-    as_("20:00", DOM + timedelta(days=4))
-    for i in range(1, 5):
-        for nome in ("Ana", "Bia"):
-            for tipo, hora in (("entrada", "08:00"), ("saida", "17:00")):
-                posta(g, "/painel/ponto/manual", tg, usuario_id=ids[nome], tipo=tipo,
-                      data=(DOM + timedelta(days=i)).isoformat(), hora=hora, obs="t")
-    sex = DOM + timedelta(days=5)
-    as_("09:00", sex)
+    # padrão: aviso 30 min antes do fim da jornada; a regra aparece na tela das regras automáticas
+    assert 'name="aviso_extra_min" min="0" max="720" value="30"' in g.get("/painel/ponto/problemas").text
+    # segunda: escala 08:00–17:00 com 1 h de intervalo = jornada de 8 h
+    seg = DOM + timedelta(days=1)
     for nome in ("Ana", "Bia"):
-        posta(g, "/painel/ponto/manual", tg, usuario_id=ids[nome], tipo="entrada", data=sex.isoformat(),
-              hora="09:00", obs="t")
+        posta(g, "/painel/escala/turno", tg, usuario_id=ids[nome], data=seg.isoformat(), modo="trabalho",
+              inicio="08:00", fim="17:00", intervalo="60", repetir="dia")
+    as_("13:00", seg)
+    for nome in ("Ana", "Bia"):
+        for tipo, hora in (("entrada", "08:00"), ("saida", "12:00"), ("entrada", "13:00")):
+            posta(g, "/painel/ponto/manual", tg, usuario_id=ids[nome], tipo=tipo, data=seg.isoformat(),
+                  hora=hora, obs="t")
     with SessionLocal() as db:
-        as_("10:30", sex)          # 37h30: ainda não
+        as_("16:20", seg)          # 7h20: ainda não
         assert extra.verificar(db) == []
-        as_("11:05", sex)          # 38h05: faltam menos de 2 h
+        as_("16:35", seg)          # 7h35: faltam menos de 30 min
         novos = extra.verificar(db)
-        assert [a.tipo for a in novos] == ["perto_extra"] and novos[0].usuario_id == ids["Ana"]
-        assert "a hora extra começa daqui a 1h55" in novos[0].texto, novos[0].texto
-        as_("11:30", sex)
-        assert extra.verificar(db) == []          # um aviso por semana
-        as_("13:01", sex)          # 40h01: em hora extra
+        assert [a.tipo for a in novos] == ["perto_extra"] and novos[0].usuario_id == ids["Ana"], novos
+        assert "a jornada termina daqui a 0h25" in novos[0].texto, novos[0].texto
+        as_("16:45", seg)
+        assert extra.verificar(db) == []          # um aviso de cada tipo por dia
+        as_("17:15", seg)          # 8h15: passou da jornada mais a tolerância de 10 min
         novos = extra.verificar(db)
         assert [a.tipo for a in novos] == ["hora_extra"] and "está em hora extra" in novos[0].texto
-        as_("15:00", sex)
+        as_("18:00", seg)
         assert extra.verificar(db) == []
+        as_("19:05", seg)          # 10h05: mais de 2 h extras (CLT art. 59)
+        novos = extra.verificar(db)
+        assert [a.tipo for a in novos] == ["limite_extra"] and "até 2 horas por dia" in novos[0].texto
     assert "Perto da hora extra" in push.TITULOS.values()
 
     # regra desligada: nada
     posta(g, "/painel/config/regras-ponto", tg, entrada_antecipada_min="0", saida_auto_min="0", aviso_extra_min="0")
-    proxima = sex + timedelta(days=9)
+    proxima = seg + timedelta(days=7)
     as_("09:00", proxima)
     with SessionLocal() as db:
         assert extra.verificar(db) == []

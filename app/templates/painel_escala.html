@@ -55,7 +55,7 @@
     <li style="justify-content:space-between;flex-wrap:wrap">
       <span><strong>{{ o.candidato.nome }}</strong> {{ _('quer') }} {{ DIAS[o.data.weekday()] }} {{ o.data.strftime('%d/%m') }}, {{ o.inicio }}–{{ o.fim }}
         <br><span class="suave pequeno">{% if o.tipo == 'repasse' %}{{ _('Cobrindo {v1}', v1=(o.de.nome)) }}{% else %}{{ _('Turno aberto') }}{% endif %}{% if o.cargo %} · {{ o.cargo }}{% endif %}{% if o.local %} · {{ o.local.nome }}{% endif %}</span>
-        {% set x = avisos_extra.get(o.id) %}{% if x %}<br><span class="etiqueta alerta pequeno">{{ _('Com este turno, {v1} fica com {v2} na semana: {v3} de hora extra (1,5x).', v1=x.nome, v2=x.total, v3=x.extra) }}</span>{% endif %}</span>
+        {% set x = avisos_extra.get(o.id) %}{% if x %}<br><span class="etiqueta alerta pequeno">{{ _('Com este turno, {v1} fica com {v2} na semana: {v3} além das 44 horas (hora extra).', v1=x.nome, v2=x.total, v3=x.extra) }}</span>{% endif %}</span>
       <span class="acoes">
         <form method="post" action="/painel/ofertas/{{ o.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="aprovar"><button class="botao mini" type="submit">{{ _('Aprovar') }}</button></form>
         <form method="post" action="/painel/ofertas/{{ o.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="recusar"><button class="botao mini claro" type="submit">{{ _('Recusar') }}</button></form>
@@ -119,7 +119,7 @@
       caixa.innerHTML = "<p class='pequeno suave'>" + txt(t("Ordenado por: disponível, sem hora extra, menos horas na semana e menor custo.")) + "</p>" +
         j.pessoas.map(function (p) {
           return "<div class='sug'><span><strong>" + txt(p.nome) + "</strong>" + (p.cargo ? " · " + txt(p.cargo) : "") +
-            "<br><small class='suave'>" + txt(p.horas) + " " + txt(t("na semana")) + (p.custo != null ? " · $" + (p.custo / 100).toFixed(2) : "") + "</small>" +
+            "<br><small class='suave'>" + txt(p.horas) + " " + txt(t("na semana")) + (p.custo != null ? " · R$ " + (p.custo / 100).toFixed(2).replace(".", ",") : "") + "</small>" +
             (p.motivos.length ? "<br><small class='disp-aviso'>" + txt(p.motivos.join("; ")) + "</small>" : "<br><small class='conf-sim'>" + txt(t("pode trabalhar")) + "</small>") +
             "</span><button type='button' class='botao mini" + (p.ok ? "" : " claro") + "' data-id='" + p.id + "'>" + txt(t("Escalar")) + "</button></div>";
         }).join("");

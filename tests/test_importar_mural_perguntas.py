@@ -48,13 +48,13 @@ def entrar(token):
     return c, csrf(c, "/app")
 
 
-PLANILHA = ("Name;Phone;Email;Role;Hourly rate;Tips;Hire date;Birth date\n"
-            "Ana Souza;305 555-0101;ana@x.com;Server;R$ 12,50;yes;03/15/2025;\n"
-            "Leo Lima;(305) 555-0102;;Cook;18;no;;2010-06-01\n"
-            ";305 555-0103;;;;;;\n"
-            "Bia Reis;123;;;;;;\n"
-            "Caio Dias;305 555-0101;;;;;;\n"
-            "Dan Cruz;305 555-0104;;Host;abc;;;\n")
+PLANILHA = ("Nome;Celular;E-mail;Função;Salário;Jornada;Gorjeta;Admissão;Nascimento;Contrato\n"
+            "Ana Souza;98 99999-0101;ana@x.com;Garçom;R$ 1.750,00;220;sim;15/03/2025;;CLT\n"
+            "Leo Lima;(98) 99999-0102;;Cozinha;1.200,00;150;não;;01/06/2010;Aprendiz\n"
+            ";98 99999-0103;;;;;;;;\n"
+            "Bia Reis;123;;;;;;;;\n"
+            "Caio Dias;98 99999-0101;;;;;;;;\n"
+            "Dan Cruz;98 99999-0104;;Caixa;abc;;;;;\n")
 
 
 def main():
@@ -73,13 +73,13 @@ def main():
     # ---- importar planilha
     assert "Importar planilha" in g.get("/painel/equipe").text
     modelo = g.get("/painel/importar-equipe/modelo.csv")
-    assert modelo.headers["content-type"].startswith("text/csv") and "Hourly rate" in modelo.text
+    assert modelo.headers["content-type"].startswith("text/csv") and "Salário;Jornada;Dependentes" in modelo.text
     r = g.post("/painel/importar-equipe", data={"csrf": tg}, files={"arquivo": ("t.csv", b"Foo;Bar\n1;2\n", "text/csv")})
     assert r.status_code == 400 and "coluna do nome" in r.text
     r = g.post("/painel/importar-equipe", data={"csrf": tg}, files={"arquivo": ("t.csv", PLANILHA.encode(), "text/csv")})
     t = r.text
     assert "Prévia: 2 pessoa(s) prontas, 4 com erro" in t
-    assert "sem nome" in t and "celular inválido" in t and "celular repetido na planilha" in t and "valor da hora inválido" in t
+    assert "sem nome" in t and "celular inválido" in t and "celular repetido na planilha" in t and "salário inválido" in t
     with SessionLocal() as db:
         assert db.scalar(select(Usuario).where(Usuario.nome == "Ana Souza")) is None   # nada salvo na prévia
     conteudo = re.search(r'<textarea name="conteudo" hidden>(.*?)</textarea>', t, re.S).group(1)
@@ -89,10 +89,11 @@ def main():
     with SessionLocal() as db:
         ana = db.scalar(select(Usuario).where(Usuario.nome == "Ana Souza"))
         leo = db.scalar(select(Usuario).where(Usuario.nome == "Leo Lima"))
-        assert (ana.celular, ana.email, ana.cargo, ana.taxa_hora_centavos, ana.gorjeta, ana.data_admissao) == \
-               ("3055550101", "ana@x.com", "Server", 1250, True, date(2025, 3, 15))
-        assert leo.nascimento == date(2010, 6, 1) and leo.convite_token and leo.taxa_hora_centavos == 1800
-        assert db.scalar(select(FuncaoUsuario).where(FuncaoUsuario.usuario_id == ana.id)).nome == "Server"
+        assert (ana.celular, ana.email, ana.cargo, ana.salario_centavos, ana.gorjeta, ana.data_admissao) == \
+               ("98999990101", "ana@x.com", "Garçom", 175000, True, date(2025, 3, 15))
+        assert (leo.nascimento, leo.salario_centavos, leo.jornada_mensal, leo.classificacao) == \
+               (date(2010, 6, 1), 120000, 150, "aprendiz") and leo.convite_token
+        assert db.scalar(select(FuncaoUsuario).where(FuncaoUsuario.usuario_id == ana.id)).nome == "Garçom"
         tokens = {"Ana": ana.convite_token, "Leo": leo.convite_token}
     # importar de novo: os mesmos celulares viram erro
     r = g.post("/painel/importar-equipe", data={"csrf": tg}, files={"arquivo": ("t.csv", PLANILHA.encode(), "text/csv")})

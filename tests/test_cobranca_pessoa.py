@@ -1,5 +1,5 @@
 """Cobrança por pessoa (base + por pessoa que trabalhou nos últimos 30 dias, com mínimo) e cerca por plano.
-Stripe simulado. Rodar da raiz: .venv/Scripts/python tests/test_cobranca_pessoa.py"""
+Asaas simulado. Rodar da raiz: .venv/Scripts/python tests/test_cobranca_pessoa.py"""
 import os
 import re
 import sys
@@ -12,13 +12,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 tmp = tempfile.mkdtemp()
 os.environ.update({"DATABASE_URL": f"sqlite:///{tmp}/teste.db".replace("\\", "/"),
                    "SECRET_KEY": "teste", "IDIOMA_PADRAO": "pt", "SEM_AGENDADOR": "1",
-                   "ADMIN_EMAIL": "dono@plataforma.com", "STRIPE_SECRET_KEY": "sk_test_simulado",
-                   "STRIPE_WEBHOOK_SECRET": "whsec_teste_123456"})
+                   "ADMIN_EMAIL": "dono@plataforma.com", "ASAAS_API_KEY": "teste"})
 
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
-from app import cobranca, core  # noqa: E402
+from app import asaas, cobranca, core  # noqa: E402
 from app import db as banco  # noqa: E402
 from app.db import Empresa, Plano, SessionLocal, Usuario  # noqa: E402
 from app.main import app  # noqa: E402
@@ -27,29 +26,31 @@ SEG = date(2026, 11, 16)
 relogio = {"agora": datetime(2026, 11, 16, 13, 0)}
 banco.agora = lambda: relogio["agora"]
 chamadas = []
-estado = {"valor": 2900, "produto": "prod_1"}
+estado = {"valor": 2600}
 
 
-class Falso:
-    def __init__(self):
-        def checkout(params):
-            chamadas.append(("checkout", params))
-            return {"id": "cs_1", "url": "https://checkout.stripe.test/cs_1"}
-
-        def retrieve(sid):
-            return {"id": sid, "items": {"data": [{"id": "si_1", "price": {
-                "unit_amount": estado["valor"], "product": estado["produto"]}}]}}
-
-        def update(sid, params):
-            chamadas.append(("update", sid, params))
-            estado["valor"] = params["items"][0]["price_data"]["unit_amount"]
-            return {"id": sid}
-        self.v1 = SimpleNamespace(
-            checkout=SimpleNamespace(sessions=SimpleNamespace(create=checkout)),
-            subscriptions=SimpleNamespace(retrieve=retrieve, update=update))
+def _criar_cliente(nome, email, doc, ref):
+    chamadas.append(("cliente", doc))
+    return "cus_1"
 
 
-cobranca.cliente = Falso
+def _criar_assinatura(cliente, centavos, descricao, ref, primeiro=None, retorno=None):
+    chamadas.append(("assinatura", centavos))
+    estado["valor"] = centavos
+    return {"id": "sub_1", "primeira": {"id": "pay_1", "invoiceUrl": "https://asaas.test/i/pay_1"}}
+
+
+def _mudar_valor(sid, centavos):
+    chamadas.append(("valor", sid, centavos))
+    estado["valor"] = centavos
+
+
+asaas.criar_cliente = _criar_cliente
+asaas.criar_assinatura = _criar_assinatura
+asaas.mudar_valor_assinatura = _mudar_valor
+asaas.valor_assinatura = lambda sid: estado["valor"]
+asaas.consultar_cobranca = lambda pid: {"id": pid, "status": "PENDING"}
+asaas.cancelar_assinatura = lambda sid: chamadas.append(("cancelar", sid))
 
 
 def novo():
@@ -73,10 +74,10 @@ def main():
     # ---- Master: plano por pessoa
     r = m.post("/master/planos", data={"csrf": tm, "nome": "Inicial", "preco": "0", "limite": "15", "limite_locais": "1",
                                        "ordem": "1", "ativo": "1", "com_gps": "1", "com_foto": "1",
-                                       "por_pessoa": "4.00", "minimo": "29.00"})
+                                       "por_pessoa": "4,00", "minimo": "29,00"})
     m.post("/master/planos", data={"csrf": tm, "nome": "Intermediario", "preco": "0", "limite": "0", "limite_locais": "5",
                                    "ordem": "2", "ativo": "1", "com_gps": "1", "com_foto": "1", "com_alertas": "1",
-                                   "com_cerca": "1", "base": "20.00", "por_pessoa": "6.00"})
+                                   "com_cerca": "1", "base": "20,00", "por_pessoa": "6,00"})
     m.post("/master/planos", data={"csrf": tm, "nome": "Ruim", "preco": "0", "limite": "0", "ordem": "3",
                                    "por_pessoa": "abc"})
     assert "Valores da cobrança por pessoa inválidos" in m.get("/master/planos").text
@@ -94,7 +95,7 @@ def main():
     g.post("/cadastro", data={"csrf": csrf(g, "/cadastro"), "aceito": "1", "empresa": "Taco Bar", "nome": "Gil",
                               "email": "gil@t.com", "senha": "segredo1"})
     tg = csrf(g, "/painel/config")
-    for nome, cel in (("Ana Souza", "3055550001"), ("Bia Reis", "3055550002"), ("Caio Lima", "3055550003")):
+    for nome, cel in (("Ana Souza", "98999990001"), ("Bia Reis", "98999990002"), ("Caio Lima", "98999990003")):
         g.post("/painel/equipe", data={"csrf": tg, "nome": nome, "celular": cel})
     with SessionLocal() as db:
         us = {u.nome.split()[0]: u for u in db.scalars(select(Usuario).where(Usuario.papel == "funcionario"))}
@@ -112,40 +113,38 @@ def main():
         inter = db.get(Plano, ids["inter"])
         assert cobranca.valor_atual(db, e, inter) == (2600, 1)
 
-    # ---- checkout cobra o valor de hoje
+    # ---- a assinatura no Asaas nasce com o valor de hoje
     t = g.get("/painel/assinatura").text
     assert "hoje daria R$ 26,00/mês" in t and "hoje daria R$ 29,00/mês" in t
-    g.post("/painel/assinatura/pagar", data={"csrf": tg, "plano": ids["inter"]})
-    ck = [c for c in chamadas if c[0] == "checkout"][-1][1]
-    assert ck["line_items"][0]["price_data"]["unit_amount"] == 2600
-
-    # ---- assinatura ativa: ajuste diário do valor
+    r = g.post("/painel/assinatura/pagar", data={"csrf": tg, "plano": ids["inter"], "cpf_cnpj": "11.444.777/0001-61",
+                                                 "modo": "automatica"})
+    assert r.headers["location"] == "https://asaas.test/i/pay_1", r.headers
+    assert ("assinatura", 2600) in chamadas
     with SessionLocal() as db:
         e = db.get(Empresa, eid)
-        e.plano_id, e.stripe_assinatura_id = ids["inter"], "sub_1"
+        assert e.asaas_assinatura_id == "sub_1" and e.valor_assinatura_centavos == 2600
+        e.plano_id = ids["inter"]
         db.commit()
-    estado["valor"] = 2600
+
+    # ---- assinatura ativa: ajuste diário do valor
     for nome in ("Bia", "Caio"):   # mais duas pessoas trabalham
         relogio["agora"] = datetime(2026, 11, 17, 18, 0)
         g.post("/painel/ponto/manual", data={"csrf": tg, "usuario_id": us[nome].id, "tipo": "entrada",
                                              "data": "2026-11-17", "hora": "09:00", "obs": "t"})
     with SessionLocal() as db:
         assert cobranca.ajustar_valores(db) == 1
-        upd = [c for c in chamadas if c[0] == "update"][-1]
-        assert upd[2]["items"][0]["price_data"] == {"currency": "usd", "product": "prod_1", "unit_amount": 3800,
-                                                    "recurring": {"interval": "month"}}
-        assert upd[2]["proration_behavior"] == "none"
+        assert chamadas[-1] == ("valor", "sub_1", 3800)          # R$ 20 de base + 3 × R$ 6
         assert cobranca.ajustar_valores(db) == 0                     # uma vez por dia
         e = db.get(Empresa, eid)
         assert (e.pessoas_cobradas, e.valor_assinatura_centavos) == (3, 3800)
     t = g.get("/painel/assinatura").text
-    assert "Pessoas cobradas" in t and "próxima fatura: R$ 38,00" in t
+    assert "Pessoas cobradas" in t and "próxima cobrança: R$ 38,00" in t
 
     # ---- cerca por plano: Inicial não inclui
     with SessionLocal() as db:
         e = db.get(Empresa, eid)
         e.plano, e.teste_ate, e.pago_ate = db.get(Plano, ids["ini"]), None, datetime(2026, 12, 31)
-        e.lat, e.lng = 25.77, -80.19
+        e.lat, e.lng = -2.53, -44.30
         db.commit()
         e = db.get(Empresa, eid)
         assert core.situacao(e) == "ativa" and not core.cerca_liberada(e)

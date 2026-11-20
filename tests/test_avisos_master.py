@@ -1,23 +1,20 @@
 """Avisos para o dono da plataforma: nova empresa, pagamento confirmado/recusado, cancelamento,
 resumo diário dos testes grátis e liga/desliga em Master -> Avisos. E-mail simulado.
 Rodar da raiz: .venv/Scripts/python tests/test_avisos_master.py"""
-import hashlib
-import hmac
-import json
 import os
 import re
 import sys
 import tempfile
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 tmp = tempfile.mkdtemp()
+TOKEN = "t" * 40
 os.environ.update({"DATABASE_URL": f"sqlite:///{tmp}/teste.db".replace("\\", "/"),
                    "SECRET_KEY": "teste", "IDIOMA_PADRAO": "pt", "SEM_AGENDADOR": "1",
                    "ADMIN_EMAIL": "dono@plataforma.com", "PUBLIC_URL": "https://app.example.com",
-                   "STRIPE_SECRET_KEY": "sk_test_simulado", "STRIPE_WEBHOOK_SECRET": "whsec_teste_123456",
+                   "ASAAS_API_KEY": "chave-de-mentira", "ASAAS_WEBHOOK_TOKEN": TOKEN,
                    "SMTP_HOST": "smtp.example.com", "SMTP_USER": "no-reply@app.example.com",
                    "SMTP_PASSWORD": "x"})
 
@@ -39,12 +36,13 @@ def csrf(cli, caminho):
     return re.search(r'name="csrf" value="([^"]+)"', cli.get(caminho).text).group(1)
 
 
-def evento(cli, tipo, obj, eid):
-    corpo = json.dumps({"id": eid, "type": tipo, "data": {"object": obj}})
-    t = int(time.time())
-    sig = hmac.new(b"whsec_teste_123456", f"{t}.{corpo}".encode(), hashlib.sha256).hexdigest()
-    return cli.post("/stripe/webhook", content=corpo,
-                    headers={"Stripe-Signature": f"t={t},v1={sig}", "Content-Type": "application/json"})
+def evento(cli, tipo, eid, pay=None, ass=None):
+    corpo = {"id": eid, "event": tipo}
+    if pay:
+        corpo["payment"] = pay
+    if ass:
+        corpo["subscription"] = ass
+    return cli.post("/asaas/webhook", json=corpo, headers={"asaas-access-token": TOKEN})
 
 
 def do_master():
@@ -70,23 +68,20 @@ def main():
     with SessionLocal() as db:
         eid = db.scalar(select(Empresa.id).where(Empresa.nome == "Taco Bar"))
         e = db.get(Empresa, eid)
-        e.stripe_cliente_id, e.stripe_assinatura_id = "cus_1", "sub_1"
+        e.asaas_cliente_id, e.asaas_assinatura_id = "cus_1", "sub_1"
         db.commit()
 
-    # ---- pagamento confirmado, de US$ 0 (teste) não avisa, recusado e cancelado
-    base = {"customer": "cus_1", "created": int(time.time()),
-            "parent": {"subscription_details": {"subscription": "sub_1"}},
-            "lines": {"data": [{"period": {"end": int(time.time()) + 86400 * 30}}]}}
+    # ---- pagamento confirmado (uma vez só), cobrança vencida e assinatura cancelada
+    pay = {"customer": "cus_1", "subscription": "sub_1", "dueDate": "2026-11-18", "billingType": "PIX"}
     n = len(do_master())
-    evento(c, "invoice.paid", {**base, "id": "in_0", "amount_paid": 0}, "evt_0")
-    assert len(do_master()) == n
-    evento(c, "invoice.paid", {**base, "id": "in_1", "amount_paid": 5900}, "evt_1")
+    assert evento(c, "PAYMENT_CONFIRMED", "evt_1", {**pay, "id": "pay_1", "value": 59}).status_code == 200
     assert "Pagamento confirmado: Taco Bar (R$ 59,00)" in do_master()[-1][1]
-    evento(c, "invoice.paid", {**base, "id": "in_1", "amount_paid": 5900}, "evt_1")   # repetido
+    evento(c, "PAYMENT_CONFIRMED", "evt_1", {**pay, "id": "pay_1", "value": 59})     # repetido
+    evento(c, "PAYMENT_RECEIVED", "evt_1b", {**pay, "id": "pay_1", "value": 59})     # mesma cobrança
     assert len(do_master()) == n + 1
-    evento(c, "invoice.payment_failed", {**base, "id": "in_2", "amount_due": 5900}, "evt_2")
-    assert "Pagamento recusado: Taco Bar" in do_master()[-1][1] and "gil@t.com" in do_master()[-1][2]
-    evento(c, "customer.subscription.deleted", {"id": "sub_1"}, "evt_3")
+    evento(c, "PAYMENT_OVERDUE", "evt_2", {**pay, "id": "pay_2", "value": 59, "dueDate": "2026-12-18"})
+    assert "Cobrança vencida: Taco Bar" in do_master()[-1][1] and "gil@t.com" in do_master()[-1][2]
+    evento(c, "SUBSCRIPTION_DELETED", "evt_3", ass={"id": "sub_1"})
     assert "Assinatura cancelada: Taco Bar" in do_master()[-1][1]
 
     # ---- resumo diário dos testes grátis

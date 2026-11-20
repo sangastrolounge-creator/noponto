@@ -49,50 +49,58 @@ def pessoa(email=None, celular=None):
 
 def main():
     g = novo()
-    posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Diner", nome="Dora", email="dora@d.com", senha="segredo1")
+    posta(g, "/cadastro", csrf(g, "/cadastro"), aceito="1", empresa="Padaria", nome="Dora", email="dora@d.com", senha="segredo1")
     tg = csrf(g, "/painel/equipe/novo")
     assert 'href="/painel/equipe/novo"' in g.get("/painel/equipe").text
     tela = g.get("/painel/equipe/novo").text
-    for txt in ("Funções e salários", "Nível de acesso", "Gerente Geral", "Classificação tributária", "Recebe 1099"):
+    for txt in ("Nível de acesso", "Gerente Geral", "Tipo de contrato", "Empregado CLT", "Prestador PJ",
+                "Jornada mensal (horas)", "Dependentes (IRRF)", "Data de admissão"):
         assert txt in tela, txt
 
     # ---- funcionário: celular obrigatório
-    r = posta(g, "/painel/equipe/novo", tg, nome="Ana", sobrenome="Souza", nivel="funcionario", classificacao="w2")
+    r = posta(g, "/painel/equipe/novo", tg, nome="Ana", sobrenome="Souza", nivel="funcionario", classificacao="clt")
     assert r.status_code == 400 and "informe o celular" in r.text and 'value="Ana"' in r.text
-    # ---- funcionário com duas funções: garçom por hora (com gorjeta) e hostess
-    r = posta(g, "/painel/equipe/novo", tg, nome="Ana", sobrenome="Souza", celular="305 555 0001",
-              email="", nivel="funcionario", classificacao="w2", data_admissao="2026-11-02",
-              funcao_0="Server", valor_0="4.80", tipo_0="hora", funcao_1="Host", valor_1="15.00", tipo_1="hora",
-              gorjeta="1")
-    assert r.status_code == 303
-    ana = pessoa(celular="3055550001")
-    assert (ana.nome, ana.papel, ana.cargo, ana.taxa_hora_centavos, ana.gorjeta) == ("Ana Souza", "funcionario", "Server", 480, True)
-    assert ana.data_admissao == date(2026, 11, 2) and ana.classificacao == "w2" and ana.convite_token
+    # ---- funcionária com duas funções: garçom (mensal, com gorjeta) e caixa por hora
+    r = posta(g, "/painel/equipe/novo", tg, nome="Ana", sobrenome="Souza", celular="98 99999-0001",
+              email="", nivel="funcionario", classificacao="clt", data_admissao="2026-11-02",
+              funcao_0="Garçom", valor_0="1.800,00", tipo_0="mensal", funcao_1="Caixa", valor_1="12,50",
+              tipo_1="hora", gorjeta="1", jornada_mensal="220", dependentes="1", vt="180,00")
+    assert r.status_code == 303, r.text[-1500:]
+    ana = pessoa(celular="98999990001")
+    assert (ana.nome, ana.papel, ana.cargo, ana.salario_centavos, ana.gorjeta) == ("Ana Souza", "funcionario", "Garçom", 180000, True)
+    assert (ana.jornada_mensal, ana.dependentes, ana.vt_centavos) == (220, 1, 18000)
+    assert ana.data_admissao == date(2026, 11, 2) and ana.classificacao == "clt" and ana.convite_token
     with SessionLocal() as db:
-        assert [(f.nome, f.valor_centavos) for f in db.scalars(select(FuncaoUsuario).order_by(FuncaoUsuario.ordem))] == \
-            [("Server", 480), ("Host", 1500)]
+        assert [(f.nome, f.valor_centavos, f.tipo) for f in db.scalars(select(FuncaoUsuario).order_by(FuncaoUsuario.ordem))] == \
+            [("Garçom", 180000, "mensal"), ("Caixa", 1250, "hora")]
         a = db.get(Usuario, ana.id)
-        assert trocas.cargo_serve(Oferta(cargo="host"), a) and not trocas.cargo_serve(Oferta(cargo="Cook"), a)
-    # ---- valor inválido e celular repetido
-    r = posta(g, "/painel/equipe/novo", tg, nome="Bia", celular="3055550002", nivel="funcionario",
-              classificacao="w2", funcao_0="Cook", valor_0="abc", tipo_0="hora")
+        assert trocas.cargo_serve(Oferta(cargo="caixa"), a) and not trocas.cargo_serve(Oferta(cargo="Cozinha"), a)
+    # ---- valor inválido, jornada inválida e celular repetido
+    r = posta(g, "/painel/equipe/novo", tg, nome="Bia", celular="98999990002", nivel="funcionario",
+              classificacao="clt", funcao_0="Cozinha", valor_0="abc", tipo_0="mensal")
     assert r.status_code == 400 and "Confira o valor" in r.text
-    r = posta(g, "/painel/equipe/novo", tg, nome="Bia", celular="3055550001", nivel="funcionario", classificacao="w2")
+    r = posta(g, "/painel/equipe/novo", tg, nome="Bia", celular="98999990002", nivel="funcionario",
+              classificacao="clt", jornada_mensal="999")
+    assert r.status_code == 400 and "Jornada mensal" in r.text
+    r = posta(g, "/painel/equipe/novo", tg, nome="Bia", celular="98999990001", nivel="funcionario", classificacao="clt")
     assert r.status_code == 400 and "já está cadastrado" in r.text
+    # ---- por hora: o salário de referência é o valor da hora x a jornada do mês
+    posta(g, "/painel/equipe/novo", tg, nome="Bia", celular="98999990002", nivel="funcionario",
+          classificacao="intermitente", funcao_0="Cozinha", valor_0="10,00", tipo_0="hora", jornada_mensal="100")
+    assert pessoa(celular="98999990002").salario_centavos == 100000
 
-    # ---- gerente geral com salário anual: exempt, todas as permissões, entra com e-mail
+    # ---- gerente geral: todas as permissões, entra com e-mail
     r = posta(g, "/painel/equipe/novo", tg, nome="Lia", sobrenome="Lima", nivel="gerente_geral",
-              classificacao="w2", funcao_0="General manager", valor_0="52000", tipo_0="anual")
+              classificacao="clt", funcao_0="Gerente", valor_0="4.500,00", tipo_0="mensal")
     assert r.status_code == 400 and "informe um e-mail" in r.text
     posta(g, "/painel/equipe/novo", tg, nome="Lia", sobrenome="Lima", email="lia@d.com", nivel="gerente_geral",
-          classificacao="w2", funcao_0="General manager", valor_0="52000", tipo_0="anual", na_escala="")
+          classificacao="clt", funcao_0="Gerente", valor_0="4.500,00", tipo_0="mensal", na_escala="")
     lia = pessoa(email="lia@d.com")
     assert lia.papel == "gestor" and not lia.dono and set(lia.permissoes.split(",")) == set(PERMISSOES)
-    assert lia.isento and lia.salario_periodo_centavos == 5200000 // 26 and not lia.na_escala
-    # a ficha mostra o salário anual de volta
-    assert 'value="52000.00"' in g.get(f"/painel/equipe/{lia.id}/ficha").text
+    assert lia.salario_centavos == 450000 and not lia.na_escala
+    assert "4.500,00" in g.get(f"/painel/equipe/{lia.id}/ficha").text
     # ---- gerente comum: permissões padrão
-    posta(g, "/painel/equipe/novo", tg, nome="Rui", email="rui@d.com", nivel="gerente", classificacao="w2",
+    posta(g, "/painel/equipe/novo", tg, nome="Rui", email="rui@d.com", nivel="gerente", classificacao="clt",
           na_escala="1")
     rui = pessoa(email="rui@d.com")
     assert rui.permissoes == "escala,ponto,mural,tarefas,ausencias" and rui.na_escala
@@ -101,40 +109,31 @@ def main():
     lc = novo()
     posta(lc, f"/convite/{lia.convite_token}", csrf(lc, f"/convite/{lia.convite_token}"), senha="senha123")
     tl = csrf(lc, "/painel/equipe/novo")
-    assert 'value="gerente" disabled' in lc.get("/painel/equipe/novo").text.replace("  ", " ") or "desligada" in lc.get("/painel/equipe/novo").text
-    r = posta(lc, "/painel/equipe/novo", tl, nome="X", email="x@d.com", nivel="gerente", classificacao="w2")
+    r = posta(lc, "/painel/equipe/novo", tl, nome="X", email="x@d.com", nivel="gerente", classificacao="clt")
     assert r.status_code == 400 and "Só o dono" in r.text
-    r = posta(lc, "/painel/equipe/novo", tl, nome="Caio", celular="3055550003", nivel="funcionario", classificacao="1099_ind",
-              funcao_0="Dishwasher", valor_0="16", tipo_0="hora")
+    r = posta(lc, "/painel/equipe/novo", tl, nome="Caio", celular="98999990003", nivel="funcionario",
+              classificacao="pj", funcao_0="Entregas", valor_0="2.000,00", tipo_0="mensal")
     assert r.status_code == 303
-    caio = pessoa(celular="3055550003")
-    assert caio.classificacao == "1099_ind"
+    caio = pessoa(celular="98999990003")
+    assert caio.classificacao == "pj"
+    with SessionLocal() as db:   # PJ fica fora da folha de pagamento
+        assert caio.id not in {p.id for p in pagamento._equipe(db, db.get(Usuario, caio.id).empresa)}
     # ela não muda o nível de ninguém
-    r = posta(lc, f"/painel/equipe/{caio.id}/ficha", tl, nome="Caio", celular="3055550003", nivel="gerente",
-              email="c@d.com", classificacao="1099_ind")
+    r = posta(lc, f"/painel/equipe/{caio.id}/ficha", tl, nome="Caio", celular="98999990003", nivel="gerente",
+              email="c@d.com", classificacao="pj")
     assert r.status_code == 400 and "nível de acesso" in r.text
 
     # ---- dono promove Ana a gerente (precisa de e-mail) e depois volta a funcionária
-    r = posta(g, f"/painel/equipe/{ana.id}/ficha", tg, nome="Ana", sobrenome="Souza", celular="3055550001",
-              nivel="gerente", classificacao="w2", funcao_0="Server", valor_0="4.80", tipo_0="hora", gorjeta="1")
+    base = dict(nome="Ana", sobrenome="Souza", celular="98999990001", classificacao="clt",
+                funcao_0="Garçom", valor_0="1.800,00", tipo_0="mensal")
+    r = posta(g, f"/painel/equipe/{ana.id}/ficha", tg, nivel="gerente", gorjeta="1", **base)
     assert r.status_code == 400
-    posta(g, f"/painel/equipe/{ana.id}/ficha", tg, nome="Ana", sobrenome="Souza", celular="3055550001",
-          email="ana@d.com", nivel="gerente", classificacao="w2", funcao_0="Server", valor_0="4.80", tipo_0="hora",
-          gorjeta="1", na_escala="1")
+    posta(g, f"/painel/equipe/{ana.id}/ficha", tg, email="ana@d.com", nivel="gerente", gorjeta="1",
+          na_escala="1", **base)
     assert pessoa(email="ana@d.com").papel == "gestor"
-    posta(g, f"/painel/equipe/{ana.id}/ficha", tg, nome="Ana", sobrenome="Souza", celular="3055550001",
-          email="ana@d.com", nivel="funcionario", classificacao="w2", funcao_0="Server", valor_0="4.80", tipo_0="hora")
+    posta(g, f"/painel/equipe/{ana.id}/ficha", tg, email="ana@d.com", nivel="funcionario", **base)
     a = pessoa(email="ana@d.com")
     assert a.papel == "funcionario" and a.permissoes == "" and a.na_escala and not a.gorjeta
-
-    # ---- prestador 1099: horas extras viram horas normais no cálculo do pagamento
-    it = SimpleNamespace(usuario=SimpleNamespace(classificacao="1099_ind"))
-    linha = SimpleNamespace(**{k: 0 for k in pagamento.apuracao.CHAVES})
-    linha.regular, linha.ot, linha.dt, linha.meal_premios = 2400, 300, 60, 60
-    h = pagamento._horas_para_calculo(it, linha)
-    assert (h["regular"], h["ot"], h["dt"], h["meal_premios"]) == (2760, 0, 0, 0)
-    it.usuario.classificacao = "w2"
-    assert pagamento._horas_para_calculo(it, linha)["ot"] == 300
     print("OK: ficha da pessoa passou")
 
 

@@ -124,18 +124,22 @@ def tela(request: Request, ini: str = "", fim: str = "", formato: str = "",
     ver_custo = pode(u, "pagamento")
     if formato == "csv":
         buf = io.StringIO()
-        w = csv.writer(buf)
+        w = csv.writer(buf, delimiter=";")   # Excel em português: ponto e vírgula e vírgula decimal
+
+        def n(v):
+            return str(v).replace(".", ",")
         cab = [_("Funcionário"), _("Cargo"), _("Turnos"), _("Horas na escala"), _("Horas trabalhadas"),
                _("Diferença"), _("Pontualidade (%)"), _("Atrasos"), _("Faltas"), _("Nota média")]
         if ver_custo:
-            cab.append(_("Custo (US$)"))
+            cab.append(_("Custo (R$)"))
         w.writerow(cab)
         for x in r["linhas"]:
-            row = [x["u"].nome, x["u"].cargo or "", x["turnos"], round(x["escala"] / 60, 2), round(x["trab"] / 60, 2),
-                   round(x["dif"] / 60, 2), "" if x["pont_pct"] is None else x["pont_pct"], x["atrasos"], x["faltas"],
-                   "" if x["nota"] is None else x["nota"]]
+            row = [x["u"].nome, x["u"].cargo or "", x["turnos"], n(round(x["escala"] / 60, 2)),
+                   n(round(x["trab"] / 60, 2)), n(round(x["dif"] / 60, 2)),
+                   "" if x["pont_pct"] is None else x["pont_pct"], x["atrasos"], x["faltas"],
+                   "" if x["nota"] is None else n(x["nota"])]
             if ver_custo:
-                row.append(f"{x['custo'] / 100:.2f}")
+                row.append(n(f"{x['custo'] / 100:.2f}"))
             w.writerow(row)
         return Response("﻿" + buf.getvalue(), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="report-{i.isoformat()}-{f.isoformat()}.csv"'})

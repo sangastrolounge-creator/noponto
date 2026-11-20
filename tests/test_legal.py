@@ -35,15 +35,12 @@ def main():
     assert v.get("/termos").headers["location"] == "/terms"
     assert v.get("/privacidade").headers["location"] == "/privacy"
     t = v.get("/terms").text
-    assert "Termos de Uso" in t and "Não somos o seu processador de folha" in t and "vale a" in t
-    v.get("/idioma/en?volta=/terms")
-    t = v.get("/terms").text
-    assert "Terms of Use" in t and "We are not your payroll processor" in t and "State of Florida" in t
+    assert "Termos de Uso" in t and "Estes Termos seguem as leis do Brasil" in t and "Código de Defesa do Consumidor" in t
     p = v.get("/privacy").text
-    assert "We never read location when the app is closed" in p and "<strong>Brazil</strong>" in p and "OpenStreetMap" in p
-    assert "We do not use face recognition" in p
-    v.get("/idioma/es?volta=/privacy")
-    assert "Nunca leemos la ubicación con la app cerrada" in v.get("/privacy").text
+    assert "A localização nunca é lida com o aplicativo fechado" in p and "<strong>Brasil</strong>" in p
+    assert "Não fazemos reconhecimento facial" in p and "OpenStreetMap" in p and "art. 33 da LGPD" in p
+    v.get("/idioma/en?volta=/terms")
+    assert "Estes Termos seguem as leis do Brasil" in v.get("/terms").text   # o texto legal fica em português
     for pag in ("/entrar", "/cadastro", "/"):
         h = novo().get(pag).text
         assert 'href="/terms"' in h and 'href="/privacy"' in h, pag
@@ -61,31 +58,31 @@ def main():
 
     # ---- Master -> Plataforma: dados legais aparecem nas páginas
     tm = csrf(m, "/master/plataforma")
-    r = m.post("/master/plataforma", data={"csrf": tm, "nome": "Data Worke", "dias_teste": "7", "carencia_dias": "3",
+    r = m.post("/master/plataforma", data={"csrf": tm, "nome": "No Ponto", "dias_teste": "7", "carencia_dias": "3",
                                            "carencia_teste_dias": "0", "cadastro_aberto": "1", "email_legal": "isso não"})
     assert "inválido" in m.get("/master/plataforma").text
-    m.post("/master/plataforma", data={"csrf": tm, "nome": "Data Worke", "dias_teste": "7", "carencia_dias": "3",
+    m.post("/master/plataforma", data={"csrf": tm, "nome": "No Ponto", "dias_teste": "7", "carencia_dias": "3",
                                        "carencia_teste_dias": "0", "cadastro_aberto": "1",
-                                       "razao_social": "Data Worke LLC", "email_legal": "Privacy@Example.com",
-                                       "estado_lei": "Texas", "pais_servidores": "United States",
-                                       "endereco": "1 Main St, Austin, TX"})
+                                       "razao_social": "No Ponto Tecnologia Ltda, CNPJ 00.000.000/0001-00",
+                                       "email_legal": "Privacidade@Example.com", "estado_lei": "São Luís/MA",
+                                       "pais_servidores": "Brasil", "endereco": "Rua 1, São Luís/MA"})
     e = novo()
-    e.get("/idioma/en?volta=/terms")
     t = e.get("/terms").text
-    assert "Data Worke LLC" in t and "State of Texas" in t and "privacy@example.com" in t and "1 Main St, Austin, TX" in t
-    assert "<strong>United States</strong>" in e.get("/privacy").text
+    assert "No Ponto Tecnologia Ltda" in t and "da comarca de São Luís/MA" in t
+    assert "privacidade@example.com" in t and "Rua 1, São Luís/MA" in t
+    assert "<strong>Brasil</strong>" in e.get("/privacy").text
 
     # ---- convite do funcionário: aviso com os links e aceite registrado
     tg = csrf(m, "/painel/equipe")
-    m.post("/painel/equipe", data={"csrf": tg, "nome": "Ana Souza", "celular": "3055550001"})
+    m.post("/painel/equipe", data={"csrf": tg, "nome": "Ana Souza", "celular": "98999990001"})
     with SessionLocal() as db:
-        token = db.scalar(select(Usuario.convite_token).where(Usuario.celular == "3055550001"))
+        token = db.scalar(select(Usuario.convite_token).where(Usuario.celular == "98999990001"))
     a = novo()
     pagina = a.get(f"/convite/{token}").text
     assert "Ao entrar, você concorda com os" in pagina and 'href="/privacy"' in pagina
     a.post(f"/convite/{token}", data={"csrf": csrf(a, f"/convite/{token}"), "senha": "senha123", "consentimento": "1"})
     with SessionLocal() as db:
-        ana = db.scalar(select(Usuario).where(Usuario.celular == "3055550001"))
+        ana = db.scalar(select(Usuario).where(Usuario.celular == "98999990001"))
         assert ana.termos_versao == legal.VERSAO and ana.consentimento_em is not None
     print("OK: termos de uso e privacidade passou")
 
