@@ -139,7 +139,8 @@ def main():
         assert not db.scalar(select(Turno.id).where(Turno.usuario_id == ids["Bruno"]))
         assert not db.scalar(select(EscalaFixa.id).where(EscalaFixa.usuario_id == ids["Bruno"]))
         assert db.scalar(select(Historico).where(Historico.acao == "cadastro excluído"))
-    assert "Bruno Lima" not in g.get("/painel/equipe").text.split("Pessoas")[1]
+    tela = g.get("/painel/equipe").text
+    assert f'id="p{ids["Bruno"]}"' not in tela and f"desl-{ids['Bruno']}" not in tela
 
     # ---- outra empresa não mexe em ninguém daqui
     h = novo()
