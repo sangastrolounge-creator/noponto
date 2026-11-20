@@ -178,12 +178,12 @@ def manifest():
         "name": master.plataforma()["nome"],
         "short_name": master.plataforma().get("nome_curto") or master.plataforma()["nome"],
         "start_url": "/", "scope": "/",
-        "display": "standalone", "background_color": "#f4f6f5", "theme_color": "#0f766e",
+        "display": "standalone", "background_color": "#07162e", "theme_color": "#0f766e",
         "lang": "pt-BR", "description": "Escala, ponto e tarefas da equipe.",
         "icons": [
-            {"src": "/static/icone-192.png", "sizes": "192x192", "type": "image/png"},
-            {"src": "/static/icone-512.png", "sizes": "512x512", "type": "image/png"},
-            {"src": "/static/icone-512.png", "sizes": "512x512", "type": "image/png",
+            {"src": "/static/icone-192.png?v=2", "sizes": "192x192", "type": "image/png"},
+            {"src": "/static/icone-512.png?v=2", "sizes": "512x512", "type": "image/png"},
+            {"src": "/static/icone-maskable.png?v=2", "sizes": "512x512", "type": "image/png",
              "purpose": "maskable"},
         ]}, media_type="application/manifest+json")
 
