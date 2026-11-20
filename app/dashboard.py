@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from . import regras
 
 DIAS_CURTOS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-LARGURA, ALTURA, TOPO, BASE = 560, 190, 18, 26     # área do gráfico de barras (px do viewBox)
+LARGURA, ALTURA, TOPO, BASE = 360, 176, 18, 24     # área do gráfico (px do viewBox ≈ px na tela)
 
 
 def _passo(maximo: float) -> float:
@@ -28,12 +28,12 @@ def barras(itens: list[dict]) -> dict:
     passo = _passo(maximo)
     teto = max(passo * 4, passo * (int(maximo / passo) + (1 if maximo % passo else 0))) or 1
     util = ALTURA - TOPO - BASE
-    largura_col = (LARGURA - 40) / n
+    largura_col = (LARGURA - 44) / n
     larg = min(46, largura_col * 0.56)
     saida = []
     for k, i in enumerate(itens):
         h = 0 if teto == 0 else util * i["valor"] / teto
-        x = 40 + k * largura_col + (largura_col - larg) / 2
+        x = 44 + k * largura_col + (largura_col - larg) / 2
         y = TOPO + util - h
         r = min(4, h / 2, larg / 2)
         # topo arredondado (4px) e base reta, presa no eixo
@@ -43,7 +43,7 @@ def barras(itens: list[dict]) -> dict:
                c("Q", x + larg, y), c("", x + larg, y + r), c("V", TOPO + util), "Z"]
         caminho = " ".join(pts) if h > 0 else ""
         saida.append(dict(i, x=x, y=y, w=larg, h=h, cx=x + larg / 2, caminho=caminho,
-                          alvo_x=40 + k * largura_col, alvo_w=largura_col))
+                          alvo_x=44 + k * largura_col, alvo_w=largura_col))
     grade = []
     v = 0
     while v <= teto + 1e-9:

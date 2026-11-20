@@ -1,7 +1,7 @@
 {% extends "painel_base.html" %}
 {% macro grafico_barras(g, rotulo_eixo, prefixo='', sufixo='') %}
 <svg class="grafico" viewBox="0 0 {{ g.largura }} {{ g.altura }}" role="img" aria-label="{{ rotulo_eixo }}">
-  {% for l in g.grade %}<line class="grade-linha" x1="40" x2="{{ g.largura }}" y1="{{ l.y }}" y2="{{ l.y }}"/><text class="eixo" x="34" y="{{ l.y + 4 }}" text-anchor="end">{{ prefixo }}{{ '{:,.0f}'.format(l.valor).replace(',', '.') }}{{ sufixo }}</text>{% endfor %}
+  {% for l in g.grade %}<line class="grade-linha" x1="44" x2="{{ g.largura }}" y1="{{ l.y }}" y2="{{ l.y }}"/><text class="eixo" x="38" y="{{ l.y + 4 }}" text-anchor="end">{{ prefixo }}{{ '{:,.0f}'.format(l.valor).replace(',', '.') }}{{ sufixo }}</text>{% endfor %}
   {% for b in g.barras %}
   <g class="barra-grupo" tabindex="0" data-tip="{{ caller(b) }}">
     <rect class="alvo" x="{{ b.alvo_x }}" y="0" width="{{ b.alvo_w }}" height="{{ g.base_y }}"/>
@@ -10,7 +10,7 @@
     <text class="eixo{{ ' forte' if b.destaque }}" x="{{ b.cx }}" y="{{ g.altura - 8 }}" text-anchor="middle">{{ b.rotulo|traduz }}</text>
   </g>
   {% endfor %}
-  <line class="eixo-linha" x1="40" x2="{{ g.largura }}" y1="{{ g.base_y }}" y2="{{ g.base_y }}"/>
+  <line class="eixo-linha" x1="44" x2="{{ g.largura }}" y1="{{ g.base_y }}" y2="{{ g.base_y }}"/>
 </svg>
 {% endmacro %}
 {% block conteudo %}
