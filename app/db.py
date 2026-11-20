@@ -261,6 +261,11 @@ class Usuario(Base):
     # Ficha: tipo de contrato (clt | aprendiz | intermitente | estagio | pj), admissão e local principal.
     classificacao: Mapped[str] = mapped_column(String(12), default="clt")
     data_admissao: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Desligamento: último dia de trabalho, tipo (desligamento.TIPOS), aviso prévio e observação.
+    desligado_em: Mapped[date | None] = mapped_column(Date, nullable=True)
+    desligamento_tipo: Mapped[str] = mapped_column(String(20), default="")
+    aviso_previo: Mapped[str] = mapped_column(String(16), default="")
+    desligamento_obs: Mapped[str] = mapped_column(String(300), default="")
     # Só para menores de 18 (regras de trabalho de menores); vazio para os demais.
     nascimento: Mapped[date | None] = mapped_column(Date, nullable=True)
     local_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -988,6 +993,10 @@ COLUNAS_NOVAS = [
     ("batidas", "conferida", "BOOLEAN NOT NULL DEFAULT 1"),
     ("usuarios", "classificacao", "VARCHAR(12) NOT NULL DEFAULT 'clt'"),
     ("usuarios", "data_admissao", "DATE"),
+    ("usuarios", "desligado_em", "DATE"),
+    ("usuarios", "desligamento_tipo", "VARCHAR(20) NOT NULL DEFAULT ''"),
+    ("usuarios", "aviso_previo", "VARCHAR(16) NOT NULL DEFAULT ''"),
+    ("usuarios", "desligamento_obs", "VARCHAR(300) NOT NULL DEFAULT ''"),
     ("usuarios", "local_id", "INTEGER"),
     ("empresas", "aviso_extra_min", "INTEGER NOT NULL DEFAULT 30"),
     ("empresas", "intervalo_minimo_min", "INTEGER NOT NULL DEFAULT 60"),

@@ -1,0 +1,84 @@
+<dialog class="desl" id="desl-{{ p.id }}" aria-labelledby="desl-t-{{ p.id }}">
+  <header class="desl-topo">
+    <div class="desl-avatar" aria-hidden="true">{{ p.nome[:1]|upper }}</div>
+    <div>
+      <p class="desl-rotulo">{{ _('Desligamento') }}</p>
+      <h2 id="desl-t-{{ p.id }}">{{ p.nome }}</h2>
+      <p class="suave pequeno">{{ p.cargo ~ ' · ' if p.cargo }}{% if p.data_admissao %}{{ _('admitido(a) em {v1}', v1=p.data_admissao.strftime('%d/%m/%Y')) }}{% endif %}</p>
+    </div>
+    <button class="desl-fechar" type="button" data-fechar aria-label="{{ _('Fechar') }}">&times;</button>
+  </header>
+
+  {% if p.desligado_em %}
+  <div class="desl-corpo">
+    <div class="desl-resumo">
+      <div><span>{{ _('Último dia') }}</span><strong>{{ p.desligado_em.strftime('%d/%m/%Y') }}</strong></div>
+      <div><span>{{ _('Tipo') }}</span><strong>{{ _(TIPOS.get(p.desligamento_tipo, '—')) }}</strong></div>
+      <div><span>{{ _('Aviso prévio') }}</span><strong>{{ _(AVISOS.get(p.aviso_previo, '—')) }}</strong></div>
+    </div>
+    {% if p.desligamento_obs %}<p class="pequeno">{{ p.desligamento_obs }}</p>{% endif %}
+    <p class="suave pequeno">{{ _('As marcações de ponto, espelhos e folhas continuam guardados e aparecem nos relatórios.') }}</p>
+    <form method="post" action="/painel/equipe/{{ p.id }}/desfazer-desligamento" class="desl-acoes">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="botao claro" type="button" data-fechar>{{ _('Fechar') }}</button>
+      <button class="botao" type="submit">{{ _('Desfazer desligamento') }}</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="desl-passos" role="tablist">
+    <button type="button" role="tab" aria-selected="true" data-passo="demitir">{{ _('Demitir') }}</button>
+    <button type="button" role="tab" aria-selected="false" data-passo="excluir">{{ _('Excluir cadastro') }}</button>
+  </div>
+
+  <form method="post" action="/painel/equipe/{{ p.id }}/desligar" class="desl-corpo" data-painel="demitir">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <p class="suave pequeno" style="margin-top:0">{{ _('A pessoa sai da escala e perde o acesso depois do último dia. Tudo o que foi registrado fica guardado, como a lei exige.') }}</p>
+    <div class="linha-form">
+      <div><label for="desl-d-{{ p.id }}">{{ _('Último dia de trabalho') }}</label>
+        <input id="desl-d-{{ p.id }}" type="date" name="data" value="{{ hoje.isoformat() }}" required
+               {% if p.data_admissao %}min="{{ p.data_admissao.isoformat() }}"{% endif %}></div>
+      <div><label for="desl-a-{{ p.id }}">{{ _('Aviso prévio') }}</label>
+        <select id="desl-a-{{ p.id }}" name="aviso" required>
+          {% for k, v in AVISOS.items() %}<option value="{{ k }}">{{ _(v) }}</option>{% endfor %}
+        </select></div>
+    </div>
+    <span class="desl-legenda" id="desl-tp-{{ p.id }}">{{ _('Tipo de desligamento') }}</span>
+    <div class="desl-tipos" role="radiogroup" aria-labelledby="desl-tp-{{ p.id }}">
+      {% for k, v in TIPOS.items() %}
+      <label class="desl-tipo"><input type="radio" name="tipo" value="{{ k }}" required {{ 'checked' if loop.first }}><span>{{ _(v) }}</span></label>
+      {% endfor %}
+    </div>
+    <label for="desl-o-{{ p.id }}">{{ _('Observação (opcional)') }}</label>
+    <textarea id="desl-o-{{ p.id }}" name="obs" rows="2" maxlength="300" placeholder="{{ _('Ex.: entregou o uniforme; exame demissional marcado.') }}"></textarea>
+    <div class="desl-guia">
+      <strong>{{ _('Prazo da rescisão') }}</strong>
+      <span>{{ _('Pague as verbas rescisórias e entregue os documentos em até 10 dias corridos depois do último dia (CLT, art. 477, § 6º). O cálculo e o envio ao eSocial ficam com a sua contabilidade.') }}</span>
+    </div>
+    <div class="desl-acoes">
+      <button class="botao claro" type="button" data-fechar>{{ _('Cancelar') }}</button>
+      <button class="botao perigo" type="submit">{{ _('Confirmar desligamento') }}</button>
+    </div>
+  </form>
+
+  <div class="desl-corpo" data-painel="excluir" hidden>
+    {% if p.id in com_registros %}
+    <div class="desl-guia aviso-bloqueio">
+      <strong>{{ _('Este cadastro não pode ser excluído') }}</strong>
+      <span>{{ _('{v1} tem marcações de ponto, ausências ou folhas. A empresa precisa guardar esses registros por pelo menos 5 anos, então use a aba Demitir.', v1=p.primeiro_nome) }}</span>
+    </div>
+    <div class="desl-acoes"><button class="botao claro" type="button" data-fechar>{{ _('Fechar') }}</button></div>
+    {% else %}
+    <p class="suave pequeno" style="margin-top:0">{{ _('Use só para cadastro feito por engano ou de quem nunca trabalhou. O cadastro, a escala e os acessos são apagados de vez.') }}</p>
+    <form method="post" action="/painel/equipe/{{ p.id }}/excluir">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label for="desl-c-{{ p.id }}">{{ _('Para confirmar, digite o nome completo: {v1}', v1=p.nome) }}</label>
+      <input id="desl-c-{{ p.id }}" type="text" name="confirmar" autocomplete="off" data-nome-confirmar="{{ p.nome }}" required>
+      <div class="desl-acoes">
+        <button class="botao claro" type="button" data-fechar>{{ _('Cancelar') }}</button>
+        <button class="botao perigo" type="submit" data-excluir disabled>{{ _('Excluir cadastro') }}</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+</dialog>

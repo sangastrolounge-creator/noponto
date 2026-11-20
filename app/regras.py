@@ -142,12 +142,15 @@ def gerar_da_fixa(db: Session, e: Empresa, ini: date, fim: date) -> int:
                                    Usuario.na_escala.is_(True))))
     if not fixas:
         return 0
+    ultimo = dict(db.execute(select(Usuario.id, Usuario.desligado_em).where(
+        Usuario.empresa_id == e.id, Usuario.desligado_em.is_not(None))).all())
     ja = {(t.usuario_id, t.data) for t in db.scalars(select(Turno).where(
         Turno.empresa_id == e.id, Turno.data.between(ini, fim)))}
     n, d = 0, ini
     while d <= fim:
         for r in fixas:
-            if r.dia_semana == d.weekday() and (r.usuario_id, d) not in ja:
+            if (r.dia_semana == d.weekday() and (r.usuario_id, d) not in ja
+                    and not (ultimo.get(r.usuario_id) and d > ultimo[r.usuario_id])):
                 t = Turno(empresa_id=e.id, usuario_id=r.usuario_id, data=d, fixa=True)
                 copiar_para(t, r)
                 db.add(t)
@@ -516,6 +519,8 @@ def verificar_turnos(db: Session) -> tuple[list[Alerta], list[tuple[int, str, st
     for e in db.scalars(select(Empresa)):
         al = agora_local(e)
         d = al.date()
+        from . import desligamento
+        desligamento.encerrar_vencidos(db, e.id, d)
         gerar_da_fixa(db, e, hoje(e), hoje(e) + timedelta(days=DIAS_A_FRENTE))
         turnos = db.scalars(select(Turno).join(Usuario).where(
             Turno.empresa_id == e.id, Turno.folga.is_(False), Usuario.ativo.is_(True),

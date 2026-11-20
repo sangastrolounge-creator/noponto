@@ -355,3 +355,50 @@ code { border-radius: 6px; background: var(--cartao-2); }
 
 /* barra da prévia do Master: continua escura */
 .barra-master { background: #0e1330; color: #fff; }
+
+/* =====================================================================
+   Equipe: janela de desligamento
+   ===================================================================== */
+.acoes-pessoa { display: inline-flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+dialog.desl { width: min(620px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 0; overflow: auto;
+  border-radius: 24px; color: var(--texto); }
+dialog.desl[open] { animation: desl-entra .32s cubic-bezier(.2, .9, .25, 1.1) both; }
+@keyframes desl-entra { from { opacity: 0; transform: translateY(18px) scale(.97); } }
+.desl-topo { display: flex; gap: 14px; align-items: center; padding: 22px 24px 18px; position: relative;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--erro-solido) 10%, var(--cartao)), var(--degrade-suave));
+  border-bottom: 1px solid var(--borda); }
+.desl-topo h2 { margin: 0; font-size: 1.25rem; }
+.desl-topo p { margin: 2px 0 0; }
+.desl-rotulo { font-size: .72rem !important; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--erro); }
+.desl-avatar { flex: none; width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; font-weight: 800;
+  font-size: 1.2rem; color: #fff; background: linear-gradient(135deg, #f05d73, #a58bf8); box-shadow: 0 10px 22px -10px rgb(240 93 115 / .7); }
+.desl-fechar { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--borda);
+  background: var(--cartao); color: var(--suave); font-size: 1.3rem; line-height: 1; cursor: pointer; transition: transform var(--rapido); }
+.desl-fechar:hover { transform: rotate(90deg); color: var(--texto); }
+.desl-passos { display: flex; gap: 4px; margin: 16px 24px 0; padding: 4px; border-radius: 14px; background: var(--cartao-2); border: 1px solid var(--borda); }
+.desl-passos button { flex: 1; border: 0; background: none; padding: 9px 12px; border-radius: 10px; font: inherit; font-weight: 700;
+  color: var(--suave); cursor: pointer; transition: background-color var(--rapido), color var(--rapido), box-shadow var(--rapido); }
+.desl-passos button[aria-selected="true"] { background: var(--cartao); color: var(--texto); box-shadow: var(--sombra); }
+.desl-passos button[data-passo="excluir"][aria-selected="true"] { color: var(--erro); }
+.desl-corpo { padding: 18px 24px 22px; display: grid; gap: 10px; }
+.desl-corpo[hidden] { display: none; }
+.desl-corpo label, .desl-legenda { font-weight: 700; font-size: .88rem; margin-top: 4px; }
+.desl-tipos { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.desl-tipo { display: flex !important; gap: 10px; align-items: center; margin: 0 !important; padding: 11px 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--campo-borda); background: var(--campo-fundo); font-weight: 600 !important;
+  transition: border-color var(--rapido), background-color var(--rapido), box-shadow var(--rapido); }
+.desl-tipo:hover { border-color: color-mix(in srgb, var(--cor) 45%, var(--campo-borda)); }
+.desl-tipo:has(input:checked) { border-color: var(--cor); background: color-mix(in srgb, var(--cor) 8%, var(--cartao)); box-shadow: var(--anel); }
+.desl-guia { display: grid; gap: 4px; padding: 12px 14px; border-radius: 14px; font-size: .86rem;
+  background: var(--azul-fundo); color: var(--azul); border: 1px solid color-mix(in srgb, var(--azul) 18%, transparent); }
+.desl-guia.aviso-bloqueio { background: var(--alerta-fundo); color: var(--alerta); border-color: color-mix(in srgb, var(--alerta) 22%, transparent); }
+.desl-resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.desl-resumo div { padding: 12px; border-radius: 14px; background: var(--cartao-2); border: 1px solid var(--borda); display: grid; gap: 2px; }
+.desl-resumo span { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
+.desl-acoes { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 6px; }
+.desl-acoes .botao[disabled] { opacity: .45; cursor: not-allowed; transform: none; filter: grayscale(.3); }
+@media (max-width: 560px) {
+  dialog.desl { border-radius: 22px 22px 0 0; margin: auto auto 0; width: 100vw; max-width: 100vw; }
+  .desl-resumo { grid-template-columns: 1fr; }
+  .desl-acoes .botao { flex: 1; }
+}

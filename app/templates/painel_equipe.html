@@ -16,7 +16,9 @@
       <div>
         <span class="nome-forte">{{ p.nome }}</span>
         {% if p.gestor %}<span class="etiqueta azul">{{ _('Gestor') }}</span>{% endif %}
-        {% if not p.ativo %}<span class="etiqueta">{{ _('Desativado') }}</span>
+        {% if p.desligado_em and not p.ativo %}<span class="etiqueta erro">{{ _('Desligado em {v1}', v1=p.desligado_em.strftime('%d/%m/%Y')) }}</span>
+        {% elif p.desligado_em %}<span class="etiqueta alerta">{{ _('Último dia: {v1}', v1=p.desligado_em.strftime('%d/%m/%Y')) }}</span>
+        {% elif not p.ativo %}<span class="etiqueta">{{ _('Desativado') }}</span>
         {% elif convites.get(p.id) %}<span class="etiqueta alerta">{{ _('Aguardando 1º acesso') }}</span>
         {% elif not p.gestor %}<span class="etiqueta ok">{{ _('Ativo') }}</span>{% endif %}
         <br><span class="suave pequeno">{{ p.cargo ~ ' · ' if p.cargo }}{{ p.celular or p.email }}</span>
@@ -42,7 +44,12 @@
       {% endif %}
     </form>
     {% endfor %}
-    <a class="pequeno" href="/painel/equipe/{{ p.id }}/ficha">{{ _('Ficha completa') }}</a>
+    <span class="acoes-pessoa">
+      <a class="pequeno" href="/painel/equipe/{{ p.id }}/ficha">{{ _('Ficha completa') }}</a>
+      {% if p.id != u.id and not p.dono and (u.dono or not p.gestor) %}
+      <button class="botao mini claro desl-abrir" type="button" data-desligamento="desl-{{ p.id }}">{{ _('Desligamento') }}</button>
+      {% endif %}
+    </span>
     <details style="margin-top:8px">
       <summary class="pequeno">{{ _('Editar') }}</summary>
       <form method="post" action="/painel/equipe/{{ p.id }}">
@@ -61,15 +68,37 @@
           {% if aparelhos.get(p.id) %}
           <button class="botao claro" type="submit" name="acao" value="liberar_troca" formnovalidate>{{ _('Liberar troca de aparelho') }}</button>
           {% endif %}
-          {% if p.ativo and p.id != u.id %}
-          <button class="botao perigo" type="submit" name="acao" value="desativar" formnovalidate>{{ _('Desativar') }}</button>
-          {% elif not p.ativo %}
+          {% if not p.ativo and not p.desligado_em %}
           <button class="botao claro" type="submit" name="acao" value="reativar" formnovalidate>{{ _('Reativar') }}</button>
           {% endif %}
         </div>
       </form>
     </details>
+    {% if p.id != u.id and not p.dono and (u.dono or not p.gestor) %}{% include "_desligamento.html" %}{% endif %}
   </div>
   {% endfor %}
 </div>
+<script>
+document.querySelectorAll("[data-desligamento]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var d = document.getElementById(b.dataset.desligamento);
+    if (d && d.showModal) d.showModal();
+  });
+});
+document.querySelectorAll(".desl").forEach(function (d) {
+  d.addEventListener("click", function (ev) { if (ev.target === d) d.close(); });
+  d.querySelectorAll("[data-fechar]").forEach(function (x) { x.addEventListener("click", function () { d.close(); }); });
+  d.querySelectorAll("[data-passo]").forEach(function (t) {
+    t.addEventListener("click", function () {
+      d.querySelectorAll("[data-passo]").forEach(function (o) { o.setAttribute("aria-selected", o === t ? "true" : "false"); });
+      d.querySelectorAll("[data-painel]").forEach(function (pn) { pn.hidden = pn.dataset.painel !== t.dataset.passo; });
+    });
+  });
+  var nome = d.querySelector("[data-nome-confirmar]"), btn = d.querySelector("[data-excluir]");
+  if (nome && btn) nome.addEventListener("input", function () {
+    var limpa = function (x) { return x.trim().replace(/\s+/g, " ").toLowerCase(); };
+    btn.disabled = limpa(nome.value) !== limpa(nome.dataset.nomeConfirmar);
+  });
+});
+</script>
 {% endblock %}
