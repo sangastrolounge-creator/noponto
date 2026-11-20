@@ -1048,8 +1048,8 @@ a.hora:hover, a.hora:focus-visible { transform: translateY(-1px); box-shadow: 0 
 .hora-grande.manual { background: var(--azul-fundo); color: var(--azul); }
 /* Ajuste de ponto: espelho por dia (barra do dia, linhas de entrada/saída, rodapé com totais) */
 .dias-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
-.espelho { min-width: 860px; border: 1px solid var(--borda); border-radius: var(--raio); overflow: visible; }
-.esp-cab, .esp-linha { display: grid; grid-template-columns: 150px 170px 170px 80px minmax(140px, 1fr) minmax(140px, 1fr); align-items: center; gap: 8px; padding: 6px 12px; }
+.espelho { min-width: 780px; border: 1px solid var(--borda); border-radius: var(--raio); overflow: visible; }
+.esp-cab, .esp-linha { display: grid; grid-template-columns: 128px 158px 158px 64px minmax(120px, 1fr) minmax(120px, 1fr); align-items: center; gap: 8px; padding: 6px 12px; }
 .esp-cab { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); background: var(--fundo); border-radius: var(--raio) var(--raio) 0 0; }
 .esp-dia + .esp-dia { border-top: 1px solid var(--borda); }
 .esp-barra { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 6px 12px; color: #fff;
@@ -1071,15 +1071,16 @@ a.hora:hover, a.hora:focus-visible { transform: translateY(-1px); box-shadow: 0 
 .hora.caixa.falta { border-style: dashed; }
 .esp-x { border: none; background: none; cursor: pointer; color: var(--suave); font-size: .85rem; padding: 4px; border-radius: 4px; }
 .esp-x:hover { color: var(--erro); background: var(--erro-fundo); }
-.esp-total { font-family: var(--mono); font-weight: 700; }
+.esp-total { font-family: var(--fonte-titulo); font-weight: 700; font-variant-numeric: tabular-nums; }
 .esp-local { font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .texto-erro { color: var(--erro); font-weight: 700; }
 .esp-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 28px; padding: 8px 12px 10px; background: color-mix(in srgb, var(--cor) 5%, var(--cartao)); }
 .esp-rodape > div { display: flex; flex-direction: column; line-height: 1.25; }
 .esp-rodape small { font-size: .72rem; color: var(--suave); }
-.esp-rodape strong { font-family: var(--mono); }
+.esp-rodape strong { font-family: var(--fonte-titulo); font-variant-numeric: tabular-nums; }
 .esp-rodape .ocorrencias { flex-direction: row; flex-wrap: wrap; gap: 4px; margin-left: auto; }
 .menu-lista .ic { display: inline-block; width: 22px; text-align: center; opacity: .8; }
 .ic-originais::before { content: "🗂"; } .ic-historico::before { content: "🕘"; } .ic-atraso::before { content: "⏰"; }
 .ic-preencher::before { content: "✨"; } .ic-motivo::before { content: "💬"; } .ic-ausencia::before { content: "🩺"; }
 .ic-sobreaviso::before { content: "📟"; } .ic-escala::before { content: "📅"; }
+.esp-dia.sem-escala .esp-barra { background: color-mix(in srgb, var(--cor) 35%, var(--cartao)); }

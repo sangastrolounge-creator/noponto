@@ -63,7 +63,7 @@
       {% for dd in r.dias %}
       {% set dif = dd.extra - dd.debito %}
       {% set atr = dd.pares|map('first')|reject('none')|map(attribute='atraso_min')|max %}
-      <div class="esp-dia{{ ' falta' if dd.falta }}">
+      <div class="esp-dia{{ ' falta' if dd.falta }}{{ ' sem-escala' if not dd.pares and not dd.turno }}">
         <div class="esp-barra">
           <div class="menu-acoes">
             <button type="button" class="tres-pontos" aria-haspopup="true" aria-label="{{ _('Ações do dia {v1}', v1=dd.dia.strftime('%d/%m')) }}">⋮</button>
@@ -84,11 +84,11 @@
           {% for x in (a, b) %}
           <span class="esp-hora">
             {% if x %}
-              {% if x.foto %}<a class="esp-ic" href="/painel/ponto/foto/{{ x.id }}" target="_blank" rel="noopener" title="{{ _('Ver foto') }}">📷</a>{% else %}<span class="esp-ic vazio"></span>{% endif %}
+              {% if x.foto %}<a class="esp-ic" href="/painel/ponto/foto/{{ x.id }}" target="_blank" rel="noopener" title="{{ _('Ver foto') }}">📷</a>{% else %}<span class="esp-ic esp-ic-vazio"></span>{% endif %}
               <a class="hora caixa{{ ' manual' if x.manual }}{{ ' fora' if x.dentro is false }}" href="/painel/ponto/ajuste/batida/{{ x.id }}?volta={{ volta|urlencode }}" data-janela title="{{ (_('Lançada à mão: ') ~ x.obs ~ ' · ') if x.manual else '' }}{{ _('Clique para editar') }}">{{ local(e, x.momento) }}</a>
               {% if not (fechado_ate and dd.dia <= fechado_ate) %}<form method="post" action="/painel/ponto/{{ x.id }}/apagar" class="inline" data-confirma="{{ _('Anular a batida das {v1} de {v2}? Ela sai das contas, mas o registro original fica guardado no histórico.', v1=(local(e, x.momento)), v2=(r.u.primeiro_nome)) }}"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}"><button class="esp-x" type="submit" title="{{ _('Anular') }}" aria-label="{{ _('Anular') }}">✕</button></form>{% endif %}
             {% else %}
-              <span class="esp-ic vazio"></span><a class="hora caixa falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo={{ 'entrada' if loop.first else 'saida' }}&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a>
+              <span class="esp-ic esp-ic-vazio"></span><a class="hora caixa falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo={{ 'entrada' if loop.first else 'saida' }}&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a>
             {% endif %}
           </span>
           {% endfor %}
@@ -96,15 +96,16 @@
           {% for x in (a, b) %}<span class="esp-local suave">{% if x %}{% if x.manual %}{{ _('Lançada pelo gestor') }}{% elif x.local_nome %}{{ x.local_nome }}{% elif x.distancia_m is not none %}{{ _('a {v1} m', v1=x.distancia_m) }}{% if x.dentro is false %} · <span class="texto-erro">{{ _('fora da área') }}</span>{% endif %}{% else %}—{% endif %}{% endif %}</span>{% endfor %}
         </div>
         {% else %}
+        {% if dd.turno and not dd.turno.folga and not dd.feriado and dd.dia <= hoje %}
         <div class="esp-linha vazia">
-          {% if dd.turno and not dd.turno.folga and not dd.feriado and dd.dia <= hoje %}
           <span><span class="esp-status erro">{{ _('Sem batidas') }}</span></span>
-          <span class="esp-hora"><span class="esp-ic vazio"></span><a class="hora caixa falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo=entrada&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a></span>
-          <span class="esp-hora"><span class="esp-ic vazio"></span><a class="hora caixa falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo=saida&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a></span>
-          {% endif %}
+          <span class="esp-hora"><span class="esp-ic esp-ic-vazio"></span><a class="hora caixa falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo=entrada&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a></span>
+          <span class="esp-hora"><span class="esp-ic esp-ic-vazio"></span><a class="hora caixa falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo=saida&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a></span>
         </div>
+        {% endif %}
         {% endfor %}
         {% set ns = namespace(intv=0) %}{% for i in range(dd.pares|length - 1) %}{% if dd.pares[i][1] and dd.pares[i + 1][0] %}{% set ns.intv = ns.intv + ((dd.pares[i + 1][0].momento - dd.pares[i][1].momento).total_seconds() // 60)|int %}{% endif %}{% endfor %}
+        {% if dd.pares or (dd.turno and not dd.turno.folga) or dd.obs or dd.motivos %}
         <div class="esp-rodape">
           <div><small>{{ _('Trabalhadas') }}</small><strong>{{ fmt_min(dd.trabalhado) }}</strong></div>
           <div><small>{{ _('Total de intervalos') }}</small><strong>{{ fmt_min(ns.intv) }}</strong></div>
@@ -116,6 +117,7 @@
             {% for m in dd.motivos %}<span class="etiqueta azul" title="{{ m.obs }}">{{ m.motivo|traduz }}</span>{% endfor %}
           </div>
         </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div></div>
