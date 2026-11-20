@@ -148,7 +148,7 @@ def main():
                    "faltas": 10909, "dsr_perdido": 21818, "inss": 22149}, val
     assert (ana.bruto, ana.descontos, ana.liquido, ana.fgts) == (346750, 54876, 291874, 21849)
     tela = g.get(folha_url).text
-    assert "R$ 3.018,01" in tela and "Sem salário cadastrado" in tela
+    assert "R$ 2.918,74" in tela and "Sem salário cadastrado" in tela
     assert "A revisão pelo Claude ainda não foi ligada" in tela
 
     # ---- lançamento manual: comissão tributável recalcula INSS
