@@ -201,7 +201,7 @@ def dicas(db: Session, e, r: dict) -> list[tuple[str, str, str]]:
     if r.get("menores") == "sim":
         sai.append((_("Na ficha de quem tem menos de 18 anos, informe a data de nascimento: o sistema confere os limites da lei."),
                     _("Ver a equipe"), "/painel/equipe"))
-    if r.get("provedor") == "noponto":
+    if (r.get("provedor") or e.provedor_folha) == "noponto":
         sai.append((_("Em Pagamento, informe o salário, a jornada e os dependentes de cada um para calcular a folha."),
                     _("Abrir Pagamento"), "/painel/pagamento"))
     sai.append((_("Monte a escala da semana usando os modelos de turno."), _("Abrir a escala"), "/painel/escala"))

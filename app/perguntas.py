@@ -56,7 +56,8 @@ async def responder(request: Request, tarefas_bg: BackgroundTasks, u: Usuario = 
             return ir("/app")
         if not pular and q.tipo == "numero" and v:
             try:
-                float(v.replace(",", ".").replace("$", ""))
+                n = v.replace("R$", "").replace("$", "").replace(" ", "")
+                float(n.replace(".", "").replace(",", ".") if "," in n else n)
             except ValueError:
                 avisar(request, "Use só números na resposta: {v1}".replace("{v1}", q.texto), "erro")
                 return ir("/app")

@@ -98,7 +98,7 @@ def main():
     lia = pessoa(email="lia@d.com")
     assert lia.papel == "gestor" and not lia.dono and set(lia.permissoes.split(",")) == set(PERMISSOES)
     assert lia.salario_centavos == 450000 and not lia.na_escala
-    assert "4.500,00" in g.get(f"/painel/equipe/{lia.id}/ficha").text
+    assert "4500,00" in g.get(f"/painel/equipe/{lia.id}/ficha").text
     # ---- gerente comum: permissões padrão
     posta(g, "/painel/equipe/novo", tg, nome="Rui", email="rui@d.com", nivel="gerente", classificacao="clt",
           na_escala="1")

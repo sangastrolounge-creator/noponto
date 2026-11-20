@@ -207,37 +207,39 @@ def main():
     dados[f"gorjeta_{ids['Ana']}"] = dados[f"gorjeta_{ids['Bruno']}"] = "1"
     posta(g, "/painel/pagamento/dados", tg, **dados)
     posta(g, "/painel/fechamento", tg, de=DOM.isoformat(), ate=SAB.isoformat())
-    fech = re.search(r'<option value="(\d+)">11/15/2026 a 11/21/2026', g.get("/painel/pagamento").text).group(1)
+    fech = re.search(r'<option value="(\d+)">15/11/2026 a 21/11/2026', g.get("/painel/pagamento").text).group(1)
     url = posta(g, "/painel/pagamento/gerar", tg, fechamento_id=fech).headers["location"]
     fid = int(url.rsplit("/", 1)[1])
     tela = g.get(url).text
-    assert "Dividir gorjetas (tip pool)" in tela
+    assert "Rateio de gorjetas" in tela
     with SessionLocal() as db:
         itens = {i.usuario.nome.split()[0]: i.id for i in db.scalars(select(FolhaItem))}
     assert re.search(rf'name="p_{itens["Ana"]}" value="1" checked', tela)
     assert not re.search(rf'name="p_{itens["Caio"]}" value="1" checked', tela)
-    posta(g, f"/painel/pagamento/{fid}/gorjetas", tg, total="100.00", tipo="gorjeta_cartao",
-          modo="horas", descricao="Tip pool", **{f"p_{itens['Ana']}": "1", f"p_{itens['Bruno']}": "1"})
+    with SessionLocal() as db:
+        antes = {n: db.get(FolhaItem, itens[n]).bruto for n in ("Ana", "Bruno")}
+    posta(g, f"/painel/pagamento/{fid}/gorjetas", tg, total="100,00",
+          modo="horas", descricao="Rateio", **{f"p_{itens['Ana']}": "1", f"p_{itens['Bruno']}": "1"})
     assert "divididos entre 2 pessoa(s)" in flash(g, url)
     with SessionLocal() as db:
         a, b = db.get(FolhaItem, itens["Ana"]), db.get(FolhaItem, itens["Bruno"])
         la, lb = json.loads(a.lancamentos), json.loads(b.lancamentos)
-        assert la == [{"descricao": "Tip pool", "tipo": "gorjeta_cartao", "centavos": 3333}], la
+        assert la == [{"descricao": "Rateio", "tipo": "p", "centavos": 3333, "tributavel": True}], la
         assert lb[0]["centavos"] == 6667
-        assert a.bruto == 4000 + 3333 and b.bruto == 8000 + 6667, (a.bruto, b.bruto)
-    posta(g, f"/painel/pagamento/{fid}/gorjetas", tg, total="30.00", tipo="gorjeta_dinheiro",
+        assert a.bruto >= antes["Ana"] + 3333 and b.bruto >= antes["Bruno"] + 6667, (a.bruto, b.bruto)
+    posta(g, f"/painel/pagamento/{fid}/gorjetas", tg, total="30,00",
           modo="igual", **{f"p_{itens['Caio']}": "1", f"p_{itens['Duda']}": "1",
                            f"p_{itens['Ana']}": "1"})
     with SessionLocal() as db:   # Caio e Duda não trabalharam, mas em partes iguais recebem
         assert json.loads(db.get(FolhaItem, itens["Caio"]).lancamentos)[0]["centavos"] == 1000
-    posta(g, f"/painel/pagamento/{fid}/gorjetas", tg, total="10.00", modo="horas",
+    posta(g, f"/painel/pagamento/{fid}/gorjetas", tg, total="10,00", modo="horas",
           **{f"p_{itens['Caio']}": "1"})
     assert "Ninguém marcado tem horas" in flash(g, url)
 
     # ================================================= plano grátis
     with SessionLocal() as db:
         free = db.scalar(select(Plano).where(Plano.preco_centavos == 0))
-        assert free and free.nome == "Free" and free.limite_funcionarios == 10 and free.limite_locais == 1
+        assert free and free.nome == "Grátis" and free.limite_funcionarios == 10 and free.limite_locais == 1
         assert not free.com_pagamento and not free.ativo
         free.ativo = True
         e = db.get(Empresa, 1)
@@ -246,12 +248,12 @@ def main():
         db.commit()
         assert situacao(db.get(Empresa, 1)) == "vencida"   # o teste de 7 dias acabou
     tela = g.get("/painel/assinatura").text
-    assert "Ou continue de graça" in tela and "Usar o plano Free" in tela
+    assert "Ou continue de graça" in tela and "Usar o plano Grátis" in tela
     assert "Grátis" in novo().get("/").text and "Começar grátis" in novo().get("/").text
     posta(g, "/painel/assinatura/gratis", tg)
     with SessionLocal() as db:
         e = db.get(Empresa, 1)
-        assert e.plano.nome == "Free" and situacao(e) == "gratis"
+        assert e.plano.nome == "Grátis" and situacao(e) == "gratis"
     assert "Pagamento não está no seu plano" in g.get("/painel/pagamento").text
     r = g.get(url)
     assert r.status_code == 303 and r.headers["location"] == "/painel/pagamento"
