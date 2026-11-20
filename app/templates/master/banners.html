@@ -10,6 +10,7 @@
     <div><label>{{ _('Link (opcional)') }}</label><input type="text" name="link" maxlength="300" value="{{ b.link if b }}" placeholder="/painel/assinatura {{ _('ou') }} https://..."></div>
     <div><label>{{ _('Texto do botão') }}</label><input type="text" name="botao" maxlength="40" value="{{ b.botao if b }}" placeholder="{{ _('Saiba mais') }}"></div>
   </div>
+  <div class="campo"><label>{{ _('Imagem de fundo (opcional)') }}</label><input type="url" name="imagem" maxlength="400" value="{{ b.imagem if b }}" placeholder="https://..."><div class="ajuda">{{ _('Endereço https:// de uma imagem larga (por exemplo 1600 × 300). Sem imagem, o banner usa a cor escolhida.') }}</div></div>
   <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
     <div><label>{{ _('Começa em') }}</label><input type="date" name="inicio" value="{{ b.inicio.isoformat() if b and b.inicio }}"></div>
     <div><label>{{ _('Termina em') }}</label><input type="date" name="fim" value="{{ b.fim.isoformat() if b and b.fim }}"></div>
@@ -23,7 +24,7 @@
 {% for b in banners %}
 {% set no_ar = b.ativo and (not b.inicio or b.inicio <= hoje) and (not b.fim or hoje <= b.fim) %}
 <div class="cartao">
-  <div class="banner-promo cor-{{ b.cor }}" style="margin-bottom:12px">
+  <div class="banner-promo cor-{{ b.cor }}{{ ' com-imagem' if b.imagem }}"{% if b.imagem %} style="--banner-img: url('{{ b.imagem }}');margin-bottom:12px"{% else %} style="margin-bottom:12px"{% endif %}>
     <div><strong>{{ b.titulo }}</strong>{% if b.texto %}<span>{{ b.texto }}</span>{% endif %}</div>
     {% if b.link %}<span class="botao">{{ b.botao or _('Saiba mais') }}</span>{% endif %}
   </div>

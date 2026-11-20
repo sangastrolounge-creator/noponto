@@ -69,11 +69,13 @@ def main():
     # ---- Hoje: sem checklist e sem bloco de avisos; com gráficos e atalhos
     t = m.get("/painel").text
     assert "Checklist de hoje" not in t and "Marcar como vistos" not in t
-    assert "Horas trabalhadas · 7 dias" in t and "Situação da equipe agora" in t and "Acesso rápido" in t
+    assert "Horas trabalhadas · 7 dias" in t and "Situação da equipe agora" in t and "Rotinas diárias" in t
     assert 'class="barra' in t and "17/11 · " in t and "1 pessoa(s)" in t
     assert 'href="/painel/ajustes"' not in t and 'href="/painel/ponto/ajuste"' in t
     assert "Avisos novos" in t and 'href="/painel/avisos"' in t
     assert "Sem ponto: 1" in t                 # Ana não bateu às 10h
+    assert "Bom dia, Zé!" in t and "Sugestões do sistema" in t and "Cadastre os feriados de 2026" in t
+    assert 'class="rotina forte" href="/painel/ponto/ajuste"' in t
     # menu Escala sem submenus
     assert "Turnos abertos e trocas" not in t and "Escala da semana" not in t
 
@@ -95,7 +97,11 @@ def main():
           link="/painel/assinatura", botao="Quero", cor="roxo", ativo="1")
     posta(m, "/master/banners", tm, titulo="Ainda não", inicio="2026-12-01", ativo="1")
     posta(m, "/master/banners", tm, titulo="Desligado", ativo="")
+    posta(m, "/master/banners", tm, titulo="Img ruim", imagem="https://x.com/a.png'); alert(1)", ativo="1")
+    assert "A imagem precisa" in m.get("/master/banners").text
+    posta(m, "/master/banners", tm, titulo="Com foto", imagem="https://exemplo.com/banner.jpg", ativo="1", ordem="5")
     t = m.get("/painel").text
+    assert "--banner-img: url('https://exemplo.com/banner.jpg')" in t and "Img ruim" not in t
     assert "Folha com 20% off" in t and "cor-roxo" in t and 'href="/painel/assinatura"' in t
     assert "Ainda não" not in t.split("data-banners")[1].split("</section>")[0] and "Desligado" not in t
     with SessionLocal() as db:

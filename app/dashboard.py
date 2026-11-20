@@ -1,9 +1,11 @@
 """Dados e geometria dos gráficos da tela Hoje (SVG feito no servidor: sem biblioteca externa)."""
 from datetime import date, timedelta
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import regras
+from . import core, regras
+from .db import Feriado, Turno, Usuario
 
 DIAS_CURTOS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
 LARGURA, ALTURA, TOPO, BASE = 360, 176, 18, 24     # área do gráfico (px do viewBox ≈ px na tela)
@@ -102,3 +104,38 @@ def situacao_agora(linhas: list[dict]) -> list[dict]:
             cont["aguardando"] += 1
     total = sum(cont.values()) or 1
     return [dict(chave=c, nome=n, qtd=cont[c], pct=cont[c] * 100 / total) for c, n, _ in grupos if cont[c]]
+
+
+def saudacao(agora_l) -> str:
+    h = agora_l.hour
+    return "Bom dia" if 5 <= h < 12 else "Boa tarde" if 12 <= h < 18 else "Boa noite"
+
+
+def sugestoes(db: Session, e, u, dia: date) -> list[dict]:
+    """Próximos passos que fazem diferença para esta empresa (o card "Sugestões do sistema")."""
+    s = []
+    if not e.triagem_em and core.pode(u, "dono"):
+        s.append(dict(titulo="Configure em 2 minutos", link="/painel/comecar", botao="Começar",
+                      texto="Responda 7 perguntas e deixamos funções, checklist, regras do seu estado e modelos de turno prontos."))
+    tem_equipe = db.scalar(select(Usuario.id).where(Usuario.empresa_id == e.id,
+                                                    Usuario.papel == "funcionario").limit(1))
+    if not tem_equipe and core.pode(u, "equipe"):
+        s.append(dict(titulo="Cadastre a sua equipe", link="/painel/equipe", botao="Cadastrar",
+                      texto="Cada pessoa recebe um link para bater o ponto pelo celular."))
+    if core.pode(u, "ausencias") and not db.scalar(select(func.count(Feriado.id)).where(
+            Feriado.empresa_id == e.id, Feriado.data.between(date(dia.year, 1, 1), date(dia.year, 12, 31)))):
+        s.append(dict(titulo=f"Cadastre os feriados de {dia.year}", link="/painel/ausencias#feriados",
+                      botao="Cadastrar",
+                      texto="Em feriado ninguém deve horas, e quem trabalha recebe a hora como extra."))
+    seg = dia - timedelta(days=dia.weekday()) + timedelta(days=7)
+    if tem_equipe and core.pode(u, "escala") and dia.weekday() >= 3 and not db.scalar(
+            select(Turno.id).where(Turno.empresa_id == e.id, Turno.data.between(seg, seg + timedelta(days=6))).limit(1)):
+        s.append(dict(titulo="Monte a escala da próxima semana", link=f"/painel/escala?semana={seg.isoformat()}",
+                      botao="Montar escala", texto="Com a escala publicada, a equipe vê os turnos no celular."))
+    if e.lat is None and core.pode(u, "dono"):
+        s.append(dict(titulo="Defina o local da empresa", link="/painel/config", botao="Definir",
+                      texto="Sem o local, o ponto é aceito de qualquer lugar."))
+    if core.pode(u, "ponto"):
+        s.append(dict(titulo="Confira o Ajuste de ponto", link="/painel/ponto/ajuste", botao="Abrir",
+                      texto="Corrija marcações com um clique, lance atestados, sobreaviso e o motivo de cada ajuste."))
+    return s

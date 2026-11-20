@@ -14,10 +14,23 @@
 </svg>
 {% endmacro %}
 {% block conteudo %}
+<div class="cabecalho hoje-topo">
+  <div>
+    <h1>{{ _('{v1}, {v2}!', v1=(saudacao|traduz), v2=u.primeiro_nome) }}</h1>
+    <p class="suave" style="margin:0">{{ _('Hoje, {v1} {v2}', v1=(DIAS[dia.weekday()]|lower), v2=(dia.strftime('%d/%m'))) }} · {{ _('Atualiza sozinho a cada minuto.') }}</p>
+  </div>
+  {% if push_chave %}
+  <div>
+    <button class="botao claro" type="button" id="ativar-avisos" hidden>{{ _('Receber avisos neste aparelho') }}</button>
+    <span class="suave pequeno" id="avisos-estado"></span>
+  </div>
+  {% endif %}
+</div>
+
 {% if banners %}
 <section class="banners" aria-label="{{ _('Novidades da plataforma') }}" data-banners>
   {% for b in banners %}
-  <div class="banner-promo cor-{{ b.cor }}" data-banner="{{ b.id }}-{{ (b.titulo ~ b.texto)|length }}"{% if not loop.first %} hidden{% endif %}>
+  <div class="banner-promo cor-{{ b.cor }}{{ ' com-imagem' if b.imagem }}" data-banner="{{ b.id }}-{{ (b.titulo ~ b.texto ~ b.imagem)|length }}"{% if b.imagem %} style="--banner-img: url('{{ b.imagem }}')"{% endif %}{% if not loop.first %} hidden{% endif %}>
     <div><strong>{{ b.titulo }}</strong>{% if b.texto %}<span>{{ b.texto }}</span>{% endif %}</div>
     <div class="banner-acoes">
       {% if b.link %}<a class="botao" href="{{ b.link }}"{% if b.link.startswith('https://') %} target="_blank" rel="noopener"{% endif %}>{{ b.botao or _('Saiba mais') }}</a>{% endif %}
@@ -28,18 +41,6 @@
   {% endfor %}
 </section>
 {% endif %}
-<div class="cabecalho">
-  <div>
-    <h1>{{ _('Hoje, {v1} {v2}', v1=(DIAS[dia.weekday()]|lower), v2=(dia.strftime('%d/%m'))) }}</h1>
-    <p class="suave" style="margin:0">{{ _('Atualiza sozinho a cada minuto.') }}</p>
-  </div>
-  {% if push_chave %}
-  <div>
-    <button class="botao claro" type="button" id="ativar-avisos" hidden>{{ _('Receber avisos neste aparelho') }}</button>
-    <span class="suave pequeno" id="avisos-estado"></span>
-  </div>
-  {% endif %}
-</div>
 
 {% if ajustes_pendentes or aparelhos_pendentes %}
 <div class="alerta">
@@ -48,12 +49,6 @@
 </div>
 {% endif %}
 
-{% if not e.triagem_em and pode(u, 'dono') %}
-<div class="cartao tri-convite">
-  <div><strong>{{ _('Configure em 2 minutos') }}</strong><br><span class="suave pequeno">{{ _('Responda 7 perguntas e deixamos funções, checklist, regras do seu estado e modelos de turno prontos.') }}</span></div>
-  <a class="botao" href="/painel/comecar">{{ _('Começar') }}</a>
-</div>
-{% endif %}
 {% if sm and (sm.abaixo or sm.abaixo_depois) %}
 <div class="alerta" id="salario-minimo">
   {% if sm.abaixo %}<strong>{{ _('{v1} valor(es) da hora abaixo do salário mínimo', v1=sm.abaixo|length) }}</strong> ({{ sm.normal.fonte|traduz }}: {{ sm.normal.centavos|dinheiro }}{% if sm.gorjeta.centavos != sm.normal.centavos %}, {{ _('com gorjeta') }} {{ sm.gorjeta.centavos|dinheiro }}{% endif %}):
@@ -63,19 +58,10 @@
 </div>
 {% endif %}
 
-{% if not tem_equipe %}
-<div class="cartao">
-  <h2>{{ _('Primeiros passos') }}</h2>
-  <ol style="margin:0;padding-left:20px">
-    <li><a href="/painel/config">{{ _('Informe onde fica a empresa') }}</a>{{ _(', para o ponto conferir a localização.') }}</li>
-    <li><a href="/painel/equipe">{{ _('Cadastre os funcionários') }}</a> {{ _('e envie o link de acesso de cada um.') }}</li>
-    <li><a href="/painel/escala">{{ _('Monte a escala da semana.') }}</a></li>
-    <li><a href="/painel/tarefas">{{ _('Crie o checklist diário') }}</a> {{ _('(opcional).') }}</li>
-  </ol>
-</div>
-{% endif %}
-
-<div class="grade">
+<div class="hoje-duas">
+<section>
+<h2 class="secao-titulo"><span>{{ _('Visão geral do dia') }}</span></h2>
+<div class="grade numeros-dia">
   <div class="numero"><div class="rotulo">{{ _('Escalados') }}</div><div class="valor">{{ n.escalados }}</div></div>
   <div class="numero"><div class="rotulo">{{ _('Trabalhando agora') }}</div><div class="valor">{{ n.presentes }}</div></div>
   <div class="numero {{ 'atencao' if n.atrasados }}"><div class="rotulo">{{ _('Atrasos') }}</div><div class="valor">{{ n.atrasados }}</div></div>
@@ -89,22 +75,47 @@
 </div>
 
 
-{% set ATALHOS = [
-  ('escala', '/painel/escala', _('Escala'), '📅'), ('ponto', '/painel/ponto', _('Ponto'), '🕘'),
-  ('ponto', '/painel/ponto/ajuste', _('Ajuste de ponto'), '🛠'), ('ausencias', '/painel/ausencias', _('Ausências'), '🩺'),
-  ('ausencias', '/painel/ferias', _('Férias'), '🏖'), ('equipe', '/painel/equipe', _('Equipe'), '👥'),
-  ('fechamento', '/painel/fechamento', _('Fechamento'), '🔒'), ('pagamento', '/painel/pagamento', _('Folha de pagamento'), '💰'),
-  ('ponto', '/painel/relatorios', _('Relatórios'), '📊'), ('tarefas', '/painel/tarefas', _('Tarefas'), '✅'),
-  ('mural', '/painel/mural', _('Mural'), '📌'), ('hoje', '/painel/avisos', _('Avisos'), '🔔')] %}
-<nav class="atalhos cartao" aria-label="{{ _('Acesso rápido') }}">
-  <h2>{{ _('Acesso rápido') }}</h2>
-  <div class="atalhos-grade">
-    {% for perm, href, nome, ic in ATALHOS %}{% if perm == 'hoje' or pode(u, perm) %}
-    <a class="atalho" href="{{ href }}"><span class="atalho-ic" aria-hidden="true">{{ ic }}</span><span>{{ nome }}</span></a>
-    {% endif %}{% endfor %}
+</section>
+<section>
+<h2 class="secao-titulo"><span>{{ _('Sugestões do sistema') }}</span></h2>
+<div class="cartao sugestoes" data-sugestoes>
+  {% for sg in sugestoes %}
+  <div class="sugestao" data-sugestao{% if not loop.first %} hidden{% endif %}>
+    <div class="sugestao-topo"><span class="sugestao-ic" aria-hidden="true">💡</span><strong>{{ sg.titulo|traduz }}</strong><span class="suave pequeno">{{ loop.index }} / {{ loop.length }}</span></div>
+    <p>{{ sg.texto|traduz }}</p>
+    <a class="botao" href="{{ sg.link }}">{{ sg.botao|traduz }}</a>
   </div>
+  {% else %}
+  <div class="vazio">{{ _('Tudo em dia por aqui.') }}</div>
+  {% endfor %}
+  {% if sugestoes|length > 1 %}
+  <div class="sugestao-nav"><button type="button" class="botao link" data-sug="-1" aria-label="{{ _('Anterior') }}">‹</button><button type="button" class="botao link" data-sug="1" aria-label="{{ _('Próxima') }}">›</button></div>
+  {% endif %}
+</div>
+</section>
+</div>
+
+{% set ROTINAS = [
+  ('ponto', '/painel/ponto/ajuste', _('Ajuste de ponto'), '🛠', 0, true),
+  ('ausencias', '/painel/ausencias', _('Lançar atestados e afastamentos'), '🩺', 0, false),
+  ('equipe', '/painel/equipe', _('Equipe'), '👥', 0, false),
+  ('escala', '/painel/escala', _('Escala'), '📅', 0, false),
+  ('fechamento', '/painel/folha', _('Folha de ponto'), '📄', 0, false),
+  ('ponto', '/painel/ponto/problemas', _('Pendências de ponto'), '⚠️', n_problemas, false),
+  ('hoje', '/painel/avisos', _('Avisos'), '🔔', alertas|length, false),
+  ('ausencias', '/painel/ferias', _('Férias'), '🏖', 0, false),
+  ('fechamento', '/painel/fechamento', _('Fechamento'), '🔒', 0, false),
+  ('pagamento', '/painel/pagamento', _('Folha de pagamento'), '💰', 0, false),
+  ('ponto', '/painel/relatorios', _('Relatórios'), '📊', 0, false),
+  ('tarefas', '/painel/tarefas', _('Tarefas'), '✅', 0, false)] %}
+<h2 class="secao-titulo"><span>{{ _('Rotinas diárias') }}</span></h2>
+<nav class="rotinas" aria-label="{{ _('Rotinas diárias') }}">
+  {% for perm, href, nome, ic, qtd, forte in ROTINAS %}{% if perm == 'hoje' or pode(u, perm) %}
+  <a class="rotina{{ ' forte' if forte }}" href="{{ href }}"><span class="rotina-nome">{{ nome }}</span>{% if qtd %}<span class="rotina-qtd">{{ qtd }}</span>{% endif %}<span class="rotina-ic" aria-hidden="true">{{ ic }}</span></a>
+  {% endif %}{% endfor %}
 </nav>
 
+<h2 class="secao-titulo"><span>{{ _('Indicadores') }}</span></h2>
 <div class="graficos">
   {% if semana %}
   <div class="cartao grafico-cartao">
@@ -221,6 +232,15 @@ document.addEventListener("DOMContentLoaded", function () {
     el.addEventListener('focus', function () { mostra(el); });
     el.addEventListener('mouseleave', esconde); el.addEventListener('blur', esconde);
   });
+  // sugestões: ‹ ›
+  var sug = document.querySelector('[data-sugestoes]');
+  if (sug) {
+    var itens = sug.querySelectorAll('[data-sugestao]'), atual = 0;
+    sug.addEventListener('click', function (ev) {
+      var bt = ev.target.closest('[data-sug]'); if (!bt || !itens.length) return;
+      itens[atual].hidden = true; atual = (atual + Number(bt.getAttribute('data-sug')) + itens.length) % itens.length; itens[atual].hidden = false;
+    });
+  }
   // banners: revezam a cada 7 s; fechar esconde aquele banner neste navegador
   var caixa = document.querySelector('[data-banners]');
   if (!caixa) return;

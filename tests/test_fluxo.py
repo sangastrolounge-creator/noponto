@@ -155,7 +155,7 @@ def main():
     painel = g.get("/painel").text
     assert "Não bateu o ponto" in painel and "Trabalhando" in painel
     assert "Bruno Lima não bateu o ponto" in g.get("/painel/avisos").text
-    assert "Avisos novos" in painel and "Situação da equipe agora" in painel and "Acesso rápido" in painel
+    assert "Avisos novos" in painel and "Situação da equipe agora" in painel and "Rotinas diárias" in painel
 
     as_("09:30")
     r = bater(bruno, tb)

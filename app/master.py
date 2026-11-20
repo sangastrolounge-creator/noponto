@@ -432,6 +432,7 @@ def banners(request: Request, u: Usuario = Depends(admin_logado), db: Session = 
 def banner_salvar(request: Request, u: Usuario = Depends(admin_logado), db: Session = Depends(get_db),
                   bid: int = Form(0), titulo: str = Form(""), texto: str = Form(""),
                   link: str = Form(""), botao: str = Form(""), cor: str = Form("azul"),
+                  imagem: str = Form(""),
                   inicio: str = Form(""), fim: str = Form(""), ordem: int = Form(0),
                   ativo: str = Form("")):
     titulo = titulo.strip()
@@ -440,6 +441,8 @@ def banner_salvar(request: Request, u: Usuario = Depends(admin_logado), db: Sess
         avisar(request, "Dê um título ao banner.", "erro")
     elif not _link_ok(link):
         avisar(request, "O link precisa começar com https:// ou ser uma página do sistema (/painel/...).", "erro")
+    elif imagem.strip() and (not imagem.strip().startswith("https://") or any(c in imagem for c in "'\"()<> ")):
+        avisar(request, "A imagem precisa ser um endereço https:// de uma foto (sem espaços nem aspas).", "erro")
     elif ini and fi and fi < ini:
         avisar(request, "O fim do banner é antes do início.", "erro")
     else:
@@ -449,6 +452,7 @@ def banner_salvar(request: Request, u: Usuario = Depends(admin_logado), db: Sess
             db.add(b)
         b.titulo, b.texto = titulo[:90], texto.strip()[:240]
         b.link, b.botao = link.strip()[:300], botao.strip()[:40]
+        b.imagem = imagem.strip()[:400]
         b.cor = cor if cor in CORES_BANNER else "azul"
         b.inicio, b.fim, b.ordem, b.ativo = ini, fi, ordem, bool(ativo)
         db.commit()

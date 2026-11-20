@@ -545,6 +545,7 @@ class Banner(Base):
     texto: Mapped[str] = mapped_column(String(240), default="")
     link: Mapped[str] = mapped_column(String(300), default="")       # https://... ou /painel/...
     botao: Mapped[str] = mapped_column(String(40), default="")       # texto do botão do link
+    imagem: Mapped[str] = mapped_column(String(400), default="")     # https://... (opcional, fundo)
     cor: Mapped[str] = mapped_column(String(12), default="azul")     # azul, verde, roxo, laranja
     inicio: Mapped[date | None] = mapped_column(Date, nullable=True)
     fim: Mapped[date | None] = mapped_column(Date, nullable=True)
