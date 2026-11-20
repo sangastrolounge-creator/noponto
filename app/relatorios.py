@@ -138,18 +138,23 @@ def tela(request: Request, ini: str = "", fim: str = "", formato: str = "",
         def n(v):
             return str(v).replace(".", ",")
         cab = [_("Funcionário"), _("Cargo"), _("Turnos"), _("Horas na escala"), _("Horas trabalhadas"),
-               _("Diferença"), _("Pontualidade (%)"), _("Atrasos"), _("Faltas"), _("Nota média"),
-               _("Horas noturnas")]
+               _("Diferença"), _("Pontualidade (%)"), _("Atrasos"), _("Faltas"), _("Nota média")]
         if ver_custo:
-            cab += [_("Custo (R$)"), _("Adicional noturno (R$)")]
+            cab.append(_("Custo (R$)"))
+        cab.append(_("Horas noturnas"))
+        if ver_custo:
+            cab.append(_("Adicional noturno (R$)"))
         w.writerow(cab)
         for x in r["linhas"]:
             row = [x["u"].nome, x["u"].cargo or "", x["turnos"], n(round(x["escala"] / 60, 2)),
                    n(round(x["trab"] / 60, 2)), n(round(x["dif"] / 60, 2)),
                    "" if x["pont_pct"] is None else x["pont_pct"], x["atrasos"], x["faltas"],
-                   "" if x["nota"] is None else n(x["nota"]), n(round(x["noturno"] / 60, 2))]
+                   "" if x["nota"] is None else n(x["nota"])]
             if ver_custo:
-                row += [n(f"{x['custo'] / 100:.2f}"), n(f"{x['noturno_valor'] / 100:.2f}")]
+                row.append(n(f"{x['custo'] / 100:.2f}"))
+            row.append(n(round(x["noturno"] / 60, 2)))
+            if ver_custo:
+                row.append(n(f"{x['noturno_valor'] / 100:.2f}"))
             w.writerow(row)
         return Response("﻿" + buf.getvalue(), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="report-{i.isoformat()}-{f.isoformat()}.csv"'})
