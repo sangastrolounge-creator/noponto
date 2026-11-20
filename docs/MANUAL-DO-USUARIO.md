@@ -1,7 +1,7 @@
 # No Ponto — manual do usuário
 
 Escala, ponto e fechamento do mês da sua equipe, no celular de cada um.
-Endereço: **https://noponto.app.br**
+Endereço: **https://dataworke.com.br**
 
 O sistema funciona em português, inglês e espanhol: troque no seletor **PT · EN · ES**, no
 alto de qualquer tela.
@@ -12,7 +12,7 @@ alto de qualquer tela.
 
 ### Primeiro acesso
 
-1. Em **noponto.app.br**, toque em **Testar grátis** e crie a conta da empresa.
+1. Em **dataworke.com.br**, toque em **Testar grátis** e crie a conta da empresa.
 2. Na primeira vez, o sistema oferece um **guia passo a passo**. Ele mostra cada tela de
    verdade, em poucos minutos. Para ver de novo, toque em **Guia**, no alto de cada tela.
 3. Siga a ordem: **local da empresa → equipe → escala**. Com isso, o ponto já funciona.

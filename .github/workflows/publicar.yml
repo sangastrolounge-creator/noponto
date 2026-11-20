@@ -46,8 +46,8 @@ jobs:
       - name: Conferir o site
         run: |
           for i in $(seq 1 10); do
-            a=$(curl -s -o /dev/null -w '%{http_code}' https://noponto.app.br/)
-            b=$(curl -s -o /dev/null -w '%{http_code}' https://noponto.app.br/entrar)
+            a=$(curl -s -o /dev/null -w '%{http_code}' https://dataworke.com.br/)
+            b=$(curl -s -o /dev/null -w '%{http_code}' https://dataworke.com.br/entrar)
             echo "/ $a  /entrar $b"
             if [ "$a" = 200 ] && [ "$b" = 200 ]; then exit 0; fi
             sleep 5

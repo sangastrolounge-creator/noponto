@@ -21,8 +21,8 @@ turno, vendida por assinatura.
 | Totem (tablet na empresa) | `/totem` | Código do minuto, QR e ponto por PIN |
 | Visitante | `/` | Página de vendas, cadastro com teste grátis |
 
-Endereço de produção: **https://noponto.app.br** (o antigo `turno.187-41-107-49.sslip.io`
-e o `www` redirecionam com 301).
+Endereço de produção: **https://dataworke.com.br** (o `www` redireciona com 301; o endereço anterior,
+noponto.app.br, foi desligado em 20/11/2026).
 
 ---
 
