@@ -50,13 +50,39 @@
       <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}">
       <input type="hidden" name="usuario_id" value="{{ f.id }}"><input type="hidden" name="data" value="{{ d.isoformat() }}">
       <div class="linha-form">
-        <div><label for="a-tipo">{{ _('Tipo') }}</label><select id="a-tipo" name="tipo"><option value="entrada">{{ _('Entrada') }}</option><option value="saida">{{ _('Saída') }}</option></select></div>
-        <div><label for="a-hora">{{ _('Hora') }}</label><input type="time" id="a-hora" name="hora" required></div>
+        <div><label for="a-tipo">{{ _('Tipo') }}</label><select id="a-tipo" name="tipo"><option value="entrada">{{ _('Entrada') }}</option><option value="saida" {{ 'selected' if tipo_sug == 'saida' }}>{{ _('Saída') }}</option></select></div>
+        <div><label for="a-hora">{{ _('Hora') }}</label><input type="time" id="a-hora" name="hora" value="{{ hora_sug }}" required></div>
         <div style="flex:2"><label for="a-obs">{{ _('Motivo') }}</label><input type="text" id="a-obs" name="obs" maxlength="200" required placeholder="{{ _('Ex.: celular sem bateria') }}"></div>
       </div>
       <button class="botao" type="submit" {{ 'disabled' if fechado }}>{{ _('Lançar ponto') }}</button>
     </form>
     <p class="ajuda">{{ _('A batida fica marcada como lançada pelo gestor, com o motivo, e entra no histórico.') }}</p>
+
+  {% elif acao == 'editar' %}
+    <div class="editar-batida">
+      <div class="hora-grande{{ ' manual' if b.manual }}">{{ local(e, b.momento) }}</div>
+      <div><strong>{{ _('Entrada') if b.tipo == 'entrada' else _('Saída') }}</strong>
+        <br><span class="suave pequeno">{% if b.manual %}{{ _('Lançada pelo gestor') }}: {{ b.obs }}{% elif b.origem == 'totem' %}{{ _('Totem') }}{% elif b.origem == 'auto' %}{{ _('Saída automática') }}{% else %}{{ _('Celular (GPS)') }}{% if b.distancia_m is not none %} · {{ _('a {v1} m', v1=b.distancia_m) }}{% endif %}{% endif %}</span></div>
+    </div>
+    {% if b.anulada %}
+    <div class="alerta">{{ _('Esta marcação já foi anulada.') }}</div>
+    {% else %}
+    <form method="post" action="/painel/ponto/ajuste/batida/{{ b.id }}/editar">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}">
+      <div class="linha-form">
+        <div><label for="e-hora">{{ _('Novo horário') }}</label><input type="time" id="e-hora" name="hora" value="{{ local(e, b.momento) }}" required></div>
+        <div style="flex:2"><label for="e-motivo">{{ _('Motivo (obrigatório)') }}</label><input type="text" id="e-motivo" name="motivo" maxlength="150" required placeholder="{{ _('Ex.: bateu o ponto atrasado, mas chegou no horário') }}"></div>
+      </div>
+      <button class="botao" type="submit" {{ 'disabled' if fechado }}>{{ _('Salvar correção') }}</button>
+    </form>
+    {% if not fechado %}
+    <form method="post" action="/painel/ponto/{{ b.id }}/apagar" class="inline" style="margin-top:10px" data-confirma="{{ _('Anular a batida das {v1} de {v2}? Ela sai das contas, mas o registro original fica guardado no histórico.', v1=(local(e, b.momento)), v2=(f.primeiro_nome)) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}">
+      <button class="botao perigo" type="submit">{{ _('Anular esta marcação') }}</button>
+    </form>
+    {% endif %}
+    {% endif %}
+    <p class="ajuda">{{ _('A marcação original não é alterada (Portaria MTP 671/2021): ela é anulada e guardada, e o novo horário entra como lançado pelo gestor, com o motivo. Tudo fica no histórico.') }}</p>
 
   {% elif acao == 'preencher' %}
     {% if plano.erro %}<div class="alerta">{{ plano.erro|traduz }}</div>

@@ -85,7 +85,7 @@ def pagina(request: Request, de: str = "", ate: str = "", fid: int = Query(0, al
 
 # ------------------------------------------------------------------ ações (janela)
 @rota.get("/painel/ponto/ajuste/{uid}/{dia}/{acao}")
-def acao_tela(request: Request, uid: int, dia: str, acao: str, volta: str = "",
+def acao_tela(request: Request, uid: int, dia: str, acao: str, volta: str = "", tipo: str = "",
               u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     f = da_empresa(db, Usuario, uid, u)
     d = _dia(dia)
@@ -113,6 +113,11 @@ def acao_tela(request: Request, uid: int, dia: str, acao: str, volta: str = "",
         ctx["itens"] = [h for h in ctx["itens"] if h.dia == d and h.usuario_id == f.id
                         or (h.usuario_id is None and f.nome in h.detalhe
                             and f"{d:%d/%m/%Y}" in h.detalhe)][:60]
+    elif acao == "atraso":
+        ctx["tipo_sug"] = tipo if tipo in ("entrada", "saida") else "entrada"
+        t = ctx["turno"]
+        ctx["hora_sug"] = ((t.inicio if ctx["tipo_sug"] == "entrada" else t.fim)
+                           if t and not t.folga else "")
     elif acao == "preencher":
         ctx["plano"] = plano_preenchimento(db, f, d)
     elif acao == "motivo":
@@ -293,4 +298,62 @@ def sobreaviso_remover(request: Request, sid: int, volta: str = Form(""),
     db.delete(s)
     db.commit()
     avisar(request, "Sobreaviso removido.")
+    return ir(destino)
+
+
+# ------------------------------------------------------------------ editar uma marcação
+# A Portaria MTP 671/2021 não deixa alterar a marcação original: "editar" anula a batida (ela
+# continua guardada, fora das contas) e lança outra, marcada como do gestor, com o motivo.
+@rota.get("/painel/ponto/ajuste/batida/{bid}")
+def batida_tela(request: Request, bid: int, volta: str = "",
+                u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
+    b = da_empresa(db, Batida, bid, u)
+    e = u.empresa
+    f = db.get(Usuario, b.usuario_id)
+    return render(request, "painel_apropriacao_acao.html", u=u, e=e, aba="ponto", f=f, d=b.dia,
+                  acao="editar", titulo="Editar marcação", b=b,
+                  volta=_volta(volta or endereco(b.dia, b.dia, f.id)),
+                  fechado=apuracao.esta_fechado(db, e, b.dia),
+                  turno=db.scalar(select(Turno).where(Turno.usuario_id == f.id, Turno.data == b.dia)))
+
+
+@rota.post("/painel/ponto/ajuste/batida/{bid}/editar", dependencies=CSRF)
+def batida_editar(request: Request, bid: int, hora: str = Form(""), motivo: str = Form(""),
+                  volta: str = Form(""), u: Usuario = Depends(gestor_logado),
+                  db: Session = Depends(get_db)):
+    b = da_empresa(db, Batida, bid, u)
+    e, destino = u.empresa, _volta(volta)
+    motivo = motivo.strip()[:150]
+    if b.anulada:
+        avisar(request, "Esta marcação já foi anulada.", "erro")
+        return ir(destino)
+    if not HORA_RE.match(hora):
+        avisar(request, "Informe o novo horário (HH:MM).", "erro")
+        return ir(destino)
+    if len(motivo) < 3:
+        avisar(request, "Informe o motivo da correção: ele fica gravado na batida.", "erro")
+        return ir(destino)
+    if apuracao.esta_fechado(db, e, b.dia):
+        avisar(request, MSG_FECHADO, "erro")
+        return ir(destino)
+    antes = regras.para_local(e, b.momento)
+    novo = datetime.combine(antes.date(), regras.hm(hora))
+    if novo.strftime("%H:%M") == antes.strftime("%H:%M"):
+        avisar(request, "O horário é o mesmo de antes.", "erro")
+        return ir(destino)
+    if regras.para_utc(e, novo) > banco.agora() + timedelta(minutes=5):
+        avisar(request, "Não dá para lançar uma batida no futuro.", "erro")
+        return ir(destino)
+    f = db.get(Usuario, b.usuario_id)
+    b.anulada, b.anulada_por, b.anulada_em = True, u.nome, banco.agora()
+    db.flush()
+    nova = regras.lancar_manual(db, f, b.tipo, novo, f"Corrigida de {antes:%H:%M}: {motivo}")
+    nova.dia, nova.turno_id = b.dia, b.turno_id     # continua no mesmo dia de ponto
+    tipo = "entrada" if b.tipo == "entrada" else "saída"
+    regras.registrar(db, e.id, u.nome, "marcação corrigida",
+                     f"Corrigiu a {tipo} de {f.nome} em {b.dia:%d/%m/%Y}: {antes:%H:%M} → {hora}. "
+                     f"Motivo: {motivo}. A marcação original continua guardada.",
+                     usuario_id=f.id, dia=b.dia)
+    db.commit()
+    avisar(request, f"Marcação de {f.primeiro_nome} corrigida: {antes:%H:%M} → {hora}.")
     return ir(destino)

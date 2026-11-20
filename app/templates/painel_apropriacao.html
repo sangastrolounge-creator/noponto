@@ -61,7 +61,7 @@
       <tr class="{{ 'linha-falta' if dd.falta }}{{ ' linha-especial' if dd.feriado or (dd.turno and dd.turno.folga) }}">
         <td style="white-space:nowrap"><strong>{{ dd.dia.strftime('%d/%m') }}</strong> <span class="suave">{{ DIAS[dd.dia.weekday()] }}</span></td>
         <td>{% if dd.turno %}{{ _('Folga') if dd.turno.folga else dd.turno.inicio ~ '–' ~ dd.turno.fim }}{% else %}<span class="suave">—</span>{% endif %}</td>
-        <td class="marcacoes">{% for a, b in dd.pares %}<span class="par">{% for x in (a, b) %}{% if x %}<span class="hora{{ ' manual' if x.manual }}{{ ' fora' if x.dentro is false }}" title="{{ _('Lançada à mão: ') ~ x.obs if x.manual else '' }}">{{ local(e, x.momento) }}</span>{% else %}<span class="hora falta">--:--</span>{% endif %}{% endfor %}</span>{% else %}<span class="suave">—</span>{% endfor %}</td>
+        <td class="marcacoes">{% for a, b in dd.pares %}<span class="par">{% for x in (a, b) %}{% if x %}<a class="hora{{ ' manual' if x.manual }}{{ ' fora' if x.dentro is false }}" href="/painel/ponto/ajuste/batida/{{ x.id }}?volta={{ volta|urlencode }}" data-janela title="{{ (_('Lançada à mão: ') ~ x.obs ~ ' · ') if x.manual else '' }}{{ _('Clique para editar') }}">{{ local(e, x.momento) }}</a>{% else %}<a class="hora falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo={{ 'entrada' if loop.first else 'saida' }}&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">--:--</a>{% endif %}{% endfor %}</span>{% else %}{% if dd.turno and not dd.turno.folga and dd.dia <= hoje %}<a class="hora falta" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/atraso?tipo=entrada&volta={{ volta|urlencode }}" data-janela title="{{ _('Clique para lançar a batida que falta') }}">+</a>{% else %}<span class="suave">—</span>{% endif %}{% endfor %}</td>
         <td>{{ fmt_min(dd.trabalhado) if dd.trabalhado else '—' }}</td>
         <td>{% if dif > 0 %}<span class="saldo mais">+{{ fmt_min(dif) }}</span>{% elif dif < 0 %}<span class="saldo menos">−{{ fmt_min(-dif) }}</span>{% else %}<span class="suave">0</span>{% endif %}</td>
         <td class="ocorrencias">
@@ -84,7 +84,7 @@
       {% endfor %}
       </tbody>
     </table></div>
-    <p class="ajuda">{{ _('Horários em azul foram lançados à mão. As marcações originais do colaborador nunca são alteradas: o que muda fica registrado no histórico.') }}</p>
+    <p class="ajuda">{{ _('Clique num horário para corrigir ou anular; clique em --:-- para lançar a batida que falta. Horários em azul foram lançados à mão. As marcações originais do colaborador nunca são apagadas: o que muda fica registrado no histórico.') }}</p>
   </section>
   {% endif %}
 </div>

@@ -148,6 +148,39 @@ def main():
     r = posta(g, url, tg, motivo="x x x", volta="https://mal.example/painel/ponto/ajuste")
     assert r.headers["location"] == "/painel/ponto/ajuste"
 
+    # ---- editar uma marcação clicando nela: anula a original e lança a corrigida
+    with SessionLocal() as db:
+        orig = db.scalar(select(Batida).where(Batida.usuario_id == ids["Ana"], Batida.dia == TER,
+                                              Batida.tipo == "entrada"))
+        oid = orig.id
+    t = g.get(base).text
+    assert f'href="/painel/ponto/ajuste/batida/{oid}?volta=' in t
+    assert f"/painel/ponto/ajuste/{ids['Bruno']}/{TER.isoformat()}/atraso?tipo=entrada" not in t   # Bruno não é o atual
+    t = g.get(f"/painel/ponto/ajuste/batida/{oid}").text
+    assert 'id="acao-conteudo"' in t and "Novo horário" in t and 'value="09:00"' in t
+    eurl = f"/painel/ponto/ajuste/batida/{oid}/editar"
+    posta(g, eurl, tg, hora="08:55", motivo="", volta=base)
+    assert "motivo da correção" in flash(g, base)
+    posta(g, eurl, tg, hora="09:00", motivo="nada mudou", volta=base)
+    assert "mesmo de antes" in flash(g, base)
+    r = posta(g, eurl, tg, hora="08:55", motivo="relógio do totem adiantado", volta=base)
+    assert r.headers["location"] == base and "corrigida: 09:00 → 08:55" in flash(g, base)
+    with SessionLocal() as db:
+        velha = db.get(Batida, oid)
+        nova = db.scalar(select(Batida).where(Batida.usuario_id == ids["Ana"], Batida.dia == TER,
+                                              Batida.tipo == "entrada", Batida.anulada.is_(False)))
+        assert velha.anulada and velha.anulada_por == "Zé Gestor"
+        assert nova.manual and nova.obs == "Corrigida de 09:00: relógio do totem adiantado" and nova.dia == TER
+    posta(g, eurl, tg, hora="08:50", motivo="de novo", volta=base)
+    assert "já foi anulada" in flash(g, base)
+    t = g.get(f"/painel/ponto/ajuste/{ids['Ana']}/{TER.isoformat()}/historico").text
+    assert "Corrigiu a entrada de Ana Souza em 17/11/2026: 09:00 → 08:55" in t
+    t = g.get(f"/painel/ponto/ajuste/{ids['Ana']}/{TER.isoformat()}/originais").text
+    assert "anulada" in t and "Corrigida de 09:00" in t
+    # a batida que falta vira um link para lançá-la, já com o horário da escala
+    t = g.get(f"/painel/ponto/ajuste/{ids['Bruno']}/{TER.isoformat()}/atraso?tipo=saida").text
+    assert 'value="17:00"' in t and '<option value="saida" selected>' in t
+
     # ---- ponto em atraso (lançar batida) volta para o ajuste
     r = posta(g, "/painel/ponto/manual", tg, usuario_id=ids["Bruno"], tipo="entrada", data=TER.isoformat(),
               hora="09:10", obs="sem bateria", volta=base)

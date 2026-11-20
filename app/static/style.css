@@ -1041,3 +1041,8 @@ b.mini.erro { background: var(--erro-solido); } b.mini.alerta { background: var(
 tr.riscado td { text-decoration: line-through; opacity: .65; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .marcacoes .hora.fora { box-shadow: inset 0 0 0 1.5px var(--erro-solido); }
+a.hora { text-decoration: none; color: inherit; cursor: pointer; transition: transform var(--rapido), box-shadow var(--rapido); }
+a.hora:hover, a.hora:focus-visible { transform: translateY(-1px); box-shadow: 0 0 0 2px var(--cor); }
+.editar-batida { display: flex; align-items: center; gap: 14px; margin: 4px 0 14px; }
+.hora-grande { font-family: var(--mono); font-size: 2rem; font-weight: 800; padding: 6px 14px; border-radius: var(--raio-p); background: var(--fundo); }
+.hora-grande.manual { background: var(--azul-fundo); color: var(--azul); }

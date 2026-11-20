@@ -197,7 +197,7 @@ def main():
     assert "no futuro" in espelho
     assert "8h15" in espelho and "6h30" in espelho, espelho
     ajuste_b = g.get(f"/painel/ponto/ajuste?de={seg}&ate={seg}&func={bruno_id}").text
-    assert "atraso 90 min" in ajuste_b and '<span class="hora manual" title="Lançada à mão: esqueceu">16:00</span>' in ajuste_b, ajuste_b
+    assert "atraso 90 min" in ajuste_b and "Lançada à mão: esqueceu" in ajuste_b and ">16:00</a>" in ajuste_b, ajuste_b
     planilha = g.get(f"/painel/ponto.csv?de={seg}&ate={seg}").text
     assert "Ana Souza;16/11/2026;09:00-17:00;08:50 | 17:05;8h15;0" in planilha, planilha
     with SessionLocal() as db:
