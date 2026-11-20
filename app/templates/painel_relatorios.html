@@ -18,6 +18,7 @@
   <div class="numero {{ 'atencao' if t.pont_pct is not none and t.pont_pct < 90 }}"><div class="rotulo">{{ _('Pontualidade') }}</div><div class="valor">{{ (t.pont_pct|string) ~ '%' if t.pont_pct is not none else '—' }}</div><div class="nota">{{ _('{v1} atraso(s) em {v2} turno(s)', v1=t.atrasos, v2=t.pontuais + t.atrasos) }}</div></div>
   <div class="numero {{ 'ruim' if t.faltas }}"><div class="rotulo">{{ _('Faltas') }}</div><div class="valor">{{ t.faltas }}</div><div class="nota">{{ _('turnos sem nenhuma batida') }}</div></div>
   <div class="numero {{ 'atencao' if t.nota is not none and t.nota < 3.5 }}"><div class="rotulo">{{ _('Nota dos turnos') }}</div><div class="valor">{{ t.nota if t.nota is not none else '—' }}</div><div class="nota">{{ _('{v1} avaliação(ões)', v1=t.n_notas) }}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Adicional noturno') }}</div><div class="valor">{{ fmt_min(t.noturno) }}</div><div class="nota">{% if ver_custo and t.noturno_valor %}{{ _('{v1} de adicional ({v2}%)', v1=t.noturno_valor|dinheiro, v2=e.pct_noturno) }}{% else %}{{ _('horas entre 22h e 5h') }}{% endif %}</div></div>
   {% if ver_custo %}<div class="numero"><div class="rotulo">{{ _('Custo da equipe') }}</div><div class="valor">{{ t.custo|dinheiro }}</div><div class="nota">{% if t.pct_vendas is not none %}{{ _('{v1}% das vendas', v1=t.pct_vendas) }}{% else %}{{ _('sem vendas informadas') }}{% endif %}</div></div>{% endif %}
 </div>
 
@@ -25,7 +26,7 @@
   <h2>{{ _('Por pessoa') }}</h2>
   {% if r.linhas %}
   <div class="rolagem"><table>
-    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Turnos') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Diferença') }}</th><th>{{ _('Pontualidade') }}</th><th>{{ _('Faltas') }}</th><th>{{ _('Nota') }}</th>{% if ver_custo %}<th>{{ _('Custo') }}</th>{% endif %}</tr></thead>
+    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Turnos') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Diferença') }}</th><th>{{ _('Pontualidade') }}</th><th>{{ _('Faltas') }}</th><th>{{ _('Nota') }}</th><th>{{ _('Noturno') }}</th>{% if ver_custo %}<th>{{ _('Custo') }}</th>{% endif %}</tr></thead>
     <tbody>
     {% for x in r.linhas %}
     <tr>
@@ -37,6 +38,7 @@
       <td>{% if x.pont_pct is not none %}<span class="etiqueta {{ 'ok' if x.pont_pct >= 90 else 'alerta' if x.pont_pct >= 70 else 'erro' }}">{{ x.pont_pct }}%</span>{% if x.atrasos %}<br><span class="suave pequeno">{{ _('{v1} atraso(s), {v2} min', v1=x.atrasos, v2=x.atraso_min) }}</span>{% endif %}{% else %}—{% endif %}</td>
       <td>{% if x.faltas %}<span class="etiqueta erro">{{ x.faltas }}</span>{% else %}0{% endif %}</td>
       <td>{% if x.nota is not none %}{{ estrelas(x.nota|round|int) }} <span class="suave pequeno">{{ x.nota }}</span>{% else %}—{% endif %}</td>
+      <td>{% if x.noturno %}{{ fmt_min(x.noturno) }}{% if ver_custo and x.noturno_valor %}<br><span class="suave pequeno">{{ x.noturno_valor|dinheiro }}</span>{% endif %}{% else %}—{% endif %}</td>
       {% if ver_custo %}<td>{{ x.custo|dinheiro }}</td>{% endif %}
     </tr>
     {% endfor %}

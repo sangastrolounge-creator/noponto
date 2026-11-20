@@ -28,7 +28,8 @@ def montar(db: Session, e, ini: date, fim: date) -> dict:
     def linha(uid):
         if uid not in linhas:
             linhas[uid] = {"u": pessoas[uid], "turnos": 0, "escala": 0, "trab": 0, "pontuais": 0,
-                           "atrasos": 0, "atraso_min": 0, "faltas": 0, "notas": [], "custo": 0}
+                           "atrasos": 0, "atraso_min": 0, "faltas": 0, "notas": [], "custo": 0,
+                           "noturno": 0, "noturno_valor": 0}
         return linhas[uid]
 
     bats: dict[tuple[int, date], list[Batida]] = {}
@@ -68,6 +69,13 @@ def montar(db: Session, e, ini: date, fim: date) -> dict:
             u = pessoas[uid]
             x["custo"] += round(m * custos.valor_hora(u) / 60)
         d += timedelta(days=1)
+    # Horas noturnas (22h às 5h, já com a hora reduzida quando a empresa usa) e o adicional.
+    if fim_ef >= ini:
+        for ap in apuracao.apurar(db, e, ini, fim_ef):
+            if ap["noturno"] and ap["u"].id in pessoas:
+                x = linha(ap["u"].id)
+                x["noturno"] = ap["noturno"]
+                x["noturno_valor"] = round(ap["noturno"] * custos.valor_hora(ap["u"]) * e.pct_noturno / 6000)
     comentarios = []
     for a in db.scalars(select(AvaliacaoTurno).where(AvaliacaoTurno.empresa_id == e.id,
                                                      AvaliacaoTurno.dia.between(ini, fim),
@@ -90,7 +98,8 @@ def montar(db: Session, e, ini: date, fim: date) -> dict:
         g["trab"] += x["trab"]
         g["escala"] += x["escala"]
         g["custo"] += x["custo"]
-    tot = {k: sum(x[k] for x in lista) for k in ("turnos", "escala", "trab", "pontuais", "atrasos", "faltas", "custo")}
+    tot = {k: sum(x[k] for x in lista) for k in ("turnos", "escala", "trab", "pontuais", "atrasos", "faltas", "custo",
+                                               "noturno", "noturno_valor")}
     n = tot["pontuais"] + tot["atrasos"]
     tot["pont_pct"] = round(100 * tot["pontuais"] / n) if n else None
     todas = [nn for x in lista for nn in x["notas"]]
@@ -129,17 +138,18 @@ def tela(request: Request, ini: str = "", fim: str = "", formato: str = "",
         def n(v):
             return str(v).replace(".", ",")
         cab = [_("Funcionário"), _("Cargo"), _("Turnos"), _("Horas na escala"), _("Horas trabalhadas"),
-               _("Diferença"), _("Pontualidade (%)"), _("Atrasos"), _("Faltas"), _("Nota média")]
+               _("Diferença"), _("Pontualidade (%)"), _("Atrasos"), _("Faltas"), _("Nota média"),
+               _("Horas noturnas")]
         if ver_custo:
-            cab.append(_("Custo (R$)"))
+            cab += [_("Custo (R$)"), _("Adicional noturno (R$)")]
         w.writerow(cab)
         for x in r["linhas"]:
             row = [x["u"].nome, x["u"].cargo or "", x["turnos"], n(round(x["escala"] / 60, 2)),
                    n(round(x["trab"] / 60, 2)), n(round(x["dif"] / 60, 2)),
                    "" if x["pont_pct"] is None else x["pont_pct"], x["atrasos"], x["faltas"],
-                   "" if x["nota"] is None else n(x["nota"])]
+                   "" if x["nota"] is None else n(x["nota"]), n(round(x["noturno"] / 60, 2))]
             if ver_custo:
-                row.append(n(f"{x['custo'] / 100:.2f}"))
+                row += [n(f"{x['custo'] / 100:.2f}"), n(f"{x['noturno_valor'] / 100:.2f}")]
             w.writerow(row)
         return Response("﻿" + buf.getvalue(), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="report-{i.isoformat()}-{f.isoformat()}.csv"'})
