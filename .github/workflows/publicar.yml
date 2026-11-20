@@ -1,0 +1,47 @@
+name: Publicar
+# Cada push na main: roda os testes; se todos passarem, publica no VPS.
+# No VPS a chave só consegue rodar /usr/local/bin/noponto-publicar (backup, troca, conferência e volta se falhar).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+env:
+  VPS_HOST: 187.41.107.49
+  VPS_USER: root
+  VPS_HOSTKEY: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK1gkwRqD4JY7WDkeHNR8yMHcaRKLuMRK9GBVKogXPBc"
+jobs:
+  testes:
+    uses: ./.github/workflows/testes.yml
+  publicar:
+    needs: testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Chave de acesso ao VPS
+        env:
+          CHAVE: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "$CHAVE" ]; then echo "Falta o segredo VPS_SSH_KEY"; exit 1; fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$CHAVE" > ~/.ssh/vps && chmod 600 ~/.ssh/vps
+          echo "$VPS_HOST $VPS_HOSTKEY" > ~/.ssh/known_hosts
+      - name: Enviar e publicar
+        run: |
+          git archive --format=tar.gz HEAD app requirements.txt Dockerfile \
+            | ssh -i ~/.ssh/vps -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST"
+      - name: Conferir o site
+        run: |
+          for i in $(seq 1 10); do
+            a=$(curl -s -o /dev/null -w '%{http_code}' https://noponto.app.br/)
+            b=$(curl -s -o /dev/null -w '%{http_code}' https://noponto.app.br/entrar)
+            echo "/ $a  /entrar $b"
+            if [ "$a" = 200 ] && [ "$b" = 200 ]; then exit 0; fi
+            sleep 5
+          done
+          exit 1
+      - name: Apagar a chave
+        if: always()
+        run: rm -f ~/.ssh/vps

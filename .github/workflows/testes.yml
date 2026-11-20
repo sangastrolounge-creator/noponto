@@ -1,7 +1,9 @@
 name: Testes
 on:
   push:
+    branches-ignore: [main]   # na main os testes rodam dentro do Publicar
   workflow_dispatch:
+  workflow_call:
 jobs:
   testes:
     runs-on: ubuntu-latest
