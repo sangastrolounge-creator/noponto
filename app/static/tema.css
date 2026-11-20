@@ -352,3 +352,6 @@ code { border-radius: 6px; background: var(--cartao-2); }
 @media (prefers-reduced-motion: reduce) {
   .v-heroi::before, .v-heroi::after, .v-final::before, .v-selo::before { animation: none; }
 }
+
+/* barra da prévia do Master: continua escura */
+.barra-master { background: #0e1330; color: #fff; }
