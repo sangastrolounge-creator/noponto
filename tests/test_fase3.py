@@ -208,7 +208,8 @@ def main():
     assert no_totem(ids["Ana"], "5310").json()["tipo"] == "saida"
     assert no_totem(ids["Gil"], "1234").status_code == 400      # gestor fora da escala
     assert tablet.post("/totem/ponto", json={"uid": ids["Ana"], "pin": "5310"}).status_code in (400, 403)
-    assert "Pelo totem (totem Tablet da entrada)" in g.get("/painel/ponto").text
+    orig = g.get(f"/painel/ponto/ajuste/{ids['Ana']}/{QUA.isoformat()}/originais").text
+    assert "Totem" in orig and "totem Tablet da entrada" in orig and "Filial Centro" in orig, orig
 
     # ---- novo endereço e remoção desligam o tablet
     posta(g, f"/painel/totens/{db_totem()}", tg, acao="novo_link")
