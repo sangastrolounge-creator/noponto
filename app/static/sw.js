@@ -1,5 +1,5 @@
 // Service worker: deixa o app instalável, mostra a tela "sem internet" e recebe avisos.
-const CACHE = "turno-v21";
+const CACHE = "turno-v22";
 const FIXOS = ["/offline", "/static/style.css?v=3", "/static/icone.svg", "/static/icone-192.png"];
 
 self.addEventListener("install", (ev) => {
@@ -35,7 +35,7 @@ self.addEventListener("push", (ev) => {
   let d = {};
   try { d = ev.data.json(); } catch (e) { d = { titulo: "Aviso", texto: ev.data ? ev.data.text() : "" }; }
   ev.waitUntil(self.registration.showNotification(d.titulo || "Aviso", {
-    body: d.texto || "", icon: "/static/icone-192.png?v=2", badge: "/static/icone-192.png",
+    body: d.texto || "", icon: "/static/icone-192.png?v=3", badge: "/static/icone-192.png",
     data: { url: d.url || "/painel" },
   }));
 });
