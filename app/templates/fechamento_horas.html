@@ -35,7 +35,7 @@
     <tbody>
     {% for r in resultado %}
     <tr>
-      <td class="nome-forte">{{ r.u.nome }}{% if r.u.cargo %}<br><span class="suave pequeno">{{ r.u.cargo }}</span>{% endif %}</td>
+      <td><span class="nome-forte">{{ r.u.nome }}</span>{% if r.u.cargo %}<br><span class="suave pequeno">{{ r.u.cargo }}</span>{% endif %}</td>
       <td>{{ fmt_min(r.extra_normal) if r.extra_normal else '—' }}</td>
       <td>{{ fmt_min(r.extra_especial) if r.extra_especial else '—' }}</td>
       <td>{{ fmt_min(r.noturno) if r.noturno else '—' }}</td>
