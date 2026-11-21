@@ -15,6 +15,8 @@ jobs:
       - run: pip install -r requirements.txt httpx
       - name: Conferir a sintaxe dos scripts
         run: for f in app/static/*.js; do node --check "$f" || exit 1; done
+      - name: Conferir os scripts dentro dos templates
+        run: python tools/checar_scripts.py
       - name: Rodar os testes (cada arquivo sozinho)
         run: |
           falhou=0
