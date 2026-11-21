@@ -15,6 +15,7 @@ from . import master, regras, salario_minimo
 from .core import (PERMISSOES, avisar, celular_limpo, celular_valido, da_empresa, data_iso,
                    email_valido, encaixar_no_alcance, exigir_csrf, gestor_logado, ir, ler_centavos, pode, render,
                    alcance_locais, alcance_setores, restrito)
+from . import rh
 from .db import FuncaoUsuario, Local, Setor, Usuario, get_db
 
 rota = APIRouter()
@@ -152,11 +153,30 @@ def _contexto(db: Session, e, alvo: Usuario | None, quem: Usuario | None = None)
             "nivel_atual": nivel_de(alvo) if alvo else "funcionario", "MAX_FUNCOES": MAX_FUNCOES}
 
 
+def _rh_ctx(db: Session, alvo: Usuario | None, u: Usuario) -> dict:
+    ve_banco = pode(u, "pagamento")
+    return {"RH": rh, "rh_dados": rh.da_pessoa(db, alvo) if alvo else None, "ve_banco": ve_banco,
+            "rh_grupos": rh.grupos_visiveis(ve_banco)}
+
+
+def _ler_rh(db: Session, e, form, u: Usuario, alvo_id: int | None) -> tuple[dict, str | None]:
+    dr, erro = rh.ler(form, pode(u, "pagamento"))
+    if not erro and rh.cpf_repetido(db, e.id, dr.get("cpf", ""), alvo_id):
+        erro = "Já existe outra pessoa com este CPF na empresa."
+    return dr, erro
+
+
+def _registrar_rh(db: Session, e, u: Usuario, alvo: Usuario, dr: dict) -> None:
+    mudou = rh.salvar(db, alvo, dr)
+    if mudou:   # só os nomes dos campos, nunca os números (LGPD)
+        regras.registrar(db, e.id, u.nome, "documentos alterados", f"{alvo.nome}: {', '.join(mudou)}.")
+
+
 # ------------------------------------------------------------------ rotas
 @rota.get("/painel/equipe/novo")
 def novo_form(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     return render(request, "painel_ficha.html", u=u, e=u.empresa, aba="equipe",
-                  pode_gerente=u.dono, v=None, **_contexto(db, u.empresa, None, u if restrito(u) else None))
+                  pode_gerente=u.dono, v=None, **_contexto(db, u.empresa, None, u if restrito(u) else None), **_rh_ctx(db, None, u))
 
 
 @rota.post("/painel/equipe/novo", dependencies=CSRF)
@@ -164,6 +184,8 @@ async def novo(request: Request, u: Usuario = Depends(gestor_logado), db: Sessio
     e = u.empresa
     form = await request.form()
     d, erro = _ler(form, e)
+    dr, erro_rh = _ler_rh(db, e, form, u, None)
+    erro = erro or erro_rh
     if not erro and d["nivel"] != "funcionario" and not u.dono:
         erro = "Só o dono da conta cadastra gerentes."
     if not erro and d["email"] and db.scalar(select(Usuario.id).where(Usuario.email == d["email"]).execution_options(alcance_livre=True)):
@@ -174,13 +196,14 @@ async def novo(request: Request, u: Usuario = Depends(gestor_logado), db: Sessio
         erro = master.sem_vaga(db, e)
     if erro:
         return render(request, "painel_ficha.html", 400, u=u, e=e, aba="equipe", pode_gerente=u.dono,
-                      erro=erro, v=form, **_contexto(db, e, None, u if restrito(u) else None))
+                      erro=erro, v=form, **_contexto(db, e, None, u if restrito(u) else None), **_rh_ctx(db, None, u))
     alvo = Usuario(empresa_id=e.id, nome=d["nome"], papel="funcionario",
                    convite_token=secrets.token_urlsafe(18))
     db.add(alvo)
     db.flush()
     _aplicar(db, e, alvo, d)
     encaixar_no_alcance(u, alvo)
+    _registrar_rh(db, e, u, alvo, dr)
     regras.registrar(db, e.id, u.nome, "pessoa cadastrada",
                      f"{alvo.nome}: {NIVEIS[d['nivel']]}, {CLASSIFICACOES[d['classificacao']][1]}"
                      + (f", {alvo.cargo}" if alvo.cargo else "") + ".")
@@ -196,7 +219,7 @@ def ficha_form(request: Request, fid: int, u: Usuario = Depends(gestor_logado), 
         avisar(request, "Só o dono da conta muda os dados de outro gestor.", "erro")
         return ir("/painel/equipe")
     return render(request, "painel_ficha.html", u=u, e=u.empresa, aba="equipe",
-                  pode_gerente=u.dono and not alvo.dono, v=None, **_contexto(db, u.empresa, alvo, u if restrito(u) else None))
+                  pode_gerente=u.dono and not alvo.dono, v=None, **_contexto(db, u.empresa, alvo, u if restrito(u) else None), **_rh_ctx(db, alvo, u))
 
 
 @rota.post("/painel/equipe/{fid}/ficha", dependencies=CSRF)
@@ -208,6 +231,8 @@ async def ficha(request: Request, fid: int, u: Usuario = Depends(gestor_logado),
         return ir("/painel/equipe")
     form = await request.form()
     d, erro = _ler(form, e)
+    dr, erro_rh = _ler_rh(db, e, form, u, alvo.id)
+    erro = erro or erro_rh
     if alvo.dono:
         d["nivel"] = "gerente_geral"
     if not erro and d["nivel"] != nivel_de(alvo) and not u.dono:
@@ -218,10 +243,11 @@ async def ficha(request: Request, fid: int, u: Usuario = Depends(gestor_logado),
         erro = "Este celular já está cadastrado."
     if erro:
         return render(request, "painel_ficha.html", 400, u=u, e=e, aba="equipe",
-                      pode_gerente=u.dono and not alvo.dono, erro=erro, v=form, **_contexto(db, e, alvo, u if restrito(u) else None))
+                      pode_gerente=u.dono and not alvo.dono, erro=erro, v=form, **_contexto(db, e, alvo, u if restrito(u) else None), **_rh_ctx(db, alvo, u))
     antes = nivel_de(alvo)
     _aplicar(db, e, alvo, d)
     encaixar_no_alcance(u, alvo)
+    _registrar_rh(db, e, u, alvo, dr)
     regras.registrar(db, e.id, u.nome, "ficha alterada",
                      f"{alvo.nome}: {NIVEIS[antes]} → {NIVEIS[nivel_de(alvo)]}." if antes != nivel_de(alvo)
                      else f"{alvo.nome}: dados atualizados.")

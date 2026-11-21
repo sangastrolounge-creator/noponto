@@ -785,6 +785,56 @@ class FuncaoUsuario(Base):
     ordem: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class DadosRH(Base):
+    """Documentos e dados pessoais do colaborador (ficha de RH). Campos em app/rh.py."""
+    __tablename__ = "dados_rh"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id", ondelete="CASCADE"), unique=True, index=True)
+    cpf: Mapped[str] = mapped_column(String(11), default="")
+    pis: Mapped[str] = mapped_column(String(11), default="")
+    rg_numero: Mapped[str] = mapped_column(String(20), default="")
+    rg_orgao: Mapped[str] = mapped_column(String(20), default="")
+    rg_uf: Mapped[str] = mapped_column(String(2), default="")
+    rg_emissao: Mapped[str] = mapped_column(String(10), default="")
+    ctps_numero: Mapped[str] = mapped_column(String(11), default="")
+    ctps_serie: Mapped[str] = mapped_column(String(5), default="")
+    ctps_uf: Mapped[str] = mapped_column(String(2), default="")
+    titulo_eleitor: Mapped[str] = mapped_column(String(14), default="")
+    titulo_zona: Mapped[str] = mapped_column(String(4), default="")
+    titulo_secao: Mapped[str] = mapped_column(String(5), default="")
+    cnh_numero: Mapped[str] = mapped_column(String(12), default="")
+    cnh_categoria: Mapped[str] = mapped_column(String(20), default="")
+    cnh_validade: Mapped[str] = mapped_column(String(10), default="")
+    reservista: Mapped[str] = mapped_column(String(20), default="")
+    sexo: Mapped[str] = mapped_column(String(20), default="")
+    estado_civil: Mapped[str] = mapped_column(String(20), default="")
+    instrucao: Mapped[str] = mapped_column(String(20), default="")
+    raca_cor: Mapped[str] = mapped_column(String(20), default="")
+    nacionalidade: Mapped[str] = mapped_column(String(40), default="")
+    naturalidade: Mapped[str] = mapped_column(String(60), default="")
+    naturalidade_uf: Mapped[str] = mapped_column(String(2), default="")
+    nome_mae: Mapped[str] = mapped_column(String(120), default="")
+    nome_pai: Mapped[str] = mapped_column(String(120), default="")
+    email_pessoal: Mapped[str] = mapped_column(String(120), default="")
+    matricula: Mapped[str] = mapped_column(String(30), default="")
+    cep: Mapped[str] = mapped_column(String(8), default="")
+    logradouro: Mapped[str] = mapped_column(String(120), default="")
+    numero: Mapped[str] = mapped_column(String(10), default="")
+    complemento: Mapped[str] = mapped_column(String(60), default="")
+    bairro: Mapped[str] = mapped_column(String(60), default="")
+    cidade: Mapped[str] = mapped_column(String(60), default="")
+    uf: Mapped[str] = mapped_column(String(2), default="")
+    banco: Mapped[str] = mapped_column(String(40), default="")
+    agencia: Mapped[str] = mapped_column(String(10), default="")
+    conta: Mapped[str] = mapped_column(String(20), default="")
+    tipo_conta: Mapped[str] = mapped_column(String(20), default="")
+    pix: Mapped[str] = mapped_column(String(120), default="")
+    emergencia_nome: Mapped[str] = mapped_column(String(120), default="")
+    emergencia_parentesco: Mapped[str] = mapped_column(String(40), default="")
+    emergencia_telefone: Mapped[str] = mapped_column(String(20), default="")
+
+
 class FaturamentoMes(Base):
     """Faturamento do mês informado pelo gestor (base do CMO: custo de mão de obra ÷ faturamento)."""
     __tablename__ = "faturamento_mes"
@@ -1156,7 +1206,7 @@ def _preparar_revenda():
 LIGADOS_A_PESSOA = ("Turno", "EscalaFixa", "Batida", "Tarefa", "TarefaFeita", "Alerta", "Aparelho",
                     "Ajuste", "Historico", "Ausencia", "Sobreaviso", "MotivoAjuste", "FeriasAjuste",
                     "AjusteBanco", "FechamentoLinha", "FolhaItem", "FuncaoUsuario", "Disponibilidade",
-                    "AvaliacaoTurno", "RespostaTurno")
+                    "AvaliacaoTurno", "RespostaTurno", "DadosRH")
 
 
 def _aplicar_alcance(estado):

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from . import regras
 from .core import avisar, da_empresa, exigir_csrf, gestor_logado, ir
-from .db import (Ajuste, AjusteBanco, Alerta, Aparelho, Ausencia, AvaliacaoTurno, Batida,
+from .db import (Ajuste, AjusteBanco, Alerta, Aparelho, Ausencia, AvaliacaoTurno, Batida, DadosRH,
                  Disponibilidade, EscalaFixa, FechamentoLinha, FeriasAjuste, FolhaItem,
                  FuncaoUsuario, LeituraMensagem, Mensagem, MotivoAjuste, Oferta, PushSub,
                  RespostaTurno, Sobreaviso, Tarefa, TarefaFeita, Turno, Usuario, get_db)
@@ -162,7 +162,7 @@ def excluir(request: Request, fid: int, confirmar: str = Form(""), u: Usuario = 
         avisar(request, "Para excluir, digite o nome completo exatamente como está no cadastro.", "erro")
         return ir(f"/painel/equipe#p{f.id}")
     for m in (Turno, EscalaFixa, TarefaFeita, Alerta, Aparelho, PushSub, FuncaoUsuario,
-              Disponibilidade, AvaliacaoTurno, LeituraMensagem, RespostaTurno):
+              Disponibilidade, AvaliacaoTurno, LeituraMensagem, RespostaTurno, DadosRH):
         db.execute(delete(m).where(m.usuario_id == f.id))
     db.execute(update(Tarefa).where(Tarefa.usuario_id == f.id).values(usuario_id=None))
     db.execute(update(Oferta).where(Oferta.de_id == f.id).values(de_id=None))

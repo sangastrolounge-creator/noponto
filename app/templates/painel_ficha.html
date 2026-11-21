@@ -33,8 +33,8 @@
         {% for s in setores if (s.ativo or atual_setor == s.id|string) and (not alc_s or s.id in alc_s) %}<option value="{{ s.id }}" {{ 'selected' if atual_setor == s.id|string }}>{{ s.nome }}</option>{% endfor %}</select>
         <div class="ajuda">{% if setores %}<a href="/painel/setores">{{ _('Gerenciar setores') }}</a>{% else %}{{ _('Nenhum setor criado.') }} <a href="/painel/setores">{{ _('Criar setores') }}</a>{% endif %}</div></div>
       <div class="campo"><label for="f-inicio">{{ _('Data de admissão') }}</label><input id="f-inicio" type="date" name="data_admissao" value="{{ val('data_admissao', alvo.data_admissao.isoformat() if alvo and alvo.data_admissao else '') }}"></div>
-      <div class="campo"><label for="f-nasc">{{ _('Data de nascimento (só para menores de 18)') }}</label><input id="f-nasc" type="date" name="nascimento" value="{{ val('nascimento', alvo.nascimento.isoformat() if alvo and alvo.nascimento else '') }}">
-        <div class="ajuda">{{ _('O sistema avisa quando a escala ou o ponto passam dos limites de horário da lei para menores.') }}</div></div>
+      <div class="campo"><label for="f-nasc">{{ _('Data de nascimento') }}</label><input id="f-nasc" type="date" name="nascimento" value="{{ val('nascimento', alvo.nascimento.isoformat() if alvo and alvo.nascimento else '') }}">
+        <div class="ajuda">{{ _('Para menores de 18, o sistema avisa quando a escala ou o ponto passam dos limites da lei.') }}</div></div>
     </div>
     <label class="pequeno" style="font-weight:700">{{ _('Funções e salários') }}</label>
     <datalist id="funcoes-sugeridas">{% for f in funcoes_empresa(e) %}<option value="{{ f.nome }}">{% endfor %}</datalist>
@@ -58,6 +58,29 @@
       <div class="campo"><label for="f-vt">{{ _('Vale-transporte no mês (R$)') }}</label><input id="f-vt" type="text" name="vt" inputmode="decimal" placeholder="0,00" value="{{ val('vt', (('%.2f'|format(alvo.vt_centavos / 100)).replace('.', ',')) if alvo and alvo.vt_centavos else '') }}"><div class="ajuda">{{ _('Custo das passagens; o desconto é de até 6% do salário.') }}</div></div>
     </div>
     <label class="marcar"><input type="checkbox" name="gorjeta" value="1" {{ 'checked' if (v and v.get('gorjeta')) or (not v and alvo and alvo.gorjeta) }}><span>{{ _('Recebe gorjeta') }}</span></label>
+  </div>
+
+  <div class="cartao" id="documentos">
+    <h2>{{ _('Documentos e dados pessoais') }}</h2>
+    <p class="suave pequeno" style="margin-top:-4px">{{ _('Opcional. Os campos seguem o cadastro do trabalhador no eSocial. Só quem gerencia a equipe vê estes dados; o histórico registra o que mudou, sem os números.') }}</p>
+    {% for g in rh_grupos %}
+    <details class="grupo-rh" {{ 'open' if loop.first }}>
+      <summary>{{ _(RH.GRUPOS[g]) }}</summary>
+      <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
+      {% for campo, rotulo, tipo, extra, grupo in RH.CAMPOS if grupo == g %}
+        {% set atual = val('rh_' ~ campo, RH.mostrar(campo, rh_dados[campo] if rh_dados else '')) %}
+        <div class="campo"><label for="rh-{{ campo }}">{{ _(rotulo) }}</label>
+        {% if tipo == 'uf' %}<select id="rh-{{ campo }}" name="rh_{{ campo }}"><option value=""></option>{% for x in extra %}<option {{ 'selected' if atual == x }}>{{ x }}</option>{% endfor %}</select>
+        {% elif tipo == 'opcao' %}<select id="rh-{{ campo }}" name="rh_{{ campo }}"><option value=""></option>{% if extra is mapping %}{% for k, nome in extra.items() %}<option value="{{ k }}" {{ 'selected' if atual == k }}>{{ _(nome) }}</option>{% endfor %}{% else %}{% for x in extra %}<option {{ 'selected' if atual == x }}>{{ x }}</option>{% endfor %}{% endif %}</select>
+        {% elif tipo == 'data' %}<input id="rh-{{ campo }}" type="date" name="rh_{{ campo }}" value="{{ atual }}">
+        {% else %}<input id="rh-{{ campo }}" type="text" name="rh_{{ campo }}" value="{{ atual }}" autocomplete="off"
+          {% if tipo == 'cpf' %}inputmode="numeric" maxlength="14" placeholder="000.000.000-00"{% elif tipo == 'pis' %}inputmode="numeric" maxlength="14" placeholder="000.00000.00-0"{% elif tipo == 'cep' %}inputmode="numeric" maxlength="9" placeholder="00000-000"{% else %}maxlength="{{ extra }}"{% endif %}>{% endif %}
+        </div>
+      {% endfor %}
+      </div>
+    </details>
+    {% endfor %}
+    {% if not ve_banco %}<p class="ajuda">{{ _('Os dados bancários só aparecem para quem tem acesso à folha de pagamento.') }}</p>{% endif %}
   </div>
 
   <div class="cartao">
