@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Horas do fechamento — {v1} — {v2} a {v3}', v1=(e.nome), v2=(ini.strftime('%d/%m/%Y')), v3=(fim.strftime('%d/%m/%Y'))) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<div class="folha">
+  <div class="folha-barra nao-imprime">
+    {{ seletor() }}
+    <a class="botao claro" href="{{ volta }}">{{ _('Voltar') }}</a>
+    <button class="botao" type="button" onclick="window.print()">{{ _('Imprimir ou salvar em PDF') }}</button>
+  </div>
+  <p class="ajuda nao-imprime" style="margin-top:0">{{ _('Para gerar o PDF, toque no botão e escolha “Salvar como PDF” na janela de impressão.') }}</p>
+
+  <header class="folha-topo">
+    <div>
+      <h1>{{ _('Horas do fechamento') }}</h1>
+      <div>{{ e.nome }}{% if e.endereco %} · {{ e.endereco }}{% endif %}</div>
+    </div>
+    <div class="direita">
+      <strong>{{ _('{v1} a {v2}', v1=(ini.strftime('%d/%m/%Y')), v2=(fim.strftime('%d/%m/%Y'))) }}</strong><br>
+      {% if fechado %}{{ _('período fechado por {v1} em {v2}', v1=(fechado.criado_por), v2=(local(e, fechado.criado_em, '%d/%m/%Y'))) }}
+      {% else %}<span class="etiqueta alerta">{{ _('período ainda aberto') }}</span>{% endif %}<br>
+      <span class="suave pequeno">{{ _('emitido em {v1}', v1=(emitido.strftime('%d/%m/%Y às %H:%M'))) }}</span>
+    </div>
+  </header>
+
+  {% if resultado %}
+  <div class="rolagem"><table class="tabela-folha tabela-horas">
+    <thead><tr>
+      <th>{{ _('Funcionários') }}</th>
+      <th>{{ _('Extras ({v1}%)', v1=pn) }}</th>
+      <th>{{ _('Extras em folga/feriado ({v1}%)', v1=pe) }}</th>
+      <th>{{ _('Noturnas ({v1}%)', v1=pnot) }}</th>
+      <th>{{ _('Faltas em horas') }}</th>
+    </tr></thead>
+    <tbody>
+    {% for r in resultado %}
+    <tr>
+      <td class="nome-forte">{{ r.u.nome }}{% if r.u.cargo %}<br><span class="suave pequeno">{{ r.u.cargo }}</span>{% endif %}</td>
+      <td>{{ fmt_min(r.extra_normal) if r.extra_normal else '—' }}</td>
+      <td>{{ fmt_min(r.extra_especial) if r.extra_especial else '—' }}</td>
+      <td>{{ fmt_min(r.noturno) if r.noturno else '—' }}</td>
+      <td>{{ fmt_min(r.falta_min) if r.falta_min else '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr>
+      <td><strong>{{ _('Total da equipe ({v1})', v1=(resultado|length)) }}</strong></td>
+      <td><strong>{{ fmt_min(total.extra_normal) }}</strong></td>
+      <td><strong>{{ fmt_min(total.extra_especial) }}</strong></td>
+      <td><strong>{{ fmt_min(total.noturno) }}</strong></td>
+      <td><strong>{{ fmt_min(total.falta_min) }}</strong></td>
+    </tr></tfoot>
+  </table></div>
+  <p class="ajuda">{{ _('Valores em horas e minutos. Noturnas: horas entre 22h e 5h{v1}. Falta: dia de escala sem nenhuma batida.', v1=(_(', já com a hora noturna reduzida') if e.noturno_reduzida)) }}</p>
+  <div class="linhas-assinatura so-imprime"><div>{{ _('Responsável') }}</div><div>{{ _('Conferido por') }}</div></div>
+  {% else %}
+  <div class="vazio">{{ _('Ninguém tem escala ou batidas neste período.') }}</div>
+  {% endif %}
+</div>
+{% endblock %}

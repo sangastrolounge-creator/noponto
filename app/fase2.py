@@ -355,6 +355,27 @@ def fechamento_resumo(request: Request, de: str = "", ate: str = "",
                   volta=f"/painel/fechamento?de={ini}&ate={fim}")
 
 
+@rota.get("/painel/fechamento/horas")
+def fechamento_horas(request: Request, de: str = "", ate: str = "",
+                     u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
+    """Tabela curta para imprimir: extras, extras em folga/feriado, noturnas e faltas em horas."""
+    e = u.empresa
+    sug = periodo_sugerido(db, e)
+    ini, fim = data_iso(de, sug[0]), data_iso(ate, sug[1])
+    if ini > fim or (fim - ini).days > 100:
+        ini, fim = sug
+    resultado = apuracao.apurar(db, e, ini, fim)
+    fechado = db.scalar(select(Fechamento).where(
+        Fechamento.empresa_id == e.id, Fechamento.inicio == ini, Fechamento.fim == fim))
+    total = {k: sum(r[k] for r in resultado) for k in ("extra_normal", "extra_especial", "noturno", "falta_min")}
+    return render(request, "fechamento_horas.html", u=u, e=e, ini=ini, fim=fim, resultado=resultado,
+                  total=total, fechado=fechado, emitido=regras.agora_local(e),
+                  pn=fechado.pct_normal if fechado else e.pct_extra_normal,
+                  pe=fechado.pct_especial if fechado else e.pct_extra_especial,
+                  pnot=fechado.pct_noturno if fechado else e.pct_noturno,
+                  volta=f"/painel/fechamento?de={ini}&ate={fim}")
+
+
 def linha_do_periodo(db: Session, usuario_id: int, ini: date, fim: date) -> FechamentoLinha | None:
     return db.scalar(select(FechamentoLinha).join(Fechamento).where(
         FechamentoLinha.usuario_id == usuario_id, Fechamento.inicio == ini, Fechamento.fim == fim))
