@@ -243,6 +243,24 @@ def main():
         assert regras.limpar_fotos(db) == 1
     assert not arquivo.exists() and conta(Batida, Batida.id == bid) == 1
     assert g.get(f"/painel/ponto/foto/{bid}").status_code == 404
+
+    # ---- histórico em blocos de 10, cada bloco com a sua página
+    with SessionLocal() as db:
+        eid = db.get(Batida, bid).empresa_id
+        base = datetime(2026, 1, 1, 12, 0)
+        for i in range(23):
+            db.add(Historico(empresa_id=eid, autor="Teste", acao="teste pag",
+                             detalhe=f"item-pag-{i:02d};", criado_em=base + timedelta(minutes=i)))
+        db.commit()
+        total = conta(Historico)
+    paginas = -(-total // 10)
+    t1 = g.get("/painel/historico").text
+    assert t1.count("<tr><td") <= 10 + 10 and f"Página 1 de {paginas}" in t1, t1
+    assert "?ph=2&amp;pa=1" in t1 or "?ph=2&pa=1" in t1
+    ult = g.get(f"/painel/historico?ph={paginas}").text
+    assert "item-pag-00;" in ult and f"Página {paginas} de {paginas}" in ult
+    assert "item-pag-00;" not in t1
+    assert f"Página {paginas} de {paginas}" in g.get("/painel/historico?ph=999").text
     print("OK: fase 1 passou")
 
 
