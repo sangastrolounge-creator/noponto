@@ -13,7 +13,7 @@ SAIDA = Path("capturas")
 PUBLICAS = [("inicio", "/"), ("entrar", "/entrar"), ("cadastro", "/cadastro")]
 PAINEL = [("hoje", "/painel"), ("escala", "/painel/escala"), ("ponto", "/painel/ponto"),
           ("ajuste", "/painel/ponto/ajuste"), ("equipe", "/painel/equipe"),
-          ("config", "/painel/config"), ("relatorios", "/painel/relatorios"), ("folha", "/painel/folha?func=5"), ("fechamento", "/painel/fechamento"), ("horas", "/painel/fechamento/horas"), ("vendas", "/master/pagina/previa"),
+          ("config", "/painel/config#logo"), ("relatorios", "/painel/relatorios"), ("folha", "/painel/folha?func=5"), ("fechamento", "/painel/fechamento"), ("horas", "/painel/fechamento/horas"), ("vendas", "/master/pagina/previa"),
           ("master", "/master"), ("app", "/app")]
 TELAS = {"pc": dict(viewport={"width": 1440, "height": 1000}),
          "cel": dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
@@ -43,6 +43,10 @@ def main():
                 pag.fill("input[name=login], input[type=email], input[type=text]", "demo@noponto.test")
                 pag.fill("input[type=password]", "demo1234")
                 pag.click("form button[type=submit]")
+                pag.wait_for_load_state("networkidle")
+                pag.goto(BASE + "/painel/config", wait_until="networkidle")   # logo de exemplo nos impressos
+                pag.set_input_files("#logo-arquivo", "app/static/icone-512.png")
+                pag.click("#logo button[type=submit]:not([name])")
                 pag.wait_for_load_state("networkidle")
                 for nome, url in PAINEL:
                     if not so or nome in so:
