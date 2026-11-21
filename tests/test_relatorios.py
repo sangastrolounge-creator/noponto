@@ -92,7 +92,7 @@ def main():
     assert len(avisos) == 1 and avisos[0][0][4] == "escala", avisos
     posta(ana, "/app/disponibilidade", ta, tipo_0="parcial", ini_0="09:00", fim_0="15:00", tipo_1="nao", obs_1="aula")
     assert len(avisos) == 1          # nada mudou: não avisa de novo
-    assert 'value="parcial" selected' in ana.get("/app/escala").text
+    assert 'value="parcial" selected' not in ana.get("/app/escala").text   # o formulário saiu do app
 
     turno(g, tg, ids["Ana"], SEG, "08:00", "12:00")                      # antes das 9: conflito
     turno(g, tg, ids["Ana"], SEG + timedelta(days=1), "10:00", "14:00")  # não pode: conflito
