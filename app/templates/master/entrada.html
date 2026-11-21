@@ -1,0 +1,70 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Tela de entrada') }}</h1>
+  <p class="suave" style="margin:0">{{ _('Cores, textos e imagens das telas de Entrar e Criar conta. Troque quando quiser; muda na hora para todo mundo.') }}</p></div>
+  <span class="acoes"><a class="botao claro" href="/entrar" target="_blank" rel="noopener">{{ _('Ver Entrar') }}</a> <a class="botao claro" href="/cadastro" target="_blank" rel="noopener">{{ _('Ver Criar conta') }}</a></span></div>
+
+<div class="cartao">
+  <h2>{{ _('Cores e textos') }}</h2>
+  <form method="post" action="/master/entrada">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <div class="campo"><label for="cor1">{{ _('Cor principal') }}</label><input id="cor1" type="color" name="cor1" value="{{ p.entrada_cor1 or '#4f46e5' }}" class="cor-amostra"></div>
+      <div class="campo"><label for="cor2">{{ _('Cor secundária (degradê)') }}</label><input id="cor2" type="color" name="cor2" value="{{ p.entrada_cor2 or '#0ea5e9' }}" class="cor-amostra"></div>
+    </div>
+    <div class="ent-previa-cores" id="previa-cores" style="--ent1:{{ p.entrada_cor1 or '#4f46e5' }};--ent2:{{ p.entrada_cor2 or '#0ea5e9' }}"><span>{{ _('Prévia do degradê') }}</span></div>
+    <div class="campo"><label for="titulo">{{ _('Título ao lado do formulário') }}</label><input id="titulo" type="text" name="titulo" maxlength="120" value="{{ p.entrada_titulo }}" placeholder="{{ _('Ponto, escala e equipe num lugar só.') }}"></div>
+    <div class="campo"><label for="texto">{{ _('Texto de apoio') }}</label><textarea id="texto" name="texto" maxlength="300" rows="2" placeholder="{{ _('Registro de ponto pelo celular, escala da semana e fechamento da folha, tudo de acordo com as regras do Brasil.') }}">{{ p.entrada_texto }}</textarea><div class="ajuda">{{ _('Vazios, ficam os textos de exemplo.') }}</div></div>
+    <button class="botao" type="submit">{{ _('Salvar') }}</button>
+  </form>
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Imagens ({v1} de {v2})', v1=imgs|length, v2=MAX_IMAGENS) }}</h2>
+  <p class="suave">{{ _('Aparecem do lado direito (no celular, numa faixa no alto). Com mais de uma, elas se revezam a cada 6 segundos. Sem imagens, aparece uma arte com o logo nas suas cores. Use fotos na horizontal, de pelo menos 1600 px de largura.') }}</p>
+  {% if imgs %}
+  <div class="ent-galeria">
+    {% for n in imgs %}
+    <figure>
+      <img src="/entrada-img/{{ n }}" alt="">
+      <figcaption>{% if loop.first %}<span class="etiqueta azul">{{ _('primeira') }}</span>{% else %}
+        <form method="post" action="/master/entrada/imagem/{{ n }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao mini claro" name="acao" value="primeira">{{ _('Mostrar primeiro') }}</button></form>{% endif %}
+        <form method="post" action="/master/entrada/imagem/{{ n }}" class="inline" data-confirma="{{ _('Remover esta imagem?') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao mini perigo" name="acao" value="remover">{{ _('Remover') }}</button></form>
+      </figcaption>
+    </figure>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if imgs|length < MAX_IMAGENS %}
+  <form method="post" action="/master/entrada/imagem" enctype="multipart/form-data" class="acoes" style="margin-top:14px">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="file" name="arquivo" accept="image/jpeg,image/png,image/webp" required>
+    <button class="botao" type="submit">{{ _('Enviar imagem') }}</button>
+    <span class="ajuda">{{ _('JPG, PNG ou WebP de até 4 MB.') }}</span>
+  </form>
+  {% endif %}
+</div>
+
+<div class="cartao" id="google">
+  <h2>{{ _('Entrar com o Google') }} {% if google_ok %}<span class="etiqueta verde">{{ _('ligado') }}</span>{% else %}<span class="etiqueta">{{ _('desligado') }}</span>{% endif %}</h2>
+  {% if google_ok %}
+  <p>{{ _('O botão “Continuar com o Google” já aparece nas telas de Entrar e Criar conta. Quem já tem conta com o mesmo e-mail entra direto; e-mail novo segue para criar a conta da empresa.') }}</p>
+  {% else %}
+  <p>{{ _('Para ligar, crie as credenciais no Google Cloud e coloque no servidor:') }}</p>
+  <ol class="passos-simples">
+    <li>{{ _('Em console.cloud.google.com → APIs e serviços → Tela de consentimento OAuth: tipo Externo, nome do app e e-mail de suporte.') }}</li>
+    <li>{{ _('Em Credenciais → Criar credenciais → ID do cliente OAuth → Aplicativo da Web.') }}</li>
+    <li>{{ _('Em “URIs de redirecionamento autorizados”, cole:') }} <code>{{ retorno_google }}</code></li>
+    <li>{{ _('Copie o ID do cliente e a chave secreta para o .env do servidor como GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET, e reinicie o app.') }}</li>
+  </ol>
+  {% endif %}
+</div>
+<script>
+(function () {
+  var p = document.getElementById("previa-cores");
+  ["cor1", "cor2"].forEach(function (id, i) {
+    document.getElementById(id).addEventListener("input", function (e) { p.style.setProperty(i ? "--ent2" : "--ent1", e.target.value); });
+  });
+})();
+</script>
+{% endblock %}

@@ -73,6 +73,12 @@ class Plataforma(Base):
     endereco: Mapped[str] = mapped_column(String(300), default="")
     email_legal: Mapped[str] = mapped_column(String(200), default="")
     estado_lei: Mapped[str] = mapped_column(String(40), default="")  # foro (cidade/UF)
+    # Telas de Entrar e Criar conta: cores, textos e imagens trocados no Painel Master.
+    entrada_cor1: Mapped[str] = mapped_column(String(7), default="#4f46e5")
+    entrada_cor2: Mapped[str] = mapped_column(String(7), default="#0ea5e9")
+    entrada_titulo: Mapped[str] = mapped_column(String(120), default="")
+    entrada_texto: Mapped[str] = mapped_column(String(300), default="")
+    entrada_imagens: Mapped[str] = mapped_column(Text, default="")  # nomes separados por vírgula
     pais_servidores: Mapped[str] = mapped_column(String(60), default="Brasil")
 
 
@@ -237,6 +243,7 @@ class Usuario(Base):
     email: Mapped[str | None] = mapped_column(String(200), unique=True, nullable=True)
     celular: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=True)
     senha_hash: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    google_sub: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     papel: Mapped[str] = mapped_column(String(12), default="funcionario")  # gestor | funcionario
     na_escala: Mapped[bool] = mapped_column(Boolean, default=True)  # aparece na escala e bate ponto
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -962,6 +969,12 @@ class RespostaTurno(Base):
 
 # Colunas acrescentadas depois da primeira versão: (tabela, coluna, definição SQL).
 COLUNAS_NOVAS = [
+    ("plataforma", "entrada_cor1", "VARCHAR(7) NOT NULL DEFAULT '#4f46e5'"),
+    ("plataforma", "entrada_cor2", "VARCHAR(7) NOT NULL DEFAULT '#0ea5e9'"),
+    ("plataforma", "entrada_titulo", "VARCHAR(120) NOT NULL DEFAULT ''"),
+    ("plataforma", "entrada_texto", "VARCHAR(300) NOT NULL DEFAULT ''"),
+    ("plataforma", "entrada_imagens", "TEXT NOT NULL DEFAULT ''"),
+    ("usuarios", "google_sub", "VARCHAR(64)"),
     ("usuarios", "alcance_setores", "VARCHAR(300) NOT NULL DEFAULT ''"),
     ("usuarios", "alcance_locais", "VARCHAR(300) NOT NULL DEFAULT ''"),
     ("usuarios", "setor_id", "INTEGER"),

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{# Moldura das telas de Entrar e Criar conta: formulário à esquerda, arte à direita.
+   Cores, título, texto e imagens vêm do Painel Master → Tela de entrada. #}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+{% set c1 = plat.entrada_cor1 or '#4f46e5' %}{% set c2 = plat.entrada_cor2 or '#0ea5e9' %}
+<div class="ent" style="--ent1:{{ c1 }};--ent2:{{ c2 }}">
+  <section class="ent-lado">
+    <header class="ent-topo">
+      <a class="ent-marca" href="/"><img src="/static/logo.png" alt="">{{ app_nome }}</a>
+      {{ seletor("ent-idiomas") }}
+    </header>
+    <div class="ent-miolo">
+      <div class="ent-cartao">
+        {% block formulario %}{% endblock %}
+      </div>
+      {% block depois %}{% endblock %}
+    </div>
+    <footer class="ent-rodape suave pequeno"><a href="/terms">{{ _('Termos de Uso') }}</a> · <a href="/privacy">{{ _('Política de Privacidade') }}</a></footer>
+  </section>
+
+  <aside class="ent-arte" aria-hidden="true">
+    <svg class="ent-onda" viewBox="0 0 80 800" preserveAspectRatio="none"><path d="M0 0H48C8 140 76 260 36 400S10 660 52 800H0Z"/></svg>
+    <div class="ent-bolha b1"></div><div class="ent-bolha b2"></div><div class="ent-bolha b3"></div>
+    {% if ent_imagens %}
+    <div class="ent-slides" data-total="{{ ent_imagens|length }}">
+      {% for n in ent_imagens %}<img src="/entrada-img/{{ n }}" alt="" class="{{ 'ativa' if loop.first }}" {{ 'loading=lazy' if not loop.first }}>{% endfor %}
+    </div>
+    {% else %}
+    <div class="ent-cena">
+      <div class="ent-cena-logo"><img src="/static/logo.png" alt=""></div>
+      <div class="ent-chip c1"><span class="ponto verde"></span>{{ _('Entrada registrada') }} <b>08:00</b></div>
+      <div class="ent-chip c2"><span class="ponto azul"></span>{{ _('Escala da semana publicada') }}</div>
+      <div class="ent-chip c3"><span class="ponto roxo"></span>{{ _('Fechamento pronto para a folha') }}</div>
+    </div>
+    {% endif %}
+    <div class="ent-legenda">
+      <h2>{{ plat.entrada_titulo or _('Ponto, escala e equipe num lugar só.') }}</h2>
+      <p>{{ plat.entrada_texto or _('Registro de ponto pelo celular, escala da semana e fechamento da folha, tudo de acordo com as regras do Brasil.') }}</p>
+      {% if ent_imagens|length > 1 %}<div class="ent-pontos">{% for n in ent_imagens %}<i class="{{ 'ativa' if loop.first }}"></i>{% endfor %}</div>{% endif %}
+    </div>
+  </aside>
+</div>
+<script>
+(function () {
+  var s = document.querySelector(".ent-slides");
+  if (s) {
+    var imgs = s.querySelectorAll("img"), pts = document.querySelectorAll(".ent-pontos i"), i = 0;
+    if (imgs.length > 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setInterval(function () {
+        imgs[i].classList.remove("ativa"); if (pts[i]) pts[i].classList.remove("ativa");
+        i = (i + 1) % imgs.length;
+        imgs[i].classList.add("ativa"); if (pts[i]) pts[i].classList.add("ativa");
+      }, 6000);
+    }
+  }
+  document.querySelectorAll("[data-olho]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var c = document.getElementById(b.getAttribute("data-olho"));
+      var mostrar = c.type === "password";
+      c.type = mostrar ? "text" : "password";
+      b.setAttribute("aria-pressed", mostrar ? "true" : "false");
+    });
+  });
+})();
+</script>
+{% block scripts_entrada %}{% endblock %}
+{% endblock %}

@@ -22,6 +22,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import core
 from . import db as banco
+from . import entrada
 from . import setores as setores_mod
 from . import (apuracao, asaas, cobranca, desligamento, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
@@ -122,6 +123,7 @@ app.include_router(ferias.rota)
 app.include_router(apropriacao.rota)
 app.include_router(faturamento.rota)
 app.include_router(setores_mod.rota)
+app.include_router(entrada.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 
 templates.env.globals.update(
@@ -221,10 +223,14 @@ def inicio(request: Request, db: Session = Depends(get_db)):
 
 
 @app.get("/cadastro")
-def cadastro_form(request: Request, plano: int = 0, db: Session = Depends(get_db)):
+def cadastro_form(request: Request, plano: int = 0, google: int = 0, db: Session = Depends(get_db)):
     if not master.plataforma()["cadastro_aberto"]:
         return ir("/entrar")
-    return render(request, "cadastro.html", erro=None, v={}, plano=db.get(master.Plano, plano))
+    g = entrada.google_pendente(request) if google else None
+    if not google:
+        request.session.pop("google_novo", None)
+    return render(request, "cadastro.html", erro=None, plano=db.get(master.Plano, plano), google=g,
+                  v={"nome": g["nome"], "email": g["email"]} if g else {})
 
 
 @app.post("/cadastro", dependencies=CSRF)
