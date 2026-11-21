@@ -47,17 +47,26 @@
 
 <div class="cartao" id="google">
   <h2>{{ _('Entrar com o Google') }} {% if google_ok %}<span class="etiqueta verde">{{ _('ligado') }}</span>{% else %}<span class="etiqueta">{{ _('desligado') }}</span>{% endif %}</h2>
-  {% if google_ok %}
-  <p>{{ _('O botão “Continuar com o Google” já aparece nas telas de Entrar e Criar conta. Quem já tem conta com o mesmo e-mail entra direto; e-mail novo segue para criar a conta da empresa.') }}</p>
-  {% else %}
-  <p>{{ _('Para ligar, crie as credenciais no Google Cloud e coloque no servidor:') }}</p>
-  <ol class="passos-simples">
-    <li>{{ _('Em console.cloud.google.com → APIs e serviços → Tela de consentimento OAuth: tipo Externo, nome do app e e-mail de suporte.') }}</li>
-    <li>{{ _('Em Credenciais → Criar credenciais → ID do cliente OAuth → Aplicativo da Web.') }}</li>
-    <li>{{ _('Em “URIs de redirecionamento autorizados”, cole:') }} <code>{{ retorno_google }}</code></li>
-    <li>{{ _('Copie o ID do cliente e a chave secreta para o .env do servidor como GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET, e reinicie o app.') }}</li>
-  </ol>
-  {% endif %}
+  {% if google_ok %}<p>{{ _('O botão “Continuar com o Google” já aparece nas telas de Entrar e Criar conta. Quem já tem conta com o mesmo e-mail entra direto; e-mail novo segue para criar a conta da empresa.') }}</p>{% endif %}
+  <details {{ 'open' if not google_ok }}>
+    <summary class="pequeno" style="font-weight:700;cursor:pointer">{{ _('Como pegar os dois códigos no Google Cloud') }}</summary>
+    <ol class="passos-simples" style="margin-top:8px">
+      <li>{{ _('Em console.cloud.google.com → APIs e serviços → Tela de consentimento OAuth: tipo Externo, nome do app e e-mail de suporte.') }}</li>
+      <li>{{ _('Em Credenciais → Criar credenciais → ID do cliente OAuth → Aplicativo da Web.') }}</li>
+      <li>{{ _('Em “URIs de redirecionamento autorizados”, cole:') }} <code>{{ retorno_google }}</code></li>
+      <li>{{ _('Copie o ID do cliente e a chave secreta e cole nos campos abaixo.') }}</li>
+    </ol>
+  </details>
+  <form method="post" action="/master/entrada/google" style="margin-top:14px">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="campo"><label for="g-id">{{ _('ID do cliente') }}</label>
+      <input id="g-id" type="text" name="client_id" value="{{ google_id }}" autocomplete="off" spellcheck="false" placeholder="123456789-abc....apps.googleusercontent.com"></div>
+    <div class="campo"><label for="g-sec">{{ _('Chave secreta do cliente') }}</label>
+      <input id="g-sec" type="password" name="client_secret" autocomplete="new-password" spellcheck="false" placeholder="{{ _('••••••• (já salva; deixe vazio para manter)') if google_salvo_aqui else 'GOCSPX-...' }}">
+      <div class="ajuda">{{ _('Por segurança, a chave salva não é mostrada de novo.') }}</div></div>
+    <span class="acoes"><button class="botao" type="submit" name="acao" value="salvar">{{ _('Salvar e ligar') }}</button>
+    {% if google_salvo_aqui %}<button class="botao claro" type="submit" name="acao" value="desligar" formnovalidate>{{ _('Desligar o Google') }}</button>{% endif %}</span>
+  </form>
 </div>
 <script>
 (function () {

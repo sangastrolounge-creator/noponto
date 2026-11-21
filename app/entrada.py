@@ -1,7 +1,6 @@
 """Telas de Entrar e Criar conta: aparência trocada no Painel Master (cores, textos e imagens)
 e entrada com a conta do Google (OAuth). O Google só aparece quando GOOGLE_CLIENT_ID e
 GOOGLE_CLIENT_SECRET estão no .env do servidor."""
-import os
 import re
 import secrets
 from urllib.parse import urlencode
@@ -14,9 +13,9 @@ from sqlalchemy.orm import Session
 
 from . import avisos_master, legal, master
 from . import db as banco
-from .core import (admin_logado, avisar, base_url, dentro_do_limite, exigir_csrf, ip, ir,
-                   plataforma, plataforma_mudou, render)
-from .db import Plataforma, Usuario, get_db
+from .core import (admin_logado, avisar, base_url, dentro_do_limite, exigir_csrf, google_credenciais,
+                   google_ligado, ip, ir, plataforma, plataforma_mudou, render)
+from .db import Config, Plataforma, Usuario, get_db
 
 rota = APIRouter()
 CSRF = [Depends(exigir_csrf)]
@@ -54,7 +53,9 @@ def imagem(nome: str):
 def tela(request: Request, u: Usuario = Depends(admin_logado), db: Session = Depends(get_db)):
     return render(request, "master/entrada.html", u=u, e=u.empresa, aba="master", sub="entrada",
                   p=db.get(Plataforma, 1), imgs=imagens(), MAX_IMAGENS=MAX_IMAGENS,
-                  google_ok=google_configurado(), retorno_google=base_url(request) + "/entrar/google/volta")
+                  google_ok=google_configurado(), retorno_google=base_url(request) + "/entrar/google/volta",
+                  google_id=google_credenciais()[0],
+                  google_salvo_aqui=bool(db.get(Config, "google_client_secret")))
 
 
 @rota.post("/master/entrada", dependencies=CSRF)
@@ -118,13 +119,53 @@ def mexer_imagem(request: Request, nome: str, acao: str = Form("remover"),
 
 
 # ------------------------------------------------------------------ Google
+ID_GOOGLE = re.compile(r"^[0-9]+-[0-9a-z]+\.apps\.googleusercontent\.com$")
+
+
+@rota.post("/master/entrada/google", dependencies=CSRF)
+def google_salvar(request: Request, u: Usuario = Depends(admin_logado), db: Session = Depends(get_db),
+                  client_id: str = Form(""), client_secret: str = Form(""), acao: str = Form("salvar")):
+    def guardar(chave, valor):
+        c = db.get(Config, chave)
+        if valor:
+            if c:
+                c.valor = valor
+            else:
+                db.add(Config(chave=chave, valor=valor))
+        elif c:
+            db.delete(c)
+    if acao == "desligar":
+        guardar("google_client_id", "")
+        guardar("google_client_secret", "")
+        db.commit()
+        plataforma_mudou()
+        avisar(request, "Entrada com o Google desligada.")
+        return ir("/master/entrada#google")
+    client_id, client_secret = "".join(client_id.split()), "".join(client_secret.split())
+    atual = db.get(Config, "google_client_secret")
+    if not ID_GOOGLE.match(client_id):
+        avisar(request, "O ID do cliente deve terminar em .apps.googleusercontent.com. Confira se copiou inteiro.", "erro")
+    elif not client_secret and not atual:
+        avisar(request, "Cole também a chave secreta do cliente (começa com GOCSPX-).", "erro")
+    elif client_secret and not re.fullmatch(r"[A-Za-z0-9_\-]{20,100}", client_secret):
+        avisar(request, "A chave secreta parece incompleta. Copie de novo no Google Cloud.", "erro")
+    else:
+        guardar("google_client_id", client_id)
+        if client_secret:   # vazio = mantém a chave já salva
+            guardar("google_client_secret", client_secret)
+        db.commit()
+        plataforma_mudou()
+        avisar(request, "Google ligado. O botão “Continuar com o Google” já aparece nas telas de entrada.")
+    return ir("/master/entrada#google")
+
+
 GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN = "https://oauth2.googleapis.com/token"
 GOOGLE_USER = "https://openidconnect.googleapis.com/v1/userinfo"
 
 
 def google_configurado() -> bool:
-    return bool(os.environ.get("GOOGLE_CLIENT_ID") and os.environ.get("GOOGLE_CLIENT_SECRET"))
+    return google_ligado()
 
 
 def _retorno(request: Request) -> str:
@@ -140,7 +181,7 @@ def google_ir(request: Request, modo: str = "entrar", plano: int = 0):
     request.session["google_estado"] = estado
     request.session["google_modo"] = "cadastro" if modo == "cadastro" else "entrar"
     request.session["google_plano"] = int(plano or 0)
-    q = {"client_id": os.environ["GOOGLE_CLIENT_ID"], "redirect_uri": _retorno(request),
+    q = {"client_id": google_credenciais()[0], "redirect_uri": _retorno(request),
          "response_type": "code", "scope": "openid email profile", "state": estado,
          "prompt": "select_account"}
     return ir(f"{GOOGLE_AUTH}?{urlencode(q)}")
@@ -151,8 +192,8 @@ def _perfil_google(request: Request, code: str) -> dict | None:
     try:
         with httpx.Client(timeout=10) as c:
             t = c.post(GOOGLE_TOKEN, data={
-                "code": code, "client_id": os.environ["GOOGLE_CLIENT_ID"],
-                "client_secret": os.environ["GOOGLE_CLIENT_SECRET"],
+                "code": code, "client_id": google_credenciais()[0],
+                "client_secret": google_credenciais()[1],
                 "redirect_uri": _retorno(request), "grant_type": "authorization_code"})
             if t.status_code != 200:
                 return None
