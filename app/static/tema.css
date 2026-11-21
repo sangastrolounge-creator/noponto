@@ -511,3 +511,7 @@ label > input[type=date], label > input[type=time] { margin-top: 4px; }
 .linha-form .filtro-setor-campo { display: block; }
 .linha-form .filtro-setor-campo > span { display: block; margin-bottom: 5px; font-size: .88rem; font-weight: 600; }
 .linha-form .filtro-setor-campo select { width: 100%; min-height: 46px; }
+/* ficha: documentos e dados pessoais */
+.grupo-rh { border-top: 1px solid var(--borda); padding: 10px 0 4px; }
+.grupo-rh:first-of-type { border-top: 0; }
+.grupo-rh > summary { cursor: pointer; font-weight: 700; color: var(--texto); padding: 4px 0 10px; }
