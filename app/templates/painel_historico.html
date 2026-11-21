@@ -1,11 +1,20 @@
 {% extends "painel_base.html" %}
 {% block conteudo %}
+{% macro paginacao(pg, chave, outra, valor_outra) %}
+{% if pg.paginas > 1 %}
+<nav class="paginacao" aria-label="{{ _('Páginas') }}">
+  {% if pg.pagina > 1 %}<a class="botao claro" href="?{{ chave }}={{ pg.pagina - 1 }}&{{ outra }}={{ valor_outra }}">‹ {{ _('Anterior') }}</a>{% else %}<span class="botao claro desligado">‹ {{ _('Anterior') }}</span>{% endif %}
+  <span class="suave">{{ _('Página {v1} de {v2}', v1=pg.pagina, v2=pg.paginas) }} · {{ _('{v1} registros', v1=pg.total) }}</span>
+  {% if pg.pagina < pg.paginas %}<a class="botao claro" href="?{{ chave }}={{ pg.pagina + 1 }}&{{ outra }}={{ valor_outra }}">{{ _('Próxima') }} ›</a>{% else %}<span class="botao claro desligado">{{ _('Próxima') }} ›</span>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}
 <div class="cabecalho">
   <div><h1>{{ _('Histórico de alterações') }}</h1><p class="suave" style="margin:0">{{ _('Tudo o que foi alterado no ponto, por quem e quando. Nada aqui pode ser apagado.') }}</p></div>
   <a class="botao claro" href="/painel/ponto">{{ _('Voltar ao ponto') }}</a>
 </div>
 
-<div class="cartao">
+<div class="cartao" id="alteracoes">
   <h2>{{ _('Alterações') }}</h2>
   {% if itens %}
   <div class="rolagem"><table>
@@ -17,12 +26,13 @@
     {% endfor %}
     </tbody>
   </table></div>
+  {{ paginacao(pag_alt, 'ph', 'pa', pag_anu.pagina) }}
   {% else %}
   <div class="vazio">{{ _('Nenhuma alteração até agora.') }}</div>
   {% endif %}
 </div>
 
-<div class="cartao">
+<div class="cartao" id="anuladas">
   <h2>{{ _('Batidas anuladas (registro original)') }}</h2>
   {% if anuladas %}
   <div class="rolagem"><table>
@@ -36,6 +46,7 @@
     {% endfor %}
     </tbody>
   </table></div>
+  {{ paginacao(pag_anu, 'pa', 'ph', pag_alt.pagina) }}
   {% else %}
   <div class="vazio">{{ _('Nenhuma batida anulada.') }}</div>
   {% endif %}

@@ -480,3 +480,7 @@ dialog.facial-dlg { width: min(420px, calc(100vw - 20px)); padding: 16px; border
   .pagina { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
   .rodape-app ~ * .pagina, body:has(.rodape-app) .pagina { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 }
+
+/* paginação dos blocos (Histórico de alterações) */
+.paginacao{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px}
+.paginacao .botao.desligado{opacity:.45;pointer-events:none}

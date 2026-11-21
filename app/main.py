@@ -827,16 +827,28 @@ def ajuste_decidir(request: Request, tarefas_bg: BackgroundTasks, aid: int,
     return ir("/painel/ponto")
 
 
+POR_PAGINA = 10
+
+
+def _paginar(db: Session, consulta, pagina: int) -> dict:
+    """Corta a consulta em blocos de POR_PAGINA; devolve itens, página atual e total de páginas."""
+    total = db.scalar(select(func.count()).select_from(consulta.order_by(None).subquery())) or 0
+    paginas = max(1, -(-total // POR_PAGINA))
+    pagina = min(max(1, pagina), paginas)
+    itens = list(db.scalars(consulta.offset((pagina - 1) * POR_PAGINA).limit(POR_PAGINA)))
+    return {"itens": itens, "pagina": pagina, "paginas": paginas, "total": total}
+
+
 @app.get("/painel/historico")
 def historico(request: Request, u: Usuario = Depends(gestor_logado),
-              db: Session = Depends(get_db)):
-    itens = list(db.scalars(select(Historico).where(Historico.empresa_id == u.empresa_id)
-                            .order_by(Historico.criado_em.desc()).limit(300)))
-    anuladas = list(db.scalars(select(Batida).where(
+              db: Session = Depends(get_db), ph: int = 1, pa: int = 1):
+    alt = _paginar(db, select(Historico).where(Historico.empresa_id == u.empresa_id)
+                   .order_by(Historico.criado_em.desc(), Historico.id.desc()), ph)
+    anu = _paginar(db, select(Batida).where(
         Batida.empresa_id == u.empresa_id, Batida.anulada.is_(True))
-        .order_by(Batida.anulada_em.desc()).limit(100)))
+        .order_by(Batida.anulada_em.desc(), Batida.id.desc()), pa)
     return render(request, "painel_historico.html", u=u, e=u.empresa, aba="ponto",
-                  itens=itens, anuladas=anuladas)
+                  itens=alt["itens"], anuladas=anu["itens"], pag_alt=alt, pag_anu=anu)
 
 
 # ============================================================ painel: tarefas
