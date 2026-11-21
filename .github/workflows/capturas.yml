@@ -13,6 +13,8 @@ jobs:
       DATABASE_URL: sqlite:///dados/visualizar.db
       SECRET_KEY: capturas
       SEM_AGENDADOR: "1"
+      GOOGLE_CLIENT_ID: "so-para-mostrar-o-botao"
+      GOOGLE_CLIENT_SECRET: "so-para-mostrar-o-botao"
       IDIOMA_PADRAO: pt
       PUBLIC_URL: http://127.0.0.1:8100
       APP_NOME: Data Worke Brasil
