@@ -80,7 +80,7 @@ def main():
     ta = csrf(ana, "/app")
 
     # ---- disponibilidade
-    assert "Minha disponibilidade" in ana.get("/app/escala").text
+    assert "Minha disponibilidade" not in ana.get("/app/escala").text   # bloco tirado do app
     r = posta(ana, "/app/disponibilidade", ta, tipo_0="parcial", ini_0="", fim_0="")
     assert r.headers["location"].startswith("/app/escala")
     assert "Informe o horário" in ana.get("/app/escala").text

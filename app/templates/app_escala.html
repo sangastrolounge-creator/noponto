@@ -52,40 +52,10 @@
         {% if minha %}
         <br><span class="etiqueta alerta">{{ _('Oferecido') if minha.situacao == 'aberta' else _('{v1} pediu', v1=(minha.candidato.primeiro_nome)) }}</span>
         <form method="post" action="/app/ofertas/{{ minha.id }}" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="cancelar"><button class="botao link pequeno" type="submit">{{ _('Cancelar oferta') }}</button></form>
-        {% elif not comecou(t) %}
-        <br><form method="post" action="/app/turnos/{{ t.id }}/oferecer" class="inline" data-confirma="{{ _('Oferecer este turno para a equipe? Ele continua seu até alguém pegar e o gestor aprovar.') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao link pequeno" type="submit">{{ _('Não posso ir: oferecer') }}</button></form>
         {% endif %}
       {% else %}<span class="suave">—</span>{% endif %}</span></li>
     {% endfor %}
   </ul>
 </section>
 {% endfor %}
-<section class="cartao" id="disponibilidade">
-  <h2>{{ _('Minha disponibilidade') }}</h2>
-  <p class="suave pequeno" style="margin-top:0">{{ _('Diga ao gestor em quais dias e horários você pode trabalhar. Ele vê isso ao montar a escala.') }}</p>
-  <form method="post" action="/app/disponibilidade" class="form-disp">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    {% for i in range(7) %}
-    {% set dp = disp.get(i) %}
-    {% set tp = dp.tipo if dp else 'livre' %}
-    <div class="disp-linha" data-tipo="{{ tp }}">
-      <strong>{{ DIAS[i] }}</strong>
-      <select name="tipo_{{ i }}" aria-label="{{ DIAS[i] }}">
-        <option value="livre" {{ 'selected' if tp == 'livre' }}>{{ _('Posso o dia todo') }}</option>
-        <option value="parcial" {{ 'selected' if tp == 'parcial' }}>{{ _('Só neste horário') }}</option>
-        <option value="nao" {{ 'selected' if tp == 'nao' }}>{{ _('Não posso') }}</option>
-      </select>
-      <span class="disp-horas"><input type="time" name="ini_{{ i }}" value="{{ dp.inicio if dp else '' }}" aria-label="{{ _('De') }}"> {{ _('às') }} <input type="time" name="fim_{{ i }}" value="{{ dp.fim if dp else '' }}" aria-label="{{ _('Até') }}"></span>
-      <input type="text" name="obs_{{ i }}" maxlength="120" class="disp-obs" value="{{ dp.obs if dp else '' }}" placeholder="{{ _('Motivo (opcional)') }}">
-    </div>
-    {% endfor %}
-    <button class="botao" type="submit" style="margin-top:10px">{{ _('Salvar disponibilidade') }}</button>
-  </form>
-</section>
-<script>
-document.querySelectorAll(".disp-linha select").forEach(function (sel) {
-  function ver() { sel.parentNode.dataset.tipo = sel.value; }
-  sel.addEventListener("change", ver); ver();
-});
-</script>
 {% endblock %}

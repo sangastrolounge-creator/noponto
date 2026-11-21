@@ -127,7 +127,7 @@ def main():
     ana, ta = cli["Ana"]
     with SessionLocal() as db:
         tid = db.scalar(select(Turno.id).where(Turno.usuario_id == ids["Ana"], Turno.data == QUA))
-    assert "Não posso ir: oferecer" in ana.get("/app/escala").text
+    assert "Não posso ir: oferecer" not in ana.get("/app/escala").text   # não se aplica no Brasil
     posta(ana, f"/app/turnos/{tid}/oferecer", ta)
     assert "Turno oferecido" in flash(ana, "/app/escala")
     posta(ana, f"/app/turnos/{tid}/oferecer", ta)
