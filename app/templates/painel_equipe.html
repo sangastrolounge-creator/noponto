@@ -1,7 +1,8 @@
 {% extends "painel_base.html" %}
+{% from "_setor_filtro.html" import filtro_setor %}
 {% block conteudo %}
 <div class="cabecalho"><div><h1>{{ _('Equipe') }}</h1><p class="suave" style="margin:0">{{ _('Cada funcionário recebe um link para criar a própria senha. Depois entra com o celular.') }}</p></div>
-  {% if u.dono %}<a class="botao claro" href="/painel/gerentes">{{ _('Gerentes e permissões') }}</a>{% endif %}</div>
+  <span class="acoes"><a class="botao claro" href="/painel/setores">{{ _('Setores') }}</a>{% if u.dono %} <a class="botao claro" href="/painel/gerentes">{{ _('Gerentes e permissões') }}</a>{% endif %}</span></div>
 
 <div class="cartao" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
   <div><h2 style="margin:0">{{ _('Adicionar pessoa') }}</h2><p class="suave pequeno" style="margin:4px 0 0">{{ _('Contato, funções e salários, nível de acesso e classificação tributária, numa página só.') }}</p></div>
@@ -9,7 +10,8 @@
 </div>
 
 <div class="cartao">
-  <h2>{{ _('Pessoas ({v1})', v1=(pessoas|length)) }}</h2>
+  <div class="cabecalho" style="margin-bottom:6px"><h2 style="margin:0">{{ _('Pessoas ({v1})', v1=(pessoas|length)) }}</h2>{{ filtro_setor(setores, setor, form=True) }}</div>
+  {% if not pessoas %}<div class="vazio">{{ _('Ninguém neste setor.') }} <a href="/painel/equipe">{{ _('Ver todos') }}</a></div>{% endif %}
   {% for p in pessoas %}
   <div id="p{{ p.id }}" style="padding:14px 0;{{ 'border-bottom:1px solid var(--borda)' if not loop.last }};{{ 'opacity:.55' if not p.ativo }}">
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
@@ -21,7 +23,7 @@
         {% elif not p.ativo %}<span class="etiqueta">{{ _('Desativado') }}</span>
         {% elif convites.get(p.id) %}<span class="etiqueta alerta">{{ _('Aguardando 1º acesso') }}</span>
         {% elif not p.gestor %}<span class="etiqueta ok">{{ _('Ativo') }}</span>{% endif %}
-        <br><span class="suave pequeno">{{ p.cargo ~ ' · ' if p.cargo }}{{ p.celular or p.email }}</span>
+        <br><span class="suave pequeno">{% if p.setor_id and nomes_setor.get(p.setor_id) %}<span class="etiqueta">{{ nomes_setor[p.setor_id] }}</span> {% endif %}{{ p.cargo ~ ' · ' if p.cargo }}{{ p.celular or p.email }}</span>
       </div>
       {% if convites.get(p.id) and p.ativo %}
       <div class="acoes">

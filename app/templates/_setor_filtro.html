@@ -1,0 +1,13 @@
+{# Filtro por setor. Usar dentro de um <form method="get">, ou sozinho com form=True. #}
+{% macro filtro_setor(setores, atual, form=False, extras={}) %}
+{% if setores %}
+{% if form %}<form method="get" class="filtro-setor">{% for k, v in extras.items() %}{% if v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}{% endif %}
+<label class="filtro-setor-campo"><span class="pequeno">{{ _('Setor') }}</span>
+  <select name="setor" onchange="this.form.submit()" aria-label="{{ _('Filtrar por setor') }}">
+    <option value="0">{{ _('Todos os setores') }}</option>
+    {% for s in setores %}<option value="{{ s.id }}" {{ 'selected' if atual == s.id }}>{{ s.nome }}</option>{% endfor %}
+    <option value="-1" {{ 'selected' if atual == -1 }}>{{ _('Sem setor') }}</option>
+  </select></label>
+{% if form %}<noscript><button class="botao claro" type="submit">{{ _('Filtrar') }}</button></noscript></form>{% endif %}
+{% endif %}
+{% endmacro %}

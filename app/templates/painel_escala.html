@@ -1,4 +1,5 @@
 {% extends "painel_base.html" %}
+{% from "_setor_filtro.html" import filtro_setor %}
 {% block conteudo %}
 <div class="cabecalho">
   <div>
@@ -9,6 +10,7 @@
     <a class="botao claro" href="/painel/escala?semana={{ ant.isoformat() }}" aria-label="{{ _('Semana anterior') }}">‹</a>
     <a class="botao claro" href="/painel/escala">{{ _('Esta semana') }}</a>
     <a class="botao claro" href="/painel/escala?semana={{ prox.isoformat() }}" aria-label="{{ _('Próxima semana') }}">›</a>
+    {{ filtro_setor(setores, setor, form=True, extras={'semana': seg.isoformat()}) }}
     <form method="post" action="/painel/escala/copiar" class="inline">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <input type="hidden" name="semana" value="{{ seg.isoformat() }}">
@@ -136,6 +138,7 @@
 </div>
 
 <div class="cartao">
+  {% if setor and not equipe and equipe_toda %}<div class="vazio">{{ _('Ninguém deste setor está na escala.') }} <a href="/painel/escala?setor=0&semana={{ seg.isoformat() }}">{{ _('Ver todos') }}</a></div>{% endif %}
   {% if equipe %}
   <div class="rolagem"><table class="tabela-escala">
     <thead><tr>
@@ -144,6 +147,8 @@
     </tr></thead>
     <tbody>
     {% for f in equipe %}
+    {% set grupo = nomes_setor.get(f.setor_id) or _('Sem setor') %}
+    {% if agrupar and (loop.first or grupo != (nomes_setor.get(loop.previtem.setor_id) or _('Sem setor'))) %}<tr class="grupo-setor"><td colspan="{{ dias|length + 1 }}">{{ grupo }}</td></tr>{% endif %}
     <tr>
       <td><span class="nome-forte">{{ f.nome }}</span>{% if menor.menores.get(f.id) %} <span class="etiqueta alerta pequeno" title="{{ _('Menor de idade: a escala é conferida pelos limites da lei') }}">{{ _('Menor') }}</span>{% endif %}{% if menor.semana.get(f.id) %}<br><span class="disp-aviso pequeno">{{ menor.semana[f.id]|traduz }}</span>{% endif %}<br><span class="suave pequeno">{{ _('{v1} na semana', v1=(fmt_min(horas[f.id]))) }}{% if ver_custo %} · {% set cs = namespace(t=0) %}{% for d in dias %}{% set cs.t = cs.t + custo[(f.id, d)] %}{% endfor %}{{ cs.t|dinheiro }}{% endif %}</span>{% if zaps.get(f.id) %}<br><a class="pequeno" target="_blank" rel="noopener" href="{{ zaps[f.id] }}">{{ _('Enviar pelo WhatsApp') }}</a>{% endif %}</td>
       {% for d in dias %}
@@ -184,7 +189,7 @@
   <p class="ajuda">{% if publicacao and publicacao.publicado_em %}{{ _('Publicada por {v1} em {v2}.', v1=publicacao.publicado_por, v2=local(e, publicacao.publicado_em, '%d/%m %H:%M')) }} {% endif %}{% if publicar_n %}{{ _('{v1} pessoa(s) com mudança ainda não avisada.', v1=publicar_n) }}{% endif %}{% if ver_custo %} {{ _('O custo é estimado pelo valor da hora de cada um, sem horas extras nem gorjetas.') }}{% endif %}</p>
   {% if fechado and dias[0] <= fechado %}<p class="ajuda">{{ _('Os dias até {v1} estão num período de ponto fechado e não podem ser alterados.', v1=(fechado.strftime('%d/%m/%Y'))) }}</p>{% endif %}
   {% else %}
-  <div class="vazio">{{ _('Cadastre os funcionários primeiro.') }} <a href="/painel/equipe">{{ _('Ir para Equipe') }}</a></div>
+  {% if not equipe_toda %}<div class="vazio">{{ _('Cadastre os funcionários primeiro.') }} <a href="/painel/equipe">{{ _('Ir para Equipe') }}</a></div>{% endif %}
   {% endif %}
 </div>
 

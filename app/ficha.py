@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from . import master, regras, salario_minimo
 from .core import (PERMISSOES, avisar, celular_limpo, celular_valido, da_empresa, data_iso,
                    email_valido, exigir_csrf, gestor_logado, ir, ler_centavos, pode, render)
-from .db import FuncaoUsuario, Local, Usuario, get_db
+from .db import FuncaoUsuario, Local, Setor, Usuario, get_db
 
 rota = APIRouter()
 CSRF = [Depends(exigir_csrf)]
@@ -83,6 +83,7 @@ def _ler(form, e) -> tuple[dict, str | None]:
     d = {"nome": nome, "jornada_mensal": jornada, "dependentes": dependentes, "vt": vt, "email": email, "celular": cel, "nivel": nivel, "classificacao": classe,
          "data_admissao": inicio, "nascimento": nasc, "funcoes": funcs, "gorjeta": bool(form.get("gorjeta")),
          "local_id": int(form["local_id"]) if str(form.get("local_id", "")).isdigit() else None,
+         "setor_id": int(form["setor_id"]) if str(form.get("setor_id", "")).isdigit() else None,
          "na_escala": bool(form.get("na_escala")), "convidar": bool(form.get("convidar"))}
     if not nome:
         return d, "Informe o nome."
@@ -113,6 +114,8 @@ def _aplicar(db: Session, e, alvo: Usuario, d: dict) -> None:
     alvo.nome, alvo.email, alvo.celular = d["nome"], d["email"] or None, d["celular"] or None
     alvo.classificacao, alvo.data_admissao, alvo.local_id = d["classificacao"], d["data_admissao"], d["local_id"]
     alvo.gorjeta = d["gorjeta"]
+    s = db.get(Setor, d["setor_id"]) if d.get("setor_id") else None
+    alvo.setor_id = s.id if s and s.empresa_id == e.id else None
     alvo.nascimento = d["nascimento"]
     alvo.jornada_mensal, alvo.dependentes, alvo.vt_centavos = d["jornada_mensal"], d["dependentes"], d["vt"]
     if not alvo.dono:
@@ -141,6 +144,7 @@ def _contexto(db: Session, e, alvo: Usuario | None) -> dict:
     if alvo and not fs and (alvo.cargo or alvo.salario_centavos):
         fs = [FuncaoUsuario(nome=alvo.cargo, valor_centavos=alvo.salario_centavos, tipo="mensal")]
     return {"alvo": alvo, "funcs": fs, "NIVEIS": NIVEIS, "CLASSIFICACOES": CLASSIFICACOES,
+            "setores": list(db.scalars(select(Setor).where(Setor.empresa_id == e.id).order_by(Setor.nome))),
             "locais": list(db.scalars(select(Local).where(Local.empresa_id == e.id, Local.ativo.is_(True))
                                       .order_by(Local.nome))),
             "nivel_atual": nivel_de(alvo) if alvo else "funcionario", "MAX_FUNCOES": MAX_FUNCOES}

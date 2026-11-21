@@ -22,6 +22,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import core
 from . import db as banco
+from . import setores as setores_mod
 from . import (apuracao, asaas, cobranca, desligamento, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
                ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
@@ -120,6 +121,7 @@ app.include_router(cerca.rota)
 app.include_router(ferias.rota)
 app.include_router(apropriacao.rota)
 app.include_router(faturamento.rota)
+app.include_router(setores_mod.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 
 templates.env.globals.update(
@@ -446,9 +448,12 @@ def equipe_da_escala(db: Session, e: Empresa) -> list[Usuario]:
 
 
 @app.get("/painel/escala")
-def escala(request: Request, semana: str = "", dia: str = "", u: Usuario = Depends(gestor_logado),
-           db: Session = Depends(get_db)):
+def escala(request: Request, semana: str = "", dia: str = "", setor: str | None = None,
+           u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     e = u.empresa
+    # O setor escolhido fica guardado: depois de salvar um turno a escala volta no mesmo setor.
+    sid = setores_mod.ler_filtro(db, e.id, setor if setor is not None else request.session.get("setor_escala", 0))
+    request.session["setor_escala"] = sid
     hoje = regras.hoje(e)
     base = data_iso(semana, hoje)
     seg = base - timedelta(days=base.weekday())
@@ -469,10 +474,17 @@ def escala(request: Request, semana: str = "", dia: str = "", u: Usuario = Depen
     ver_custo = core.pode(u, "pagamento")
     custo = {(f.id, d): custos.custo_previsto(turnos.get((f.id, d)), f, e) for f in equipe for d in dias} if ver_custo else {}
     publicar_ids, publicacao = custos.mudados(db, e, seg, custos.assinaturas(turnos, equipe, dias))
+    lista_setores = setores_mod.setores_da(db, e.id)
+    nomes_setor = setores_mod.nomes(db, e.id)
+    visiveis = [f for f in equipe if setores_mod.no_setor(f, sid)]
+    if lista_setores and not sid:   # agrupa por setor; quem não tem setor vai por último
+        visiveis.sort(key=lambda f: (f.setor_id not in nomes_setor, nomes_setor.get(f.setor_id, "").lower(), f.nome.lower()))
     return render(request, "painel_escala.html", u=u, e=e, aba="escala", dias=dias,
+                  setores=lista_setores, setor=sid, nomes_setor=nomes_setor,
+                  agrupar=bool(lista_setores and not sid), equipe_toda=len(equipe),
                   destaque=data_iso(dia, None),
                   locais=fase3.locais_da(db, e.id), zaps=zaps, fixas=fixas,
-                  hoje=hoje, equipe=equipe, turnos=turnos, horas=horas, seg=seg,
+                  hoje=hoje, equipe=visiveis, turnos=turnos, horas=horas, seg=seg,
                   ant=seg - timedelta(days=7), prox=seg + timedelta(days=7),
                   feriados=feriados, fechado=apuracao.fechado_ate(db, e),
                   ausencias=apuracao.ausencias_por_dia(db, e, dias[0], dias[-1]),
@@ -678,10 +690,11 @@ def periodo(e: Empresa, de: str, ate: str) -> tuple[date, date]:
 
 @app.get("/painel/ponto")
 def ponto(request: Request, de: str = "", ate: str = "", fid: int = Query(0, alias="func"),
-          mes: str = "", u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
+          mes: str = "", setor: str = "", u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     e = u.empresa
     ini, fim = periodo(e, de, ate)
-    linhas, totais = regras.espelho(db, e, ini, fim, fid or None)
+    sid = setores_mod.ler_filtro(db, e.id, setor)
+    linhas, totais = _espelho_setor(db, e, ini, fim, fid, sid)
     # Calendário: o mês escolhido (?mes=AAAA-MM) ou o do fim do período.
     try:
         ano_m, mes_m = (int(x) for x in mes.split("-")) if mes else (fim.year, fim.month)
@@ -690,8 +703,8 @@ def ponto(request: Request, de: str = "", ate: str = "", fid: int = Query(0, ali
         ano_m, mes_m = fim.year, fim.month
     ini_m = date(ano_m, mes_m, 1)
     fim_m = (ini_m + timedelta(days=32)).replace(day=1) - timedelta(days=1)
-    linhas_m = linhas if (ini <= ini_m and fim_m <= fim) else regras.espelho(
-        db, e, ini_m - timedelta(days=7), fim_m + timedelta(days=7), fid or None)[0]
+    linhas_m = linhas if (ini <= ini_m and fim_m <= fim) else _espelho_setor(
+        db, e, ini_m - timedelta(days=7), fim_m + timedelta(days=7), fid, sid)[0]
     cal = calendario.mes(db, e, ano_m, mes_m, linhas_m, regras.hoje(e))
     resumo = dict(pessoas=len(totais), minutos=sum(t["minutos"] for t in totais),
                   previsto=sum(t["previsto"] for t in totais),
@@ -699,22 +712,32 @@ def ponto(request: Request, de: str = "", ate: str = "", fid: int = Query(0, ali
                   faltando=sum(1 for l in linhas if l["incompleto"]),
                   fora=sum(1 for l in linhas if l["fora"]),
                   manuais=sum(1 for l in linhas for p in l["pares"] for x in p if x and x.manual))
-    equipe = list(db.scalars(select(Usuario).where(Usuario.empresa_id == e.id)
-                             .order_by(Usuario.nome)))
+    equipe = [p for p in db.scalars(select(Usuario).where(Usuario.empresa_id == e.id)
+                                    .order_by(Usuario.nome)) if setores_mod.no_setor(p, sid)]
     ajustes = list(db.scalars(select(Ajuste).where(
         Ajuste.empresa_id == e.id, Ajuste.situacao == "pendente").order_by(Ajuste.criado_em)))
     return render(request, "painel_ponto.html", u=u, e=e, aba="ponto", ini=ini, fim=fim,
                   n_problemas=len(ponto_problemas.problemas(db, e)),
                   func=fid, linhas=linhas, totais=totais, equipe=equipe,
+                  setores=setores_mod.setores_da(db, e.id), setor=sid,
                   hoje=regras.hoje(e), ajustes=ajustes, cal=cal, resumo=resumo)
 
 
+def _espelho_setor(db: Session, e: Empresa, ini: date, fim: date, fid: int, sid: int):
+    """regras.espelho, só com as pessoas do setor escolhido (sid 0 = todos)."""
+    linhas, totais = regras.espelho(db, e, ini, fim, fid or None)
+    if sid:
+        linhas = [l for l in linhas if setores_mod.no_setor(l["u"], sid)]
+        totais = [t for t in totais if setores_mod.no_setor(t["u"], sid)]
+    return linhas, totais
+
+
 @app.get("/painel/ponto.csv")
-def ponto_csv(de: str = "", ate: str = "", fid: int = Query(0, alias="func"),
+def ponto_csv(de: str = "", ate: str = "", fid: int = Query(0, alias="func"), setor: str = "",
               u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     e = u.empresa
     ini, fim = periodo(e, de, ate)
-    linhas, _resto = regras.espelho(db, e, ini, fim, fid or None)
+    linhas, _resto = _espelho_setor(db, e, ini, fim, fid, setores_mod.ler_filtro(db, e.id, setor))
     saida = io.StringIO()
     # Planilha para o Excel em português: ponto e vírgula separa as colunas.
     w = csv.writer(saida, delimiter=";")
@@ -917,13 +940,16 @@ def link_convite(request: Request, f: Usuario) -> str:
 
 
 @app.get("/painel/equipe")
-def equipe(request: Request, u: Usuario = Depends(gestor_logado),
+def equipe(request: Request, setor: str = "", u: Usuario = Depends(gestor_logado),
            db: Session = Depends(get_db)):
     # O dono vê todos, gerentes incluídos (para editar o cadastro deles); as permissões
     # continuam na tela Gerentes. Um gerente vê os funcionários, o dono e a si mesmo.
     filtro = [Usuario.empresa_id == u.empresa_id]
     if not u.dono:
         filtro.append((Usuario.papel != "gestor") | Usuario.dono.is_(True) | (Usuario.id == u.id))
+    sid = setores_mod.ler_filtro(db, u.empresa_id, setor)
+    if setores_mod.filtro_sql(sid) is not None:
+        filtro.append(setores_mod.filtro_sql(sid))
     pessoas = list(db.scalars(select(Usuario).where(*filtro)
         .order_by(Usuario.ativo.desc(), Usuario.papel.desc(), Usuario.nome)))
     convites = {}
@@ -942,7 +968,9 @@ def equipe(request: Request, u: Usuario = Depends(gestor_logado),
     return render(request, "painel_equipe.html", u=u, e=u.empresa, aba="equipe",
                   pessoas=pessoas, convites=convites, aparelhos=aparelhos,
                   com_registros=desligamento.com_registros(db, [p.id for p in pessoas]),
-                  TIPOS=desligamento.TIPOS, AVISOS=desligamento.AVISOS, hoje=regras.hoje(u.empresa))
+                  TIPOS=desligamento.TIPOS, AVISOS=desligamento.AVISOS, hoje=regras.hoje(u.empresa),
+                  setores=setores_mod.setores_da(db, u.empresa_id), setor=sid,
+                  nomes_setor=setores_mod.nomes(db, u.empresa_id))
 
 
 @app.post("/painel/equipe", dependencies=CSRF)
