@@ -22,7 +22,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import core
 from . import db as banco
-from . import (apuracao, asaas, cobranca, desligamento, fase2, fase3, i18n, master, pagamento, push, regras,
+from . import (apuracao, asaas, cobranca, desligamento, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
                ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
@@ -99,6 +99,7 @@ app.include_router(mural.rota)
 app.include_router(gerentes.rota)
 app.include_router(email_envio.rota)
 app.include_router(desligamento.rota)
+app.include_router(logo_empresa.rota)
 app.include_router(avisos_master.rota)
 app.include_router(custos.rota)
 app.include_router(ficha.rota)

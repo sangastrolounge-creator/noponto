@@ -402,3 +402,13 @@ dialog.desl[open] { animation: desl-entra .32s cubic-bezier(.2, .9, .25, 1.1) bo
   .desl-resumo { grid-template-columns: 1fr; }
   .desl-acoes .botao { flex: 1; }
 }
+
+/* ---------- logo da empresa (Configurações e impressos) ---------- */
+.logo-config { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: center; margin: 8px 0 12px; }
+.logo-previa { height: 90px; border-radius: 14px; border: 1px dashed var(--campo-borda); display: grid; place-items: center;
+  background: repeating-conic-gradient(var(--cartao-2) 0% 25%, var(--cartao) 0% 50%) 50% / 16px 16px; overflow: hidden; }
+.logo-previa img { max-width: 92%; max-height: 78px; object-fit: contain; }
+.folha-topo.com-logo { align-items: center; }
+.logo-impresso { max-height: 64px; max-width: 200px; object-fit: contain; }
+@media (max-width: 560px) { .logo-config { grid-template-columns: 1fr; } }
+@media print { .logo-impresso { max-height: 56px; } }

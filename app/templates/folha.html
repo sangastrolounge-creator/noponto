@@ -14,7 +14,8 @@
   </div>
   {% if flash %}<div class="aviso {{ 'erro' if flash.tipo == 'erro' }} nao-imprime">{{ flash.texto }}</div>{% endif %}
 
-  <header class="folha-topo">
+  <header class="folha-topo{{ ' com-logo' if e.logo }}">
+    {% if e.logo %}<img class="logo-impresso" src="/logos/{{ e.logo }}" alt="{{ e.nome }}">{% endif %}
     <div>
       <h1>{{ _('Folha de ponto') }}</h1>
       <div>{{ e.nome }}{% if e.endereco %} · {{ e.endereco }}{% endif %}</div>

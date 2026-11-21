@@ -14,7 +14,8 @@
   {% for h in lista %}
   {% set it = h.it %}
   <section class="holerite">
-    <header class="folha-topo">
+    <header class="folha-topo{{ ' com-logo' if e.logo }}">
+    {% if e.logo %}<img class="logo-impresso" src="/logos/{{ e.logo }}" alt="{{ e.nome }}">{% endif %}
       <div>
         <h1>{{ _('Recibo de pagamento de salário') }}</h1>
         <div>{{ e.nome }}{% if e.cpf_cnpj %} · {{ e.cpf_cnpj }}{% endif %}</div>
