@@ -413,3 +413,10 @@ dialog.desl[open] { animation: desl-entra .32s cubic-bezier(.2, .9, .25, 1.1) bo
 .logo-impresso { max-height: 64px; max-width: 200px; object-fit: contain; }
 @media (max-width: 560px) { .logo-config { grid-template-columns: 1fr; } }
 @media print { .logo-impresso { max-height: 56px; } }
+
+/* ---------- impressos: função abaixo do nome, menor e em azul ---------- */
+.tabela-folha .funcao { display: inline-block; font-size: .78em; font-weight: 600; color: #3d55db; }
+@media print {
+  .tabela-folha .pequeno, .tabela-resumo .pequeno { font-size: .85em; }
+  .tabela-folha .funcao { font-size: .8em; color: #2f49d1 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
