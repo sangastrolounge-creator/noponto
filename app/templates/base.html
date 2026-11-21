@@ -88,6 +88,30 @@ window.ligarAvisos = function (botao, estado, chavePublica, csrf, textoLigado) {
     });
   });
 };
+/* Mantém a tela no mesmo lugar depois de salvar, anular ou clicar num link que recarrega a
+   mesma página (ex.: Ajuste de ponto). Guarda a rolagem antes de sair e devolve ao voltar. */
+(function () {
+  var CHAVE = "rolagem-volta";
+  function guardar() {
+    try { sessionStorage.setItem(CHAVE, JSON.stringify({ p: location.pathname, y: window.scrollY, t: Date.now() })); } catch (e) {}
+  }
+  document.addEventListener("submit", function (ev) {
+    var f = ev.target;
+    if (!ev.defaultPrevented && f && (f.method || "").toLowerCase() === "post") guardar();
+  });
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest("a[href]");
+    if (a && !ev.defaultPrevented && a.origin === location.origin && a.pathname === location.pathname && !a.hash && !a.target) guardar();
+  });
+  var d = null;
+  try { d = JSON.parse(sessionStorage.getItem(CHAVE) || "null"); sessionStorage.removeItem(CHAVE); } catch (e) {}
+  if (d && d.p === location.pathname && Date.now() - d.t < 60000 && !location.hash && d.y > 0) {
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    var voltar = function () { window.scrollTo(0, d.y); };
+    document.addEventListener("DOMContentLoaded", voltar);
+    window.addEventListener("load", voltar);
+  }
+})();
 document.querySelectorAll("form[data-confirma]").forEach(function (f) {
   f.addEventListener("submit", function (ev) {
     if (!window.confirm(f.dataset.confirma)) ev.preventDefault();

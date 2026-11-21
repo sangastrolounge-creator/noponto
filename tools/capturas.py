@@ -90,6 +90,18 @@ def main():
                     res = pag.evaluate("""() => window.Facial.carregar().then(() => 'modelos carregados')
                                                  .catch(e => 'erro: ' + e.message)""")
                     (SAIDA / "facial.txt").write_text(res)
+                if tela == "pc" and tema == "light" and (not so or "rolagem" in so):
+                    pag.set_viewport_size({"width": 1440, "height": 900})
+                    pag.goto(BASE + "/painel/ponto/ajuste", wait_until="networkidle")
+                    pag.evaluate("window.scrollTo(0, 1500)")
+                    antes = pag.evaluate("window.scrollY")
+                    pag.once("dialog", lambda d: d.accept())
+                    with pag.expect_navigation():
+                        pag.click("button.esp-x")
+                    pag.wait_for_timeout(800)
+                    depois = pag.evaluate("window.scrollY")
+                    (SAIDA / "rolagem.txt").write_text(f"antes={antes} depois={depois} url={pag.url}")
+                    pag.set_viewport_size(opc["viewport"])
                 if not so or "desligamento" in so:
                     pag.goto(BASE + "/painel/equipe", wait_until="networkidle")
                     pag.click("[data-desligamento]")
