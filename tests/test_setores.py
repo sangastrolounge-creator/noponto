@@ -136,7 +136,7 @@ def main():
           nivel="funcionario", classificacao="clt", setor_id=str(coz.id))
     assert pessoa("Iris Neves").setor_id is None
     assert "Iris Neves" in h.get(f"/painel/equipe?setor={coz.id}").text  # id alheio = sem filtro
-    assert h.post(f"/painel/setores/{coz.id}", data={"csrf": th, "acao": "excluir"}).status_code == 404
+    assert h.post(f"/painel/setores/{coz.id}", data={"csrf": th, "acao": "excluir"}).headers["location"] == "/painel"
     assert setor("Cozinha")
 
     # ---- renomear, desativar, excluir
