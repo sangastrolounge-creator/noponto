@@ -1,0 +1,26 @@
+name: Baixar biblioteca facial
+# Baixa a biblioteca de reconhecimento facial (MIT) e os modelos para o ramo "vendor-face",
+# de onde são copiados para app/static/vendor/face (o app serve tudo do próprio servidor).
+on:
+  workflow_dispatch:
+  push:
+    branches: [vendor-face-pedido]
+permissions:
+  contents: write
+jobs:
+  baixar:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          mkdir -p saida/model && cd saida
+          npm pack @vladmandic/face-api@1 --silent > nome.txt
+          tar xzf "$(cat nome.txt)" && rm "$(cat nome.txt)" nome.txt
+          cp package/dist/face-api.esm.js package/LICENSE .
+          for m in tiny_face_detector_model face_landmark_68_tiny_model face_recognition_model; do
+            cp package/model/$m.json package/model/$m.bin model/ 2>/dev/null || ls package/model
+          done
+          jq -r .version package/package.json > VERSAO
+          rm -rf package && ls -la . model
+          git init -q -b vendor-face && git add -A
+          git -c user.name=vendor -c user.email=vendor@noreply commit -qm "face-api $(cat VERSAO)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" vendor-face
