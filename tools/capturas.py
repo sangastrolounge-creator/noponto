@@ -53,6 +53,35 @@ def camera_falsa(p):
     nav.close()
 
 
+def datas_iphone(p):
+    """Safari (WebKit) num iPhone: nenhum campo de data pode passar da borda do bloco."""
+    nav = p.webkit.launch()
+    ctx = nav.new_context(**p.devices["iPhone 13"], locale="pt-BR")
+    pag = ctx.new_page()
+    pag.goto(BASE + "/entrar")
+    pag.fill("input[name=login], input[type=email], input[type=text]", "demo@noponto.test")
+    pag.fill("input[type=password]", "demo1234")
+    pag.click("form button[type=submit]")
+    pag.wait_for_load_state("networkidle")
+    linhas = []
+    for nome, url in (("ponto", "/painel/ponto"), ("ausencias", "/painel/ausencias"),
+                      ("relatorios", "/painel/relatorios"), ("ficha", "/painel/equipe/2/ficha"),
+                      ("apropriacao", "/painel/ponto/ajuste"), ("ferias", "/painel/ferias")):
+        pag.goto(BASE + url, wait_until="networkidle")
+        pag.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
+        vaza = pag.evaluate("""() => [...document.querySelectorAll('input[type=date],input[type=time]')]
+            .filter(i => i.offsetParent).map(i => {
+              const r = i.getBoundingClientRect();
+              const c = (i.closest('.cartao, dialog, form') || document.body).getBoundingClientRect();
+              return {id: i.id || i.name, sobra: Math.round(c.right - r.right), larg: Math.round(r.width),
+                      tela: Math.round(window.innerWidth - r.right)};
+            }).filter(x => x.sobra < 0 || x.tela < 0)""")
+        linhas.append(f"{nome}: {'ok' if not vaza else vaza}")
+        pag.screenshot(path=str(SAIDA / f"datas-iphone-{nome}.png"), full_page=True)
+    (SAIDA / "datas-iphone.txt").write_text("\n".join(linhas))
+    nav.close()
+
+
 def main():
     SAIDA.mkdir(exist_ok=True)
     with sync_playwright() as p:
@@ -114,6 +143,8 @@ def main():
         nav.close()
         if not so or "facial" in so:
             camera_falsa(p)
+        if not so or "datas" in so:
+            datas_iphone(p)
     print("capturas:", len(list(SAIDA.glob("*.png"))))
 
 
