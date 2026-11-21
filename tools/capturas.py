@@ -3,6 +3,7 @@
 Roda no GitHub (workflow "Capturas de tela") com a empresa de demonstração já criada
 e o servidor ligado em http://127.0.0.1:8100. As imagens vão para a pasta capturas/.
 """
+import json
 import sys
 from pathlib import Path
 
@@ -25,6 +26,31 @@ def fotografar(pag, nome, url):
     pag.goto(BASE + url, wait_until="networkidle")
     pag.wait_for_timeout(700)
     pag.screenshot(path=str(SAIDA / f"{nome}.png"), full_page=True)
+
+
+def camera_falsa(p):
+    """Roda o reconhecimento com a câmera falsa do Chromium (sem rosto): confere que o laço
+    de leitura funciona sem erro e mede o tempo de cada leitura."""
+    nav = p.chromium.launch(args=["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"])
+    ctx = nav.new_context(permissions=["camera"], viewport={"width": 390, "height": 844})
+    pag = ctx.new_page()
+    log = []
+    pag.on("console", lambda m: log.append(m.text))
+    pag.goto(BASE + "/entrar")
+    pag.evaluate("""() => new Promise(ok => { const s = document.createElement('script');
+                       s.src = '/static/facial.js'; s.onload = ok; document.head.appendChild(s); })""")
+    res = pag.evaluate("""async () => {
+        const msgs = []; const t0 = Date.now();
+        const obs = new MutationObserver(() => { const m = document.querySelector('.facial-msg');
+            if (m && msgs[msgs.length - 1] !== m.textContent) msgs.push(((Date.now() - t0) / 1000).toFixed(1) + 's ' + m.textContent); });
+        obs.observe(document.body, { subtree: true, childList: true, characterData: true });
+        const fim = window.Facial.capturar({}).then(r => 'ok', e => 'falhou: ' + e.message);
+        const r = await Promise.race([fim, new Promise(ok => setTimeout(() => ok('ainda rodando'), 15000))]);
+        return { resultado: r, mensagens: msgs };
+    }""")
+    (SAIDA / "facial-camera.txt").write_text(json.dumps(res, ensure_ascii=False, indent=1) + "\n" + "\n".join(log[-20:]))
+    pag.screenshot(path=str(SAIDA / "facial-camera.png"))
+    nav.close()
 
 
 def main():
@@ -74,6 +100,8 @@ def main():
                     pag.screenshot(path=str(SAIDA / f"desligamento-excluir-{sufixo}.png"))
                 ctx.close()
         nav.close()
+        if not so or "facial" in so:
+            camera_falsa(p)
     print("capturas:", len(list(SAIDA.glob("*.png"))))
 
 
