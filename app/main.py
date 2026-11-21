@@ -188,8 +188,8 @@ def manifest():
         "display": "standalone", "background_color": "#ffffff", "theme_color": "#0f766e",
         "lang": "pt-BR", "description": "Escala, ponto e tarefas da equipe.",
         "icons": [
-            {"src": "/static/icone-192.png?v=3", "sizes": "192x192", "type": "image/png"},
-            {"src": "/static/icone-512.png?v=3", "sizes": "512x512", "type": "image/png"},
+            {"src": "/static/icone-192.png?v=4", "sizes": "192x192", "type": "image/png"},
+            {"src": "/static/icone-512.png?v=4", "sizes": "512x512", "type": "image/png"},
         ]}, media_type="application/manifest+json")
 
 
