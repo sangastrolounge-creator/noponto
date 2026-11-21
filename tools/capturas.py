@@ -77,7 +77,9 @@ def datas_iphone(p):
                       tela: Math.round(window.innerWidth - r.right)};
             }).filter(x => x.sobra < 0 || x.tela < 0)""")
         linhas.append(f"{nome}: {'ok' if not vaza else vaza}")
-        pag.screenshot(path=str(SAIDA / f"datas-iphone-{nome}.png"), full_page=True)
+        pag.evaluate("(document.querySelector('input[type=date]') || document.body).scrollIntoView({block: 'center'})")
+        pag.wait_for_timeout(300)
+        pag.screenshot(path=str(SAIDA / f"datas-iphone-{nome}.png"))
     (SAIDA / "datas-iphone.txt").write_text("\n".join(linhas))
     nav.close()
 

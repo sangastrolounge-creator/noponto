@@ -484,3 +484,15 @@ dialog.facial-dlg { width: min(420px, calc(100vw - 20px)); padding: 16px; border
 /* paginação dos blocos (Histórico de alterações) */
 .paginacao{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px}
 .paginacao .botao.desligado{opacity:.45;pointer-events:none}
+
+/* campos de data/hora: no iPhone (Safari) eles têm largura mínima própria e vazavam do bloco */
+input[type=date], input[type=time], input[type=datetime-local], input[type=month], input[type=week] {
+  -webkit-appearance: none; appearance: none; display: block;
+  box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%;
+}
+input[type=date]::-webkit-date-and-time-value, input[type=time]::-webkit-date-and-time-value,
+input[type=datetime-local]::-webkit-date-and-time-value { text-align: left; min-height: 1.5em; margin: 0; }
+input[type=date]::-webkit-datetime-edit, input[type=time]::-webkit-datetime-edit { padding: 0; }
+.linha-form > *, .campo, label > input[type=date] { min-width: 0; }
+label > input[type=date], label > input[type=time] { margin-top: 4px; }
+.relatorio-filtro label { flex: 1 1 140px; min-width: 0; }
