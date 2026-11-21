@@ -107,6 +107,39 @@
   <button class="botao" type="submit">{{ _('Salvar') }}</button>
 </form>
 
+<form method="post" action="/painel/config/logo" class="cartao" id="logo" enctype="multipart/form-data">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Logo da empresa') }}</h2>
+  <p class="suave pequeno">{{ _('Aparece no topo dos impressos: folha de ponto, resumo e tabela do fechamento e holerites.') }}</p>
+  <div class="logo-config">
+    <div class="logo-previa">{% if e.logo %}<img src="/logos/{{ e.logo }}" alt="{{ _('Logo atual') }}">{% else %}<span class="suave pequeno">{{ _('Sem logo') }}</span>{% endif %}</div>
+    <div>
+      <label for="logo-arquivo">{{ _('Imagem da logo') }}</label>
+      <input id="logo-arquivo" type="file" name="arquivo" accept="image/png,image/jpeg,image/webp" data-limite="1048576">
+      <p class="ajuda">{{ _('JPG, PNG ou WebP de até 1 MB. Prefira PNG com fundo transparente, na horizontal.') }}</p>
+    </div>
+  </div>
+  <div class="acoes">
+    <button class="botao" type="submit">{{ _('Salvar logo') }}</button>
+    {% if e.logo %}<button class="botao claro" type="submit" name="remover" value="1" formnovalidate>{{ _('Tirar a logo') }}</button>{% endif %}
+  </div>
+</form>
+<script>
+(function () {
+  var c = document.getElementById("logo-arquivo");
+  if (!c) return;
+  c.addEventListener("change", function () {
+    var f = c.files && c.files[0];
+    c.setCustomValidity(f && f.size > Number(c.dataset.limite) ? {{ _('A imagem passa de 1 MB.')|tojson }} : "");
+    c.reportValidity();
+    if (f && f.size <= Number(c.dataset.limite)) {
+      var p = document.querySelector(".logo-previa"), img = document.createElement("img");
+      img.src = URL.createObjectURL(f); img.alt = ""; p.replaceChildren(img);
+    }
+  });
+})();
+</script>
+
 <form method="post" action="/painel/config/faturamento" class="cartao" id="faturamento">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <h2>{{ _('Faturamento e CMO') }}</h2>

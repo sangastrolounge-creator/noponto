@@ -129,6 +129,7 @@ class Empresa(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     nome: Mapped[str] = mapped_column(String(120))
     endereco: Mapped[str] = mapped_column(String(300), default="")
+    logo: Mapped[str] = mapped_column(String(60), default="")  # arquivo em dados/logos (impressos)
     # Local onde o ponto é válido. Sem lat/lng o ponto é aceito sem conferência.
     lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     lng: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -1005,6 +1006,7 @@ COLUNAS_NOVAS = [
     ("fechamento_linhas", "sobreaviso", "INTEGER NOT NULL DEFAULT 0"),
     ("plataforma", "nome_curto", "VARCHAR(20) NOT NULL DEFAULT ''"),
     ("empresas", "usa_faturamento", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("empresas", "logo", "VARCHAR(60) NOT NULL DEFAULT ''"),
     ("empresas", "meta_cmo", "INTEGER NOT NULL DEFAULT 30"),
     ("empresas", "regime_tributario", "VARCHAR(12) NOT NULL DEFAULT 'simples'"),
     ("historico", "usuario_id", "INTEGER"),

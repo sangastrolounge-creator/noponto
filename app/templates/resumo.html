@@ -17,7 +17,8 @@
   </div>
   <p class="ajuda nao-imprime" style="margin-top:0">{{ _('Para gerar o PDF, toque no botão e escolha “Salvar como PDF” na janela de impressão.') }}</p>
 
-  <header class="folha-topo">
+  <header class="folha-topo{{ ' com-logo' if e.logo }}">
+    {% if e.logo %}<img class="logo-impresso" src="/logos/{{ e.logo }}" alt="{{ e.nome }}">{% endif %}
     <div>
       <h1>{{ _('Resumo do fechamento') }}</h1>
       <div>{{ e.nome }}{% if e.endereco %} · {{ e.endereco }}{% endif %}</div>
