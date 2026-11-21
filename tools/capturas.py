@@ -13,7 +13,7 @@ BASE = "http://127.0.0.1:8100"
 SAIDA = Path("capturas")
 PUBLICAS = [("inicio", "/"), ("entrar", "/entrar"), ("cadastro", "/cadastro")]
 PAINEL = [("hoje", "/painel"), ("escala", "/painel/escala"), ("ponto", "/painel/ponto"),
-          ("ajuste", "/painel/ponto/ajuste"), ("equipe", "/painel/equipe"),
+          ("ajuste", "/painel/ponto/ajuste"), ("equipe", "/painel/equipe"), ("historico", "/painel/historico"),
           ("config", "/painel/config#logo"), ("relatorios", "/painel/relatorios"), ("folha", "/painel/folha?func=5"), ("fechamento", "/painel/fechamento"), ("horas", "/painel/fechamento/horas"), ("vendas", "/master/pagina/previa"),
           ("master", "/master"), ("app", "/app")]
 TELAS = {"pc": dict(viewport={"width": 1440, "height": 1000}),
