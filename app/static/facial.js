@@ -79,18 +79,46 @@
           }, 100);
         });
       }).then(function () {
-        var opc = new api.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
+        var opc = new api.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 });
         var inicio = Date.now(), maior = 0, fechou = false, piscou = false, descritores = [], foto = null;
+        var errosSeguidos = 0, ultimoErro = "", tela = document.createElement("canvas");
         dizer(t("Olhe para a câmera e pisque devagar."));
+        // O iPhone lê melhor um quadro desenhado num canvas do que o vídeo direto.
+        function capturarQuadro() {
+          var esc = Math.min(1, 360 / Math.max(video.videoWidth, video.videoHeight));
+          tela.width = Math.round(video.videoWidth * esc); tela.height = Math.round(video.videoHeight * esc);
+          tela.getContext("2d").drawImage(video, 0, 0, tela.width, tela.height);
+          return tela;
+        }
+        function comPrazo(p, ms) {
+          return Promise.race([p, new Promise(function (_, n) { setTimeout(function () { n(new Error("tempo esgotado")); }, ms); })]);
+        }
+        function falhouLeitura(e) {
+          errosSeguidos++; ultimoErro = (e && e.message) || String(e);
+          if (errosSeguidos === 2 && api.tf && api.tf.getBackend && api.tf.getBackend() !== "cpu") {
+            dizer(t("Ajustando o reconhecimento para este aparelho…"));
+            return api.tf.setBackend("cpu").then(function () { return api.tf.ready(); }).catch(function () {});
+          }
+          if (errosSeguidos >= 6) {
+            fechar();
+            falha(erro(t("O reconhecimento facial não funcionou neste aparelho.") + " (" + ultimoErro.slice(0, 80) + ")", "suporte"));
+            parar = true;
+          }
+        }
         function passo() {
           if (parar) return;
-          if (Date.now() - inicio > 20000) {
+          if (Date.now() - inicio > 25000) {
             fechar();
             falha(erro(piscou ? t("Não consegui ler o seu rosto. Tente num lugar mais claro.")
                               : t("Não percebi a piscada. Tente de novo, num lugar claro.")));
             return;
           }
-          api.detectAllFaces(video, opc).withFaceLandmarks(true).withFaceDescriptors().then(function (rostos) {
+          var img = capturarQuadro();
+          var precisa = descritores.length < 3;
+          var tarefa = api.detectAllFaces(img, opc).withFaceLandmarks(true);
+          if (precisa) tarefa = tarefa.withFaceDescriptors();
+          comPrazo(tarefa, 8000).then(function (rostos) {
+            errosSeguidos = 0;
             if (parar) return;
             if (rostos.length > 1) { dizer(t("Só uma pessoa na frente da câmera, por favor.")); return; }
             if (!rostos.length) { dizer(t("Não estou vendo o rosto. Aproxime o celular.")); return; }
@@ -98,11 +126,11 @@
             var ear = (abertura(pts.getLeftEye()) + abertura(pts.getRightEye())) / 2;
             if (ear > maior) maior = ear;
             if (!piscou) {
-              dizer(t("Agora pisque devagar."));
-              if (maior > 0 && ear < maior * 0.72) fechou = true;
-              else if (fechou && ear > maior * 0.88) piscou = true;
+              dizer(fechou ? t("Isso! Agora abra os olhos.") : t("Agora pisque devagar."));
+              if (maior > 0 && ear < maior * 0.75) fechou = true;
+              else if (fechou && ear > maior * 0.85) piscou = true;
             }
-            if (ear > maior * 0.85) {                 // olhos abertos: bom quadro para o modelo
+            if (precisa && r.descriptor && ear > maior * 0.85) {     // olhos abertos: bom quadro para o modelo
               descritores.push(Array.from(r.descriptor));
               if (opcoes.foto && !foto) foto = quadro(video);
             }
@@ -114,7 +142,7 @@
               fechar();
               ok({ descritor: media, foto: foto });
             }
-          }).catch(function () {}).then(function () { if (!parar) setTimeout(passo, 120); });
+          }, falhouLeitura).catch(falhouLeitura).then(function () { if (!parar) setTimeout(passo, 60); });
         }
         passo();
       }).catch(function (e) {
