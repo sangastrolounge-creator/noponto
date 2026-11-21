@@ -69,7 +69,11 @@ def main():
         token, lia_id = lia.convite_token, lia.id
     tela = g.get("/painel/gerentes").text
     assert f"/convite/{token}" in tela and "Ainda não criou a senha" in tela
-    assert "Lia Lima" not in g.get("/painel/equipe").text   # gerentes ficam na tela própria
+    tela = g.get("/painel/equipe").text   # o dono vê os gerentes na Equipe para editar o cadastro
+    assert "Lia Lima" in tela and "/painel/gerentes#g" in tela
+    assert g.get(f"/painel/equipe/{lia_id}/ficha").status_code == 200
+    posta(g, f"/painel/equipe/{lia_id}", tg, acao="salvar", nome="Lia Lima", celular="", cargo="Gerente de salão")
+    assert "Gerente de salão" in g.get("/painel/equipe").text
 
     # ---- Lia cria a senha pelo link (gerente fora da escala não precisa do consentimento de GPS)
     lc = novo()

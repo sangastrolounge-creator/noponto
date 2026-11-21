@@ -15,7 +15,7 @@
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
       <div>
         <span class="nome-forte">{{ p.nome }}</span>
-        {% if p.gestor %}<span class="etiqueta azul">{{ _('Gestor') }}</span>{% endif %}
+        {% if p.dono %}<span class="etiqueta azul">{{ _('Dono') }}</span>{% elif p.gestor %}<span class="etiqueta azul">{{ _('Gerente') }}</span>{% if u.dono %} <a class="pequeno" href="/painel/gerentes#g{{ p.id }}">{{ _('Permissões') }}</a>{% endif %}{% endif %}
         {% if p.desligado_em and not p.ativo %}<span class="etiqueta erro">{{ _('Desligado em {v1}', v1=p.desligado_em.strftime('%d/%m/%Y')) }}</span>
         {% elif p.desligado_em %}<span class="etiqueta alerta">{{ _('Último dia: {v1}', v1=p.desligado_em.strftime('%d/%m/%Y')) }}</span>
         {% elif not p.ativo %}<span class="etiqueta">{{ _('Desativado') }}</span>
