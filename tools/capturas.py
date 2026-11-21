@@ -51,6 +51,19 @@ def main():
                 for nome, url in PAINEL:
                     if not so or nome in so:
                         fotografar(pag, f"{nome}-{sufixo}", url)
+                if tela == "pc" and tema == "light" and (not so or "facial" in so):
+                    pag.goto(BASE + "/painel/config", wait_until="networkidle")
+                    pag.check("#facial input[name=ativo]")
+                    pag.click("#facial button[type=submit]")
+                    pag.wait_for_load_state("networkidle")
+                    pag.goto(BASE + "/painel/config#facial", wait_until="networkidle")
+                    pag.screenshot(path=str(SAIDA / "facial-config.png"))
+                    pag.goto(BASE + "/painel/config/termo-facial", wait_until="networkidle")
+                    pag.screenshot(path=str(SAIDA / "facial-termo.png"), full_page=True)
+                    pag.add_script_tag(url="/static/facial.js")
+                    res = pag.evaluate("""() => window.Facial.carregar().then(() => 'modelos carregados')
+                                                 .catch(e => 'erro: ' + e.message)""")
+                    (SAIDA / "facial.txt").write_text(res)
                 if not so or "desligamento" in so:
                     pag.goto(BASE + "/painel/equipe", wait_until="networkidle")
                     pag.click("[data-desligamento]")
