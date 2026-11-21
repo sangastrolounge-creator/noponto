@@ -17,7 +17,7 @@ jobs:
           tar xzf "$(cat nome.txt)" && rm "$(cat nome.txt)" nome.txt
           cp package/dist/face-api.esm.js package/LICENSE .
           for m in tiny_face_detector_model face_landmark_68_tiny_model face_recognition_model; do
-            cp package/model/$m.json package/model/$m.bin model/ 2>/dev/null || ls package/model
+            cp package/model/$m-weights_manifest.json package/model/$m.bin model/
           done
           jq -r .version package/package.json > VERSAO
           rm -rf package && ls -la . model
