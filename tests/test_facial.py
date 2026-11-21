@@ -17,7 +17,7 @@ for k in ("PUBLIC_URL", "ADMIN_EMAIL"):
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
-from app import facial, push  # noqa: E402
+from app import db as banco, facial, push  # noqa: E402
 from app import db as banco  # noqa: E402
 from app.db import Alerta, Batida, Empresa, Historico, SessionLocal, Usuario  # noqa: E402
 from app.main import app  # noqa: E402
@@ -159,6 +159,27 @@ def main():
           tipo="pedido", aviso="trabalhado")
     with SessionLocal() as db:
         assert db.get(Usuario, ids["Ana"][0]).facial_descritor == ""
+
+    # ---- plano sem reconhecimento facial: some do app e da configuração; a foto simples continua
+    from app.db import Plano
+    with SessionLocal() as db:
+        pl = Plano(nome="Básico", preco_centavos=1000, limite_funcionarios=0, com_facial=False, com_foto=True)
+        db.add(pl)
+        db.flush()
+        e = db.get(Empresa, 1)
+        e.plano_id, e.teste_ate, e.pago_ate = pl.id, None, banco.agora() + timedelta(days=20)
+        e.exigir_foto = True
+        db.commit()
+        assert not facial.ligado(db.get(Empresa, 1))
+    tela = g.get("/painel/config").text
+    assert "O reconhecimento facial não está no seu plano." in tela and "Fora do seu plano" in tela
+    posta(g, "/painel/config/facial", tg, ativo="1")
+    assert "não está no seu plano" in g.get("/painel/config").text
+    assert bia.get("/app/facial").headers["location"] == "/app"
+    tela = bia.get("/app").text
+    assert "var FACIAL = false" in tela and "var EXIGE_FOTO = true" in tela and "/static/facial.js" not in tela
+    m = novo()   # o Master vê a opção no plano
+    assert "Inclui reconhecimento facial no ponto" in open("app/templates/master/planos.html").read()
 
     # ---- a biblioteca e os modelos são servidos pelo próprio site
     for arq in ("/static/vendor/face/face-api.esm.js", "/static/vendor/face/model/face_recognition_model-weights_manifest.json",

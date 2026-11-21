@@ -21,6 +21,7 @@
     <label class="marcar"><input type="checkbox" name="ativo" value="1" {{ 'checked' if not p or p.ativo }}><span>{{ _('À venda (aparece na página inicial)') }}</span></label>
     <label class="marcar"><input type="checkbox" name="com_gps" value="1" {{ 'checked' if not p or p.com_gps }}><span>{{ _('Inclui ponto por GPS') }}</span></label>
     <label class="marcar"><input type="checkbox" name="com_foto" value="1" {{ 'checked' if not p or p.com_foto }}><span>{{ _('Inclui foto no ponto') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_facial" value="1" {{ 'checked' if not p or p.com_facial }}><span>{{ _('Inclui reconhecimento facial no ponto') }}</span></label>
     <label class="marcar"><input type="checkbox" name="com_alertas" value="1" {{ 'checked' if not p or p.com_alertas }}><span>{{ _('Inclui alertas de atraso e de não comparecimento') }}</span></label>
     <label class="marcar"><input type="checkbox" name="com_pagamento" value="1" {{ 'checked' if not p or p.com_pagamento }}><span>{{ _('Inclui Pagamento e revisão do Claude') }}</span></label>
     <label class="marcar"><input type="checkbox" name="com_cerca" value="1" {{ 'checked' if not p or p.com_cerca }}><span>{{ _('Inclui cerca virtual (contorno no mapa e conferência no turno)') }}</span></label>

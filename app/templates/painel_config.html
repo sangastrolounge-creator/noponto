@@ -111,9 +111,10 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <h2>{{ _('Reconhecimento facial no ponto') }}</h2>
   <p class="suave pequeno">{{ _('Na batida, o app pede que a pessoa olhe para a câmera e pisque. O rosto é comparado no próprio celular e só um modelo matemático (nunca a foto) vai para o sistema. Se o rosto não conferir, o ponto é registrado e marcado para você conferir em Ajuste de ponto.') }}</p>
-  <label class="marcar campo"><input type="checkbox" name="ativo" value="1" {{ 'checked' if e.facial_ativo }}>
-    <span>{{ _('Usar reconhecimento facial para quem aceitar o termo') }}<br><span class="ajuda">{{ _('Biometria é dado sensível (LGPD): cada pessoa lê o termo no app e escolhe se aceita. Quem recusar continua batendo o ponto como hoje, sem prejuízo.') }}</span></span></label>
-  {% if e.facial_ativo %}
+  {% if not facial_liberado(e) %}<p class="alerta">{{ _('O reconhecimento facial não está no seu plano.') }} <a href="/painel/assinatura">{{ _('Ver planos') }}</a></p>{% endif %}
+  <label class="marcar campo"><input type="checkbox" name="ativo" value="1" {{ 'checked' if e.facial_ativo and facial_liberado(e) }} {{ 'disabled' if not facial_liberado(e) }}>
+    <span>{{ _('Usar reconhecimento facial para quem aceitar o termo') }}{% if not facial_liberado(e) %} <span class="etiqueta">{{ _('Fora do seu plano') }}</span>{% endif %}<br><span class="ajuda">{{ _('Biometria é dado sensível (LGPD): cada pessoa lê o termo no app e escolhe se aceita. Quem recusar continua batendo o ponto como hoje, sem prejuízo.') }}</span></span></label>
+  {% if e.facial_ativo and facial_liberado(e) %}
   <div class="facial-resumo">
     <div><strong>{{ facial_resumo.cadastrados }}</strong><span>{{ _('rostos cadastrados') }}</span></div>
     <div><strong>{{ facial_resumo.aceitaram }}</strong><span>{{ _('aceitaram o termo') }}</span></div>
