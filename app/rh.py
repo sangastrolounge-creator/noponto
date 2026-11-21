@@ -21,6 +21,17 @@ INSTRUCAO = {"01": "Analfabeto", "02": "Até o 5º ano incompleto do fundamental
 RACAS = {"1": "Branca", "2": "Preta", "3": "Parda", "4": "Amarela", "5": "Indígena", "6": "Não informada"}
 TIPOS_CONTA = {"corrente": "Conta corrente", "poupanca": "Poupança", "salario": "Conta salário"}
 CNH_CATEGORIAS = ("A", "B", "C", "D", "E", "AB", "AC", "AD", "AE")
+DEFICIENCIAS = {"nao": "Não possui", "fisica": "Física", "auditiva": "Auditiva", "visual": "Visual",
+                "intelectual": "Intelectual", "mental": "Mental", "reabilitado": "Reabilitado"}
+CATEGORIAS_ESOCIAL = {"101": "101 - Empregado geral (CLT)", "103": "103 - Aprendiz",
+                      "105": "105 - Contrato a termo (Lei 9.601/1998)", "106": "106 - Trabalhador temporário",
+                      "111": "111 - Contrato intermitente", "701": "701 - Contribuinte individual (autônomo)",
+                      "901": "901 - Estagiário"}
+TIPOS_CONTRATO = {"indeterminado": "Prazo indeterminado", "experiencia": "Contrato de experiência",
+                  "determinado": "Prazo determinado", "intermitente": "Intermitente"}
+INSALUBRIDADE = {"0": "Não", "10": "Grau mínimo (10%)", "20": "Grau médio (20%)", "40": "Grau máximo (40%)"}
+SIM_NAO = {"nao": "Não", "sim": "Sim"}
+CAMISAS = ("PP", "P", "M", "G", "GG", "XG", "XXG")
 
 # (campo, rótulo, tipo, tamanho máximo ou opções, grupo). tipo: texto | cpf | pis | data | uf | opcao | cep
 CAMPOS = [
@@ -44,13 +55,24 @@ CAMPOS = [
     ("estado_civil", "Estado civil", "opcao", ESTADOS_CIVIS, "pessoais"),
     ("instrucao", "Grau de instrução", "opcao", INSTRUCAO, "pessoais"),
     ("raca_cor", "Raça/cor (eSocial)", "opcao", RACAS, "pessoais"),
+    ("nome_social", "Nome social", "texto", 120, "pessoais"),
+    ("deficiencia", "Pessoa com deficiência", "opcao", DEFICIENCIAS, "pessoais"),
     ("nacionalidade", "Nacionalidade", "texto", 40, "pessoais"),
     ("naturalidade", "Naturalidade (cidade)", "texto", 60, "pessoais"),
     ("naturalidade_uf", "Naturalidade: UF", "uf", UFS, "pessoais"),
     ("nome_mae", "Nome da mãe", "texto", 120, "pessoais"),
     ("nome_pai", "Nome do pai", "texto", 120, "pessoais"),
     ("email_pessoal", "E-mail pessoal", "texto", 120, "pessoais"),
-    ("matricula", "Matrícula", "texto", 30, "pessoais"),
+    ("matricula", "Matrícula eSocial", "texto", 30, "contrato"),
+    ("categoria_esocial", "Categoria eSocial", "opcao", CATEGORIAS_ESOCIAL, "contrato"),
+    ("tipo_contrato", "Tipo de contrato", "opcao", TIPOS_CONTRATO, "contrato"),
+    ("fim_experiencia", "Fim do período de experiência", "data", 0, "contrato"),
+    ("vencimento_contrato", "Vencimento do contrato", "data", 0, "contrato"),
+    ("centro_custo", "Centro de custo", "texto", 40, "contrato"),
+    ("insalubridade", "Insalubridade", "opcao", INSALUBRIDADE, "contrato"),
+    ("periculosidade", "Periculosidade (30%)", "opcao", SIM_NAO, "contrato"),
+    ("filhos", "Quantidade de filhos", "texto", 2, "outros"),
+    ("camisa", "Tamanho de camisa", "opcao", CAMISAS, "outros"),
     ("cep", "CEP", "cep", 8, "endereco"),
     ("logradouro", "Logradouro (rua, avenida)", "texto", 120, "endereco"),
     ("numero", "Número", "texto", 10, "endereco"),
@@ -67,8 +89,9 @@ CAMPOS = [
     ("emergencia_parentesco", "Parentesco", "texto", 40, "emergencia"),
     ("emergencia_telefone", "Telefone de emergência", "texto", 20, "emergencia"),
 ]
-GRUPOS = {"documentos": "Documentos", "pessoais": "Dados pessoais", "endereco": "Endereço",
-          "banco": "Dados bancários", "emergencia": "Contato de emergência"}
+GRUPOS = {"documentos": "Documentos", "pessoais": "Dados pessoais", "contrato": "Contrato e adicionais",
+          "endereco": "Endereço", "banco": "Dados bancários", "emergencia": "Contato de emergência",
+          "outros": "Outros"}
 SO_PAGAMENTO = {"banco"}   # grupos que só quem vê a folha de pagamento enxerga e altera
 
 
@@ -149,6 +172,8 @@ def ler(form, ve_banco: bool) -> tuple[dict, str | None]:
             return d, f"Escolha uma opção válida em “{rotulo}”."
         elif tipo == "texto":
             v = v[:extra]
+        if campo == "filhos" and v and not v.isdigit():
+            return d, "Quantidade de filhos: use um número."
         if campo == "email_pessoal" and v and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", v):
             return d, "E-mail pessoal inválido."
         d[campo] = v
