@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Termo de consentimento — reconhecimento facial — {v1}', v1=e.nome) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<div class="folha termo-folha">
+  <div class="folha-barra nao-imprime">
+    {{ seletor() }}
+    <a class="botao claro" href="{{ volta }}">{{ _('Voltar') }}</a>
+    <button class="botao" type="button" onclick="window.print()">{{ _('Imprimir ou salvar em PDF') }}</button>
+  </div>
+  <p class="ajuda nao-imprime" style="margin-top:0">{{ _('Para baixar, toque no botão e escolha “Salvar como PDF” na janela de impressão.') }}</p>
+  <header class="folha-topo{{ ' com-logo' if e.logo }}">
+    {% if e.logo %}<img class="logo-impresso" src="/logos/{{ e.logo }}" alt="{{ e.nome }}">{% endif %}
+    <div>
+      <h1>{{ _('Termo de consentimento para uso de reconhecimento facial no registro de ponto') }}</h1>
+      <div>{{ e.nome }}{% if e.cpf_cnpj %} · {{ e.cpf_cnpj }}{% endif %}{% if e.endereco %} · {{ e.endereco }}{% endif %}</div>
+    </div>
+  </header>
+  {% include "_termo_facial_texto.html" %}
+  {% if pessoa and pessoa.facial_consentimento == 'aceito' and pessoa.facial_consentido_em %}
+  <p class="termo-aceite">{{ _('Aceito eletronicamente por {v1} em {v2}.', v1=pessoa.nome, v2=local(e, pessoa.facial_consentido_em, '%d/%m/%Y às %H:%M')) }}</p>
+  {% endif %}
+  <p>{{ _('Local e data: ______________________________, ____ de ______________ de ________.') }}</p>
+  <div class="linhas-assinatura"><div>{{ _('Colaborador(a)') }}{% if pessoa %}: {{ pessoa.nome }}{% endif %}</div><div>{{ _('Pela EMPRESA') }}</div></div>
+</div>
+{% endblock %}

@@ -420,3 +420,35 @@ dialog.desl[open] { animation: desl-entra .32s cubic-bezier(.2, .9, .25, 1.1) bo
   .tabela-folha .pequeno, .tabela-resumo .pequeno { font-size: .85em; }
   .tabela-folha .funcao { font-size: .8em; color: #2f49d1 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ---------- reconhecimento facial ---------- */
+.facial-chamada { display: flex; gap: 14px; align-items: center; text-decoration: none; color: inherit; margin-bottom: 14px;
+  background: var(--degrade-suave); border-color: color-mix(in srgb, var(--cor) 30%, var(--borda)); }
+.facial-chamada-ic, .facial-selo { width: 46px; height: 46px; flex: none; border-radius: 14px; display: grid; place-items: center; font-size: 1.5rem;
+  background: var(--degrade); box-shadow: var(--sombra-cor); }
+.facial-selo { width: 64px; height: 64px; font-size: 2rem; margin: 0 auto 8px; filter: grayscale(.4); }
+.facial-selo.ok { filter: none; }
+.facial-cadastro { text-align: center; }
+.facial-cadastro .acoes { justify-content: center; }
+.termo-rolagem { max-height: 46vh; overflow: auto; padding: 4px 14px; border: 1px solid var(--borda); border-radius: 14px; background: var(--cartao-2); }
+.termo-texto h3 { font-size: .95rem; margin: 14px 0 4px; }
+.termo-texto p { margin: 0 0 8px; line-height: 1.55; }
+.termo-folha .termo-texto { font-size: .95rem; }
+.termo-aceite { padding: 10px 12px; border-radius: 12px; background: var(--ok-fundo); color: var(--ok); font-weight: 600; }
+.facial-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 10px 0 12px; }
+.facial-resumo div { padding: 10px 12px; border-radius: 12px; background: var(--cartao-2); border: 1px solid var(--borda); display: grid; }
+.facial-resumo strong { font-size: 1.35rem; font-family: var(--fonte-titulo); }
+.facial-resumo span { font-size: .8rem; color: var(--suave); }
+.facial-linha { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; color: var(--suave); }
+.facial-alerta { color: var(--erro); font-size: .8rem; }
+.hora.facial-diverge { outline: 2px solid var(--erro-solido); outline-offset: 1px; }
+dialog.facial-dlg { width: min(420px, calc(100vw - 20px)); padding: 16px; border-radius: 24px; text-align: center; }
+.facial-quadro { position: relative; border-radius: 20px; overflow: hidden; background: #000; aspect-ratio: 3 / 4; }
+.facial-quadro video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.facial-oval { position: absolute; inset: 12% 18%; border-radius: 50%; border: 3px solid rgb(255 255 255 / .85);
+  box-shadow: 0 0 0 999px rgb(10 15 40 / .45); animation: facial-pulso 2s ease-in-out infinite; }
+@keyframes facial-pulso { 50% { border-color: #8ea2ff; } }
+.facial-msg { font-weight: 700; margin: 12px 0 8px; min-height: 1.4em; }
+.facial-barra { height: 6px; border-radius: 6px; background: var(--cartao-2); overflow: hidden; margin-bottom: 12px; }
+.facial-barra span { display: block; height: 100%; width: 0; background: var(--degrade); transition: width .3s; }
+@media print { .termo-texto { font-size: 10.5px; } .termo-texto h3 { font-size: 11px; } }

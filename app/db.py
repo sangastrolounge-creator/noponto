@@ -130,6 +130,7 @@ class Empresa(Base):
     nome: Mapped[str] = mapped_column(String(120))
     endereco: Mapped[str] = mapped_column(String(300), default="")
     logo: Mapped[str] = mapped_column(String(60), default="")  # arquivo em dados/logos (impressos)
+    facial_ativo: Mapped[bool] = mapped_column(Boolean, default=False)  # reconhecimento facial no ponto
     # Local onde o ponto é válido. Sem lat/lng o ponto é aceito sem conferência.
     lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     lng: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -267,6 +268,11 @@ class Usuario(Base):
     desligamento_tipo: Mapped[str] = mapped_column(String(20), default="")
     aviso_previo: Mapped[str] = mapped_column(String(16), default="")
     desligamento_obs: Mapped[str] = mapped_column(String(300), default="")
+    # Reconhecimento facial (LGPD art. 11, I): consentimento "" | aceito | recusado, e o modelo
+    # matemático do rosto (128 números, nunca a foto). Apagado ao revogar ou no desligamento.
+    facial_consentimento: Mapped[str] = mapped_column(String(10), default="")
+    facial_consentido_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    facial_descritor: Mapped[str] = mapped_column(Text, default="")
     # Só para menores de 18 (regras de trabalho de menores); vazio para os demais.
     nascimento: Mapped[date | None] = mapped_column(Date, nullable=True)
     local_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -421,6 +427,9 @@ class Batida(Base):
     local_nome: Mapped[str] = mapped_column(String(80), default="")  # local extra ou totem
     origem: Mapped[str] = mapped_column(String(8), default="")  # "" celular+GPS | codigo | totem | auto
     conferida: Mapped[bool] = mapped_column(Boolean, default=True)  # False = saída automática a conferir
+    # Reconhecimento facial: "ok" (rosto conferiu), "diverge" (não conferiu), "sem" (não fez), "" (não usa)
+    facial: Mapped[str] = mapped_column(String(10), default="")
+    facial_dist: Mapped[float | None] = mapped_column(Float, nullable=True)
     motivo_fora: Mapped[str] = mapped_column(String(200), default="")  # por que bateu fora da área
     usuario: Mapped[Usuario] = relationship()
 
@@ -1007,6 +1016,12 @@ COLUNAS_NOVAS = [
     ("plataforma", "nome_curto", "VARCHAR(20) NOT NULL DEFAULT ''"),
     ("empresas", "usa_faturamento", "BOOLEAN NOT NULL DEFAULT 0"),
     ("empresas", "logo", "VARCHAR(60) NOT NULL DEFAULT ''"),
+    ("empresas", "facial_ativo", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("usuarios", "facial_consentimento", "VARCHAR(10) NOT NULL DEFAULT ''"),
+    ("usuarios", "facial_consentido_em", "DATETIME"),
+    ("usuarios", "facial_descritor", "TEXT NOT NULL DEFAULT ''"),
+    ("batidas", "facial", "VARCHAR(10) NOT NULL DEFAULT ''"),
+    ("batidas", "facial_dist", "FLOAT"),
     ("empresas", "meta_cmo", "INTEGER NOT NULL DEFAULT 30"),
     ("empresas", "regime_tributario", "VARCHAR(12) NOT NULL DEFAULT 'simples'"),
     ("historico", "usuario_id", "INTEGER"),
