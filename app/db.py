@@ -256,6 +256,10 @@ class Usuario(Base):
     # `permissoes` (chaves de core.PERMISSOES separadas por vírgula).
     dono: Mapped[bool] = mapped_column(Boolean, default=False)
     permissoes: Mapped[str] = mapped_column(String(300), default="")
+    # Gerente com alcance limitado: ids de setores e de locais ("0" = endereço principal),
+    # separados por vírgula. Vazio = sem limite naquela dimensão.
+    alcance_setores: Mapped[str] = mapped_column(String(300), default="")
+    alcance_locais: Mapped[str] = mapped_column(String(300), default="")
     # "Esqueci a senha": hash do link enviado por e-mail e até quando ele vale.
     redefinir_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     redefinir_ate: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -897,6 +901,8 @@ class RespostaTurno(Base):
 
 # Colunas acrescentadas depois da primeira versão: (tabela, coluna, definição SQL).
 COLUNAS_NOVAS = [
+    ("usuarios", "alcance_setores", "VARCHAR(300) NOT NULL DEFAULT ''"),
+    ("usuarios", "alcance_locais", "VARCHAR(300) NOT NULL DEFAULT ''"),
     ("usuarios", "setor_id", "INTEGER"),
     ("empresas", "exigir_foto", "BOOLEAN NOT NULL DEFAULT 0"),
     ("empresas", "aparelho_unico", "BOOLEAN NOT NULL DEFAULT 1"),
@@ -1140,6 +1146,39 @@ def _preparar_revenda():
                 Empresa.isenta.is_(False))):
             e.teste_ate = agora() + timedelta(days=7)
         db.commit()
+
+
+# ---------------------------------------------------------------- alcance do gerente
+# Um gerente ligado a setores/locais só enxerga as pessoas deles. core.gestor_logado põe em
+# db.info["alcance"] = (empresa_id, ids visíveis); aqui toda consulta ORM dessa sessão recebe o
+# filtro (pessoas e os registros ligados a elas). Consultas marcadas com
+# .execution_options(alcance_livre=True) passam sem filtro (ex.: celular já cadastrado).
+LIGADOS_A_PESSOA = ("Turno", "EscalaFixa", "Batida", "Tarefa", "TarefaFeita", "Alerta", "Aparelho",
+                    "Ajuste", "Historico", "Ausencia", "Sobreaviso", "MotivoAjuste", "FeriasAjuste",
+                    "AjusteBanco", "FechamentoLinha", "FolhaItem", "FuncaoUsuario", "Disponibilidade",
+                    "AvaliacaoTurno", "RespostaTurno")
+
+
+def _aplicar_alcance(estado):
+    alcance = estado.session.info.get("alcance")
+    if not alcance or not estado.is_select or estado.execution_options.get("alcance_livre"):
+        return
+    from sqlalchemy import or_
+    from sqlalchemy.orm import with_loader_criteria
+    eid, ids = alcance
+    ids = tuple(ids)
+    opcoes = [with_loader_criteria(Usuario, or_(Usuario.empresa_id != eid, Usuario.id.in_(ids)),
+                                   include_aliases=True)]
+    for nome in LIGADOS_A_PESSOA:
+        m = globals()[nome]
+        opcoes.append(with_loader_criteria(m, or_(m.usuario_id.is_(None), m.usuario_id.in_(ids)),
+                                           include_aliases=True))
+    opcoes.append(with_loader_criteria(Oferta, or_(Oferta.de_id.is_(None), Oferta.de_id.in_(ids)),
+                                       include_aliases=True))
+    estado.statement = estado.statement.options(*opcoes)
+
+
+event.listen(SessionLocal, "do_orm_execute", _aplicar_alcance)
 
 
 def get_db():

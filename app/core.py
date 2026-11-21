@@ -165,7 +165,7 @@ def funcionarios_ativos(db: Session, empresa_id: int) -> int:
     from sqlalchemy import func, select
     return db.scalar(select(func.count()).select_from(Usuario).where(
         Usuario.empresa_id == empresa_id, Usuario.papel == "funcionario",
-        Usuario.ativo.is_(True))) or 0
+        Usuario.ativo.is_(True)).execution_options(alcance_livre=True)) or 0
 
 
 def dinheiro(centavos: int | None) -> str:
@@ -313,9 +313,70 @@ def usuario_logado(request: Request, db: Session = Depends(get_db)) -> Usuario:
     return u
 
 
-def gestor_logado(request: Request, u: Usuario = Depends(usuario_logado)) -> Usuario:
+def _ids(txt: str) -> set[int]:
+    return {int(x) for x in (txt or "").split(",") if x.strip().isdigit()}
+
+
+def alcance_setores(u: Usuario) -> set[int]:
+    return _ids(u.alcance_setores)
+
+
+def alcance_locais(u: Usuario) -> set[int]:
+    """Ids dos locais do gerente; 0 = endereço principal da empresa."""
+    return _ids(u.alcance_locais)
+
+
+def restrito(u: Usuario) -> bool:
+    """Gerente que só enxerga as pessoas de alguns setores e/ou locais (o dono nunca)."""
+    return bool(u.gestor and not u.dono and (alcance_setores(u) or alcance_locais(u)))
+
+
+def ve_pessoa(u: Usuario, p) -> bool:
+    """p: Usuario ou qualquer objeto com id, setor_id e local_id."""
+    if not restrito(u) or p.id == u.id:
+        return True
+    s, l = alcance_setores(u), alcance_locais(u)
+    return (not s or p.setor_id in s) and (not l or (p.local_id or 0) in l)
+
+
+def encaixar_no_alcance(u: Usuario, p: Usuario) -> None:
+    """Pessoa cadastrada ou editada por um gerente limitado fica dentro do alcance dele."""
+    if not restrito(u) or p.id == u.id:
+        return
+    s, l = alcance_setores(u), alcance_locais(u)
+    if s and p.setor_id not in s:
+        p.setor_id = min(s)
+    if l and (p.local_id or 0) not in l:
+        p.local_id = min(l) or None
+
+
+# O que mexe na empresa inteira fica com quem não tem alcance limitado.
+SO_SEM_ALCANCE = ("/painel/fechamento", "/painel/pagamento", "/painel/feriados", "/painel/locais",
+                  "/painel/totens", "/painel/cerca", "/painel/setores", "/painel/importar-equipe")
+
+
+def gestor_logado(request: Request, u: Usuario = Depends(usuario_logado),
+                  db: Session = Depends(get_db)) -> Usuario:
     if not u.gestor:
         raise Redirecionar("/app")
+    if restrito(u) and not request.session.get("master_uid"):
+        from sqlalchemy import select
+        # Só as colunas (não os objetos), para não deixar pessoas fora do alcance na sessão.
+        todos = db.execute(select(Usuario.id, Usuario.setor_id, Usuario.local_id)
+                           .where(Usuario.empresa_id == u.empresa_id)
+                           .execution_options(alcance_livre=True)).all()
+        db.info["alcance"] = (u.empresa_id, {p.id for p in todos if ve_pessoa(u, p)})
+        caminho = request.url.path
+        bloqueado = request.method == "POST" and (
+            any(caminho == r or caminho.startswith(r + "/") for r in SO_SEM_ALCANCE[1:])
+            or caminho == "/painel/fechamento" or caminho.endswith("/reabrir"))
+        if bloqueado:
+            avisar(request, "Você gerencia só alguns setores ou locais; esta ação vale para a empresa "
+                            "inteira e fica com o dono da conta.", "erro")
+            from urllib.parse import urlsplit
+            ref = urlsplit(request.headers.get("referer") or "")
+            raise Redirecionar(ref.path + (f"?{ref.query}" if ref.query else "")
+                               if ref.netloc == request.url.netloc and ref.path.startswith("/painel") else "/painel")
     # Assinatura vencida: o gestor só enxerga a tela Assinatura (o suporte entra mesmo assim).
     if (not pode_usar(u.empresa) and not request.session.get("master_uid")
             and not request.url.path.startswith("/painel/assinatura")):
@@ -398,4 +459,9 @@ def da_empresa(db: Session, modelo, id_: int, u: Usuario):
     obj = db.get(modelo, id_)
     if not obj or obj.empresa_id != u.empresa_id:
         raise Redirecionar("/painel")
+    alcance = db.info.get("alcance")
+    if alcance:   # gerente limitado: a pessoa (ou o dono do registro) precisa estar no alcance dele
+        dono_id = obj.id if isinstance(obj, Usuario) else getattr(obj, "usuario_id", None)
+        if dono_id is not None and dono_id not in alcance[1]:
+            raise Redirecionar("/painel")
     return obj

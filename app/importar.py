@@ -83,7 +83,7 @@ def ler(conteudo: str, db: Session, empresa_id: int) -> tuple[list[dict], str | 
         return [], "Não achei a coluna do nome. Use o modelo: Nome, Celular, Função, Salário..."
     if "celular" not in mapa:
         return [], "Não achei a coluna do celular. O funcionário entra no app pelo celular."
-    existentes = set(db.scalars(select(Usuario.celular).where(Usuario.celular.is_not(None))))
+    existentes = set(db.scalars(select(Usuario.celular).where(Usuario.celular.is_not(None)).execution_options(alcance_livre=True)))
     emails = {x for x in db.scalars(select(Usuario.email).where(Usuario.email.is_not(None)))}
     vistos, vistos_email, linhas = set(), set(), []
     for n, row in enumerate(leitor, start=2):

@@ -243,7 +243,7 @@ def cadastro(request: Request, tarefas_bg: BackgroundTasks, empresa: str = Form(
         erro = "E-mail inválido."
     elif len(senha) < 6:
         erro = "A senha precisa ter pelo menos 6 caracteres."
-    elif db.scalar(select(Usuario.id).where(Usuario.email == email)):
+    elif db.scalar(select(Usuario.id).where(Usuario.email == email).execution_options(alcance_livre=True)):
         erro = "Já existe uma conta com este e-mail."
     elif not aceito:
         erro = "Para criar a conta, aceite os Termos de Uso e a Política de Privacidade."
@@ -970,7 +970,8 @@ def equipe(request: Request, setor: str = "", u: Usuario = Depends(gestor_logado
                   com_registros=desligamento.com_registros(db, [p.id for p in pessoas]),
                   TIPOS=desligamento.TIPOS, AVISOS=desligamento.AVISOS, hoje=regras.hoje(u.empresa),
                   setores=setores_mod.setores_da(db, u.empresa_id), setor=sid,
-                  nomes_setor=setores_mod.nomes(db, u.empresa_id))
+                  nomes_setor=setores_mod.nomes(db, u.empresa_id),
+                  meu_alcance=setores_mod.descrever_alcance(db, u))
 
 
 @app.post("/painel/equipe", dependencies=CSRF)
@@ -980,14 +981,16 @@ def equipe_novo(request: Request, nome: str = Form(""), celular: str = Form(""),
     nome, cel = nome.strip()[:120], celular_limpo(celular)
     if not nome or not celular_valido(cel):
         avisar(request, "Informe o nome e o celular com DDD (ex.: 98 99999-1234).", "erro")
-    elif db.scalar(select(Usuario.id).where(Usuario.celular == cel)):
+    elif db.scalar(select(Usuario.id).where(Usuario.celular == cel).execution_options(alcance_livre=True)):
         avisar(request, "Este celular já está cadastrado.", "erro")
     elif master.sem_vaga(db, u.empresa):
         avisar(request, master.sem_vaga(db, u.empresa), "erro")
     else:
-        db.add(Usuario(empresa_id=u.empresa_id, nome=nome, celular=cel,
+        novo = Usuario(empresa_id=u.empresa_id, nome=nome, celular=cel,
                        cargo=cargo.strip()[:80], papel="funcionario",
-                       convite_token=secrets.token_urlsafe(18)))
+                       convite_token=secrets.token_urlsafe(18))
+        core.encaixar_no_alcance(u, novo)
+        db.add(novo)
         db.commit()
         avisar(request, f"{nome} cadastrado. Envie o link de acesso para o celular dele(a).")
     return ir("/painel/equipe")
@@ -1045,7 +1048,7 @@ def equipe_editar(request: Request, fid: int, acao: str = Form("salvar"),
             if not celular_valido(cel):
                 avisar(request, "Celular inválido. Use DDD + número.", "erro")
                 return ir("/painel/equipe")
-            if db.scalar(select(Usuario.id).where(Usuario.celular == cel, Usuario.id != f.id)):
+            if db.scalar(select(Usuario.id).where(Usuario.celular == cel, Usuario.id != f.id).execution_options(alcance_livre=True)):
                 avisar(request, "Este celular já está cadastrado.", "erro")
                 return ir("/painel/equipe")
         f.nome, f.celular, f.cargo = nome, cel or None, cargo.strip()[:80]

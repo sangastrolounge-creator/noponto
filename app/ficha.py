@@ -13,7 +13,8 @@ from sqlalchemy.orm import Session
 
 from . import master, regras, salario_minimo
 from .core import (PERMISSOES, avisar, celular_limpo, celular_valido, da_empresa, data_iso,
-                   email_valido, exigir_csrf, gestor_logado, ir, ler_centavos, pode, render)
+                   email_valido, encaixar_no_alcance, exigir_csrf, gestor_logado, ir, ler_centavos, pode, render,
+                   alcance_locais, alcance_setores, restrito)
 from .db import FuncaoUsuario, Local, Setor, Usuario, get_db
 
 rota = APIRouter()
@@ -139,12 +140,13 @@ def _aplicar(db: Session, e, alvo: Usuario, d: dict) -> None:
         alvo.salario_centavos = principal["valor"] * (alvo.jornada_mensal or 220)
 
 
-def _contexto(db: Session, e, alvo: Usuario | None) -> dict:
+def _contexto(db: Session, e, alvo: Usuario | None, quem: Usuario | None = None) -> dict:
     fs = funcoes(db, alvo) if alvo else []
     if alvo and not fs and (alvo.cargo or alvo.salario_centavos):
         fs = [FuncaoUsuario(nome=alvo.cargo, valor_centavos=alvo.salario_centavos, tipo="mensal")]
     return {"alvo": alvo, "funcs": fs, "NIVEIS": NIVEIS, "CLASSIFICACOES": CLASSIFICACOES,
             "setores": list(db.scalars(select(Setor).where(Setor.empresa_id == e.id).order_by(Setor.nome))),
+            "alc_s": alcance_setores(quem) if quem else set(), "alc_l": alcance_locais(quem) if quem else set(),
             "locais": list(db.scalars(select(Local).where(Local.empresa_id == e.id, Local.ativo.is_(True))
                                       .order_by(Local.nome))),
             "nivel_atual": nivel_de(alvo) if alvo else "funcionario", "MAX_FUNCOES": MAX_FUNCOES}
@@ -154,7 +156,7 @@ def _contexto(db: Session, e, alvo: Usuario | None) -> dict:
 @rota.get("/painel/equipe/novo")
 def novo_form(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     return render(request, "painel_ficha.html", u=u, e=u.empresa, aba="equipe",
-                  pode_gerente=u.dono, v=None, **_contexto(db, u.empresa, None))
+                  pode_gerente=u.dono, v=None, **_contexto(db, u.empresa, None, u if restrito(u) else None))
 
 
 @rota.post("/painel/equipe/novo", dependencies=CSRF)
@@ -164,20 +166,21 @@ async def novo(request: Request, u: Usuario = Depends(gestor_logado), db: Sessio
     d, erro = _ler(form, e)
     if not erro and d["nivel"] != "funcionario" and not u.dono:
         erro = "Só o dono da conta cadastra gerentes."
-    if not erro and d["email"] and db.scalar(select(Usuario.id).where(Usuario.email == d["email"])):
+    if not erro and d["email"] and db.scalar(select(Usuario.id).where(Usuario.email == d["email"]).execution_options(alcance_livre=True)):
         erro = "Já existe uma conta com este e-mail."
-    if not erro and d["celular"] and db.scalar(select(Usuario.id).where(Usuario.celular == d["celular"])):
+    if not erro and d["celular"] and db.scalar(select(Usuario.id).where(Usuario.celular == d["celular"]).execution_options(alcance_livre=True)):
         erro = "Este celular já está cadastrado."
     if not erro and d["nivel"] == "funcionario" and master.sem_vaga(db, e):
         erro = master.sem_vaga(db, e)
     if erro:
         return render(request, "painel_ficha.html", 400, u=u, e=e, aba="equipe", pode_gerente=u.dono,
-                      erro=erro, v=form, **_contexto(db, e, None))
+                      erro=erro, v=form, **_contexto(db, e, None, u if restrito(u) else None))
     alvo = Usuario(empresa_id=e.id, nome=d["nome"], papel="funcionario",
                    convite_token=secrets.token_urlsafe(18))
     db.add(alvo)
     db.flush()
     _aplicar(db, e, alvo, d)
+    encaixar_no_alcance(u, alvo)
     regras.registrar(db, e.id, u.nome, "pessoa cadastrada",
                      f"{alvo.nome}: {NIVEIS[d['nivel']]}, {CLASSIFICACOES[d['classificacao']][1]}"
                      + (f", {alvo.cargo}" if alvo.cargo else "") + ".")
@@ -193,7 +196,7 @@ def ficha_form(request: Request, fid: int, u: Usuario = Depends(gestor_logado), 
         avisar(request, "Só o dono da conta muda os dados de outro gestor.", "erro")
         return ir("/painel/equipe")
     return render(request, "painel_ficha.html", u=u, e=u.empresa, aba="equipe",
-                  pode_gerente=u.dono and not alvo.dono, v=None, **_contexto(db, u.empresa, alvo))
+                  pode_gerente=u.dono and not alvo.dono, v=None, **_contexto(db, u.empresa, alvo, u if restrito(u) else None))
 
 
 @rota.post("/painel/equipe/{fid}/ficha", dependencies=CSRF)
@@ -209,15 +212,16 @@ async def ficha(request: Request, fid: int, u: Usuario = Depends(gestor_logado),
         d["nivel"] = "gerente_geral"
     if not erro and d["nivel"] != nivel_de(alvo) and not u.dono:
         erro = "Só o dono da conta muda o nível de acesso."
-    if not erro and d["email"] and db.scalar(select(Usuario.id).where(Usuario.email == d["email"], Usuario.id != alvo.id)):
+    if not erro and d["email"] and db.scalar(select(Usuario.id).where(Usuario.email == d["email"], Usuario.id != alvo.id).execution_options(alcance_livre=True)):
         erro = "Já existe uma conta com este e-mail."
-    if not erro and d["celular"] and db.scalar(select(Usuario.id).where(Usuario.celular == d["celular"], Usuario.id != alvo.id)):
+    if not erro and d["celular"] and db.scalar(select(Usuario.id).where(Usuario.celular == d["celular"], Usuario.id != alvo.id).execution_options(alcance_livre=True)):
         erro = "Este celular já está cadastrado."
     if erro:
         return render(request, "painel_ficha.html", 400, u=u, e=e, aba="equipe",
-                      pode_gerente=u.dono and not alvo.dono, erro=erro, v=form, **_contexto(db, e, alvo))
+                      pode_gerente=u.dono and not alvo.dono, erro=erro, v=form, **_contexto(db, e, alvo, u if restrito(u) else None))
     antes = nivel_de(alvo)
     _aplicar(db, e, alvo, d)
+    encaixar_no_alcance(u, alvo)
     regras.registrar(db, e.id, u.nome, "ficha alterada",
                      f"{alvo.nome}: {NIVEIS[antes]} → {NIVEIS[nivel_de(alvo)]}." if antes != nivel_de(alvo)
                      else f"{alvo.nome}: dados atualizados.")
