@@ -1,0 +1,60 @@
+{% extends "app_base.html" %}
+{% block saudacao %}{{ _('Reconhecimento facial') }}{% endblock %}
+{% block conteudo %}
+{% set c = u.facial_consentimento %}
+{% if c == '' or c == 'recusado' %}
+<section class="cartao">
+  <h2>{{ _('Termo de consentimento') }}</h2>
+  {% if c == 'recusado' %}<p class="alerta pequeno">{{ _('Você recusou o reconhecimento facial e bate o ponto como antes. Se mudar de ideia, é só aceitar abaixo.') }}</p>{% endif %}
+  <div class="termo-rolagem">{% include "_termo_facial_texto.html" %}</div>
+  <p class="pequeno"><a href="/app/facial/termo">{{ _('Abrir o termo para imprimir ou salvar em PDF') }}</a></p>
+  <form method="post" action="/app/facial/consentimento" class="acoes">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="botao" type="submit" name="escolha" value="aceito">{{ _('Li e aceito') }}</button>
+    {% if c == '' %}<button class="botao claro" type="submit" name="escolha" value="recusado">{{ _('Não aceito') }}</button>{% endif %}
+  </form>
+  <p class="ajuda">{{ _('Se não aceitar, nada muda: você continua batendo o ponto pelo app como hoje.') }}</p>
+</section>
+{% else %}
+<section class="cartao facial-cadastro">
+  <div class="facial-selo{{ ' ok' if u.facial_descritor }}" aria-hidden="true">🙂</div>
+  {% if u.facial_descritor %}
+  <h2>{{ _('Rosto cadastrado') }}</h2>
+  <p class="suave">{{ _('Nas próximas batidas, o app pede que você olhe para a câmera e pisque. A foto não sai do seu celular.') }}</p>
+  {% else %}
+  <h2>{{ _('Cadastre o seu rosto') }}</h2>
+  <p class="suave">{{ _('Fique num lugar claro, sem boné nem óculos escuros, segure o celular na altura do rosto e pisque quando o app pedir.') }}</p>
+  {% endif %}
+  <p class="retorno" id="facial-retorno" hidden></p>
+  <div class="acoes">
+    <button class="botao" type="button" id="facial-cadastrar">{{ _('Cadastrar de novo') if u.facial_descritor else _('Cadastrar meu rosto') }}</button>
+    <a class="botao claro" href="/app">{{ _('Voltar') }}</a>
+  </div>
+  <p class="pequeno"><a href="/app/facial/termo">{{ _('Ver o termo que você aceitou') }}</a></p>
+  <form method="post" action="/app/facial/revogar" data-confirma="{{ _('Revogar o consentimento? O cadastro do seu rosto será apagado e você volta a bater o ponto como antes.') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="botao link" type="submit">{{ _('Revogar o consentimento e apagar meu rosto') }}</button>
+  </form>
+</section>
+<script src="/static/facial.js?v=1"></script>
+<script>
+(function () {
+  var b = document.getElementById("facial-cadastrar"), ret = document.getElementById("facial-retorno");
+  function mostrar(tipo, texto) { ret.hidden = !texto; ret.className = "retorno " + tipo; ret.textContent = texto; }
+  b.addEventListener("click", function () {
+    b.disabled = true; mostrar("", "");
+    window.Facial.capturar({}).then(function (r) {
+      mostrar("info", t("Salvando…"));
+      return fetch("/app/facial/cadastro", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF": "{{ csrf }}" },
+                                              body: JSON.stringify({ descritor: r.descritor }) })
+        .then(function (x) { return x.json().then(function (j) { return { ok: x.ok, j: j }; }); })
+        .then(function (x) {
+          if (x.ok) { mostrar("ok", t("Rosto cadastrado. Pronto!")); setTimeout(function () { location.href = "/app"; }, 1500); }
+          else { mostrar("erro", x.j.erro || t("Não foi possível salvar.")); b.disabled = false; }
+        });
+    }).catch(function (err) { mostrar("erro", err && err.message ? err.message : ""); b.disabled = false; });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

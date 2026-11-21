@@ -74,6 +74,15 @@
         </div>
       </form>
     </details>
+    {% if e.facial_ativo %}
+    <div class="facial-linha pequeno">
+      🙂 {% if p.facial_consentimento == 'aceito' and p.facial_descritor %}{{ _('Rosto cadastrado') }}
+      {% elif p.facial_consentimento == 'aceito' %}{{ _('Aceitou o termo; falta cadastrar o rosto') }}
+      {% elif p.facial_consentimento == 'recusado' %}{{ _('Recusou o reconhecimento facial') }}
+      {% else %}{{ _('Ainda não respondeu ao termo') }}{% endif %}
+      {% if p.facial_descritor %}<form method="post" action="/painel/equipe/{{ p.id }}/facial-refazer" class="inline" data-confirma="{{ _('Apagar o cadastro do rosto de {v1}? Ele(a) cadastra de novo no app.', v1=p.primeiro_nome) }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao link" type="submit">{{ _('Refazer cadastro') }}</button></form>{% endif %}
+    </div>
+    {% endif %}
     {% if p.id != u.id and not p.dono and (u.dono or not p.gestor) %}{% include "_desligamento.html" %}{% endif %}
   </div>
   {% endfor %}

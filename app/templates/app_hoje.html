@@ -36,6 +36,17 @@
   </form>
 </section>
 {% endif %}
+{% if facial_pendente == 'termo' %}
+<a class="cartao facial-chamada" href="/app/facial">
+  <span class="facial-chamada-ic" aria-hidden="true">🙂</span>
+  <span><strong>{{ _('Reconhecimento facial') }}</strong><br><span class="suave pequeno">{{ _('Sua empresa passou a oferecer o ponto com o rosto. Leia o termo e escolha se aceita.') }}</span></span>
+</a>
+{% elif facial_pendente == 'cadastro' %}
+<a class="cartao facial-chamada" href="/app/facial">
+  <span class="facial-chamada-ic" aria-hidden="true">🙂</span>
+  <span><strong>{{ _('Cadastre o seu rosto') }}</strong><br><span class="suave pequeno">{{ _('Leva poucos segundos. Até lá, o ponto funciona como antes.') }}</span></span>
+</a>
+{% endif %}
 <section class="cartao-ponto">
   <div class="suave pequeno">{{ DIAS[agora.weekday()] }}, {{ agora.strftime('%d/%m') }}</div>
   <div class="relogio" id="relogio">{{ agora.strftime('%H:%M') }}</div>
@@ -134,9 +145,11 @@
 </dialog>
 <input type="file" id="foto-arquivo" accept="image/*" capture="user" hidden>
 {% endif %}
+{% if facial_usa %}<script src="/static/facial.js?v=1" defer></script>{% endif %}
 <script>
 (function () {
   var EXIGE_FOTO = {{ 'true' if exige_foto(e) else 'false' }};
+  var FACIAL = {{ 'true' if facial_usa else 'false' }}, extra = {};
   var USA_GPS = {{ 'true' if gps_liberado(e) else 'false' }};
   var botao = document.getElementById("bater"), ret = document.getElementById("retorno"),
       relogio = document.getElementById("relogio");
@@ -188,11 +201,25 @@
   botao.addEventListener("click", function () {
     if (USA_GPS && !navigator.geolocation) { mostrar("erro", t("Este navegador não informa a localização. Abra pelo Chrome ou Safari.")); return; }
     botao.disabled = true;
-    if (EXIGE_FOTO) {
-      tirarFoto(localizar, function (msg) { if (msg) mostrar("erro", msg); else ret.hidden = true; botao.disabled = false; });
-    } else localizar(null);
+    extra = {};
+    function semRosto() {
+      if (EXIGE_FOTO) {
+        tirarFoto(localizar, function (msg) { if (msg) mostrar("erro", msg); else ret.hidden = true; botao.disabled = false; });
+      } else localizar(null);
+    }
+    if (FACIAL && window.Facial) {
+      window.Facial.capturar({ foto: EXIGE_FOTO }).then(function (r) {
+        extra.facial = r.descritor;
+        localizar(r.foto || null);
+      }, function (err) {
+        if (err && err.codigo === "suporte") { semRosto(); return; }   // aparelho sem suporte: bate sem o rosto
+        if (err && err.message) mostrar("erro", err.message); else ret.hidden = true;
+        botao.disabled = false;
+      });
+    } else semRosto();
   });
   function enviar(dados) {
+    for (var k in extra) dados[k] = extra[k];
     mostrar("info", t("Registrando o ponto…"));
     fetch("/app/ponto", {
       method: "POST", headers: { "Content-Type": "application/json", "X-CSRF": "{{ csrf }}" },

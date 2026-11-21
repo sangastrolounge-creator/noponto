@@ -107,6 +107,27 @@
   <button class="botao" type="submit">{{ _('Salvar') }}</button>
 </form>
 
+<form method="post" action="/painel/config/facial" class="cartao" id="facial">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Reconhecimento facial no ponto') }}</h2>
+  <p class="suave pequeno">{{ _('Na batida, o app pede que a pessoa olhe para a câmera e pisque. O rosto é comparado no próprio celular e só um modelo matemático (nunca a foto) vai para o sistema. Se o rosto não conferir, o ponto é registrado e marcado para você conferir em Ajuste de ponto.') }}</p>
+  <label class="marcar campo"><input type="checkbox" name="ativo" value="1" {{ 'checked' if e.facial_ativo }}>
+    <span>{{ _('Usar reconhecimento facial para quem aceitar o termo') }}<br><span class="ajuda">{{ _('Biometria é dado sensível (LGPD): cada pessoa lê o termo no app e escolhe se aceita. Quem recusar continua batendo o ponto como hoje, sem prejuízo.') }}</span></span></label>
+  {% if e.facial_ativo %}
+  <div class="facial-resumo">
+    <div><strong>{{ facial_resumo.cadastrados }}</strong><span>{{ _('rostos cadastrados') }}</span></div>
+    <div><strong>{{ facial_resumo.aceitaram }}</strong><span>{{ _('aceitaram o termo') }}</span></div>
+    <div><strong>{{ facial_resumo.recusaram }}</strong><span>{{ _('recusaram') }}</span></div>
+    <div><strong>{{ facial_resumo.pendentes }}</strong><span>{{ _('ainda não responderam') }}</span></div>
+  </div>
+  {% endif %}
+  <div class="acoes">
+    <button class="botao" type="submit">{{ _('Salvar') }}</button>
+    <a class="botao claro" href="/painel/config/termo-facial">{{ _('Baixar o termo de consentimento (PDF)') }}</a>
+  </div>
+  <p class="ajuda">{{ _('O termo já vem com o nome da sua empresa. Recomendamos que um advogado ou a sua contabilidade revise o texto antes de usar.') }}</p>
+</form>
+
 <form method="post" action="/painel/config/logo" class="cartao" id="logo" enctype="multipart/form-data">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <h2>{{ _('Logo da empresa') }}</h2>

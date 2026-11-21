@@ -63,6 +63,7 @@ def _tirar_da_escala(db: Session, f: Usuario, depois_de: date):
 
 def _bloquear_acesso(db: Session, f: Usuario):
     f.ativo, f.na_escala, f.convite_token = False, False, None
+    f.facial_descritor = ""          # biometria não fica guardada depois do vínculo
     db.execute(delete(Aparelho).where(Aparelho.usuario_id == f.id))
     db.execute(delete(PushSub).where(PushSub.usuario_id == f.id))
 

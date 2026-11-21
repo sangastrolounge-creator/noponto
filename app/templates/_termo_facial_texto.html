@@ -1,0 +1,28 @@
+{# Texto do termo de consentimento para reconhecimento facial (LGPD). Usado no impresso e no app. #}
+<div class="termo-texto">
+<p>{{ _('Pelo presente termo, eu, {v1}, declaro que fui informado(a) de forma clara pela empresa {v2}{v3}, doravante EMPRESA, sobre o uso do meu rosto para conferir a minha identidade no registro de ponto, e que concordo livremente com esse uso, nas condições abaixo.', v1=(pessoa.nome if pessoa else '____________________________________________'), v2=e.nome, v3=((', ' ~ _('inscrita no CPF/CNPJ sob o nº {v1}', v1=e.cpf_cnpj)) if e.cpf_cnpj else '')) }}</p>
+
+<h3>{{ _('1. Qual dado é usado') }}</h3>
+<p>{{ _('O modelo matemático do meu rosto (uma sequência de 128 números gerada a partir da imagem), que é um dado pessoal sensível (biométrico) pela Lei Geral de Proteção de Dados (Lei nº 13.709/2018, art. 5º, II). A imagem do rosto é processada no próprio celular e não é enviada nem guardada para esse fim; só o modelo matemático vai para o sistema.') }}</p>
+
+<h3>{{ _('2. Para que é usado') }}</h3>
+<p>{{ _('Exclusivamente para conferir, no momento de cada marcação de ponto, que sou eu mesmo(a) quem está registrando, evitando que outra pessoa registre o ponto por mim. O dado não é usado para nenhuma outra finalidade, como avaliação de desempenho, vigilância ou identificação fora do registro de ponto.') }}</p>
+
+<h3>{{ _('3. Base legal e liberdade de escolha') }}</h3>
+<p>{{ _('O tratamento se baseia no meu consentimento específico e destacado (LGPD, art. 11, I). A adesão é voluntária: se eu não concordar, continuo registrando o ponto pelos meios já usados na EMPRESA, sem qualquer prejuízo, punição ou diferença de tratamento.') }}</p>
+
+<h3>{{ _('4. Como funciona no dia a dia') }}</h3>
+<p>{{ _('Na marcação, o aplicativo pede que eu olhe para a câmera e pisque, para confirmar que há uma pessoa presente. Se o rosto não for reconhecido (por exemplo, por pouca luz), o ponto é registrado normalmente e apenas sinalizado para conferência do gestor. O registro do ponto em si segue as regras da Portaria MTP nº 671/2021.') }}</p>
+
+<h3>{{ _('5. Quem trata e com quem é compartilhado') }}</h3>
+<p>{{ _('A EMPRESA é a controladora dos dados. A plataforma Data Worke Brasil, contratada pela EMPRESA, atua como operadora e guarda o modelo matemático com acesso restrito, apenas para esta finalidade. O dado não é vendido nem compartilhado com terceiros, salvo por obrigação legal ou ordem de autoridade competente.') }}</p>
+
+<h3>{{ _('6. Por quanto tempo fica guardado') }}</h3>
+<p>{{ _('Enquanto durar o meu vínculo com a EMPRESA e este consentimento estiver valendo. O modelo do meu rosto é apagado quando eu revogar o consentimento ou quando eu for desligado(a). As marcações de ponto continuam guardadas pelo prazo exigido pela legislação trabalhista, mas sem o dado biométrico.') }}</p>
+
+<h3>{{ _('7. Meus direitos') }}</h3>
+<p>{{ _('Posso, a qualquer momento e sem custo: revogar este consentimento (pelo próprio aplicativo, em “Reconhecimento facial”, ou pedindo à EMPRESA), pedir confirmação e acesso aos dados, pedir correção ou eliminação e receber informações sobre o uso, nos termos do art. 18 da LGPD. A revogação não afeta o que foi feito antes dela.') }}</p>
+
+<h3>{{ _('8. Contato') }}</h3>
+<p>{{ _('Dúvidas e pedidos sobre este termo: {v1}{v2}.', v1=e.nome, v2=((' · ' ~ e.endereco) if e.endereco else '')) }} {{ _('Encarregado de dados (se houver): ____________________________.') }}</p>
+</div>

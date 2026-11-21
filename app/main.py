@@ -22,7 +22,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import core
 from . import db as banco
-from . import (apuracao, asaas, cobranca, desligamento, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
+from . import (apuracao, asaas, cobranca, desligamento, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
                ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
@@ -100,6 +100,7 @@ app.include_router(gerentes.rota)
 app.include_router(email_envio.rota)
 app.include_router(desligamento.rota)
 app.include_router(logo_empresa.rota)
+app.include_router(facial.rota)
 app.include_router(avisos_master.rota)
 app.include_router(custos.rota)
 app.include_router(ficha.rota)
@@ -1025,7 +1026,8 @@ def config(request: Request, u: Usuario = Depends(gestor_logado), db: Session = 
     e = u.empresa
     return render(request, "painel_config.html", u=u, e=e, aba="config", fusos=regras.FUSOS,
                   sm=salario_minimo.situacao(db, e, regras.hoje(e)),
-                  sm_atualizado=salario_minimo.ATUALIZADO_EM, REGIMES=faturamento.REGIMES)
+                  sm_atualizado=salario_minimo.ATUALIZADO_EM, REGIMES=faturamento.REGIMES,
+                  facial_resumo=facial.resumo_equipe(db, e))
 
 
 @app.post("/painel/config", dependencies=CSRF)
@@ -1152,7 +1154,8 @@ def app_hoje(request: Request, codigo: str = "", u: Usuario = Depends(usuario_lo
                   avaliar_dia=None if aberta else avaliacao.pendente(db, u),
                   perguntas_fim=None if aberta else perguntas.pendente(db, u),
                   codigo="".join(c for c in codigo if c.isdigit())[:6],
-                  tem_totem=bool(db.scalar(select(Totem.id).where(Totem.empresa_id == e.id).limit(1))))
+                  tem_totem=bool(db.scalar(select(Totem.id).where(Totem.empresa_id == e.id).limit(1))),
+                  facial_pendente=facial.pendente(u), facial_usa=facial.usa(u))
     if not request.cookies.get(COOKIE_APARELHO):  # identifica este aparelho daqui em diante
         resp.set_cookie(COOKIE_APARELHO, secrets.token_urlsafe(32), max_age=60 * 60 * 24 * 730,
                         httponly=True, samesite="lax", secure=COOKIE_SECURE)
@@ -1197,6 +1200,13 @@ async def app_ponto(request: Request, tarefas_bg: BackgroundTasks,
     except regras.ErroPonto as ex:
         tarefas_bg.add_task(push.avisar_alertas, [a.id for a in ex.alertas])
         return i18n.resposta_erro({"erro": str(ex), "codigo": ex.codigo}, 400)
+    if facial.usa(u):
+        facial.conferir_batida(db, u, b, d.get("facial"))
+        db.commit()
+        if b.facial == "diverge":
+            novos = list(db.scalars(select(Alerta.id).where(Alerta.usuario_id == u.id, Alerta.tipo == "facial")
+                                    .order_by(Alerta.id.desc()).limit(1)))
+            tarefas_bg.add_task(push.avisar_alertas, novos)
     tarefas_bg.add_task(push.avisar_alertas, [a.id for a in alertas])
     hora = regras.para_local(u.empresa, b.momento).strftime("%H:%M")
     msg = f"{'Entrada' if b.tipo == 'entrada' else 'Saída'} registrada às {hora}."
