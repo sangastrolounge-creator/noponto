@@ -1,3 +1,4 @@
+{% from "_marca.html" import logo_nome %}
 <!doctype html>
 <html lang="{{ IDIOMAS[idioma()][2] }}">
 <head>
@@ -11,7 +12,7 @@
 <link rel="icon" href="/static/favicon-escuro.png?v=1" type="image/png" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="/static/style.css?v=51">
 <link rel="stylesheet" href="/static/vendas.css?v=1">
-<link rel="stylesheet" href="/static/tema.css?v=13">
+<link rel="stylesheet" href="/static/tema.css?v=14">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap">
@@ -53,7 +54,7 @@
 
 <header class="v-topo">
   <div class="v-dentro v-topo-linha">
-    <a class="marca" href="/"><img src="/static/logo.png" alt="">{{ app_nome }}</a>
+    <a class="marca marca-nome" href="/">{{ logo_nome() }}</a>
     <nav class="v-menu">
       {% if c.beneficios.ativo %}<a href="#beneficios">{{ _('Benefícios') }}</a>{% endif %}
       {% if c.depoimentos.ativo and c.depoimentos.itens %}<a href="#depoimentos">{{ _('Depoimentos') }}</a>{% endif %}

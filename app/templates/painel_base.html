@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% block titulo %}{{ e.nome }} — {{ app_nome }}{% endblock %}
 {% block corpo %}
+{% from "_marca.html" import logo_nome %}
 {% from "_idioma.html" import seletor %}
 <header class="topo"><div class="topo-dentro">
   <div class="marca-linha">
-    <a class="marca" href="/painel"><img src="/static/logo.png" alt=""><span>{{ app_nome }}</span></a>
+    <a class="marca" href="/painel" aria-label="{{ app_nome }}"><img class="marca-icone" src="/static/icone-512.png?v=4" alt="">{{ logo_nome("na-lateral") }}</a>
     <button type="button" class="recolher-lateral" id="recolher-lateral" onclick="recolherLateral()" title="{{ _('Recolher ou expandir o menu') }}" aria-label="{{ _('Recolher ou expandir o menu') }}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M9.5 4v16"/><path class="seta" d="M15.5 10l-2 2 2 2"/></svg>
     </button>

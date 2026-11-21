@@ -2,12 +2,13 @@
 {# Moldura das telas de Entrar e Criar conta: formulário à esquerda, arte à direita.
    Cores, título, texto e imagens vêm do Painel Master → Tela de entrada. #}
 {% block corpo %}
+{% from "_marca.html" import logo_nome %}
 {% from "_idioma.html" import seletor %}
 {% set c1 = plat.entrada_cor1 or '#4f46e5' %}{% set c2 = plat.entrada_cor2 or '#0ea5e9' %}
 <div class="ent" style="--ent1:{{ c1 }};--ent2:{{ c2 }}">
   <section class="ent-lado">
     <header class="ent-topo">
-      <a class="ent-marca" href="/"><img src="/static/logo.png" alt="">{{ app_nome }}</a>
+      <a class="ent-marca" href="/">{{ logo_nome() }}</a>
       {{ seletor("ent-idiomas") }}
     </header>
     <div class="ent-miolo">
@@ -28,7 +29,7 @@
     </div>
     {% else %}
     <div class="ent-cena">
-      <div class="ent-cena-logo"><img src="/static/logo.png" alt=""></div>
+      <div class="ent-cena-logo"><img src="/static/icone-512.png?v=4" alt=""></div>
       <div class="ent-chip c1"><span class="ponto verde"></span>{{ _('Entrada registrada') }} <b>08:00</b></div>
       <div class="ent-chip c2"><span class="ponto azul"></span>{{ _('Escala da semana publicada') }}</div>
       <div class="ent-chip c3"><span class="ponto roxo"></span>{{ _('Fechamento pronto para a folha') }}</div>

@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% block titulo %}{{ _('Senha nova — {v1}', v1=(app_nome)) }}{% endblock %}
 {% block corpo %}
+{% from "_marca.html" import logo_nome %}
 {% from "_idioma.html" import seletor %}
 <div class="centro"><div class="caixa">
   {{ seletor("caixa-idiomas") }}
-  <a class="marca" href="/"><img src="/static/logo.png" alt="">{{ app_nome }}</a>
+  <a class="marca marca-nome" href="/">{{ logo_nome() }}</a>
   <div class="cartao">
     {% if not u %}
     <h1>{{ _('Link vencido') }}</h1>
