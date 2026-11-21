@@ -120,8 +120,8 @@ def main():
         assert r.status_code == 303
     per = "de=2026-11-01&ate=2026-11-17"
     fe = g.get(f"/painel/fechamento?{per}&setor={coz.id}").text
-    assert "Ana Souza" in fe and "Bruno Lima" not in fe, fe[-3000:]
-    assert "Bruno Lima" in g.get(f"/painel/fechamento?{per}&setor=0").text
+    assert '"nome-forte">Ana Souza<' in fe and '"nome-forte">Bruno Lima<' not in fe
+    assert '"nome-forte">Bruno Lima<' in g.get(f"/painel/fechamento?{per}&setor=0").text
     assert "equipe inteira" in fe and f"horas?de=" in fe and f"setor={coz.id}" in fe
     hr = g.get(f"/painel/fechamento/horas?{per}&setor={coz.id}").text
     assert "Setor: Cozinha" in hr and "Ana Souza" in hr and "Bruno Lima" not in hr
