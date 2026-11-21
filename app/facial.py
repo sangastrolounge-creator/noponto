@@ -180,6 +180,22 @@ async def cadastro(request: Request, u: Usuario = Depends(usuario_logado), db: S
     return JSONResponse({"ok": True})
 
 
+@rota.post("/app/facial/testar", dependencies=CSRF)
+async def testar(request: Request, u: Usuario = Depends(usuario_logado)):
+    """Confere o rosto sem bater o ponto (para a pessoa testar depois de cadastrar)."""
+    if not usa(u):
+        return i18n.resposta_erro({"erro": "Cadastre o rosto antes de testar."}, 400)
+    try:
+        dados = await request.json()
+    except Exception:
+        dados = {}
+    v = ler_descritor(dados.get("descritor"))
+    if not v:
+        return i18n.resposta_erro({"erro": "Não consegui ler o rosto. Tente de novo num lugar claro."}, 400)
+    d = distancia(v, json.loads(u.facial_descritor))
+    return JSONResponse({"confere": d <= LIMIAR})
+
+
 @rota.post("/app/facial/revogar", dependencies=CSRF)
 def revogar(request: Request, u: Usuario = Depends(usuario_logado), db: Session = Depends(get_db)):
     apagar(u)

@@ -64,8 +64,20 @@
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 640 } }, audio: false }),
         carregar()
       ]).then(function (r) {
-        fluxo = r[0]; video.srcObject = fluxo;
-        return new Promise(function (pronto) { video.onloadeddata = pronto; if (video.readyState >= 2) pronto(); });
+        fluxo = r[0];
+        video.muted = true; video.setAttribute("muted", ""); video.setAttribute("playsinline", "");
+        video.srcObject = fluxo;
+        var tocar = video.play && video.play();
+        if (tocar && tocar.catch) tocar.catch(function () {});
+        return new Promise(function (pronto, falhou) {
+          var feito = false;
+          function ok() { if (!feito && video.videoWidth) { feito = true; pronto(); } }
+          video.onloadeddata = ok; video.onplaying = ok;
+          var vezes = 0, relogio = setInterval(function () {
+            ok(); if (feito || parar) clearInterval(relogio);
+            else if (++vezes > 50) { clearInterval(relogio); falhou(erro(t("A câmera não começou a mostrar a imagem. Feche outros apps que usam a câmera e tente de novo."))); }
+          }, 100);
+        });
       }).then(function () {
         var opc = new api.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
         var inicio = Date.now(), maior = 0, fechou = false, piscou = false, descritores = [], foto = null;

@@ -27,7 +27,8 @@
   {% endif %}
   <p class="retorno" id="facial-retorno" hidden></p>
   <div class="acoes">
-    <button class="botao" type="button" id="facial-cadastrar">{{ _('Cadastrar de novo') if u.facial_descritor else _('Cadastrar meu rosto') }}</button>
+    {% if u.facial_descritor %}<button class="botao" type="button" id="facial-testar">{{ _('Testar reconhecimento') }}</button>{% endif %}
+    <button class="botao{{ ' claro' if u.facial_descritor }}" type="button" id="facial-cadastrar">{{ _('Cadastrar de novo') if u.facial_descritor else _('Cadastrar meu rosto') }}</button>
     <a class="botao claro" href="/app">{{ _('Voltar') }}</a>
   </div>
   <p class="pequeno"><a href="/app/facial/termo">{{ _('Ver o termo que você aceitou') }}</a></p>
@@ -36,11 +37,27 @@
     <button class="botao link" type="submit">{{ _('Revogar o consentimento e apagar meu rosto') }}</button>
   </form>
 </section>
-<script src="/static/facial.js?v=1"></script>
+<script src="/static/facial.js?v=2"></script>
 <script>
 (function () {
   var b = document.getElementById("facial-cadastrar"), ret = document.getElementById("facial-retorno");
   function mostrar(tipo, texto) { ret.hidden = !texto; ret.className = "retorno " + tipo; ret.textContent = texto; }
+  var teste = document.getElementById("facial-testar");
+  if (teste) teste.addEventListener("click", function () {
+    teste.disabled = true; mostrar("", "");
+    window.Facial.capturar({}).then(function (r) {
+      mostrar("info", t("Conferindo…"));
+      return fetch("/app/facial/testar", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF": "{{ csrf }}" },
+                                            body: JSON.stringify({ descritor: r.descritor }) })
+        .then(function (x) { return x.json(); })
+        .then(function (j) {
+          if (j.confere) mostrar("ok", t("Rosto reconhecido! Pode bater o ponto normalmente."));
+          else if (j.erro) mostrar("erro", j.erro);
+          else mostrar("erro", t("O rosto não conferiu com o cadastro. Tente num lugar mais claro ou cadastre de novo."));
+          teste.disabled = false;
+        });
+    }).catch(function (err) { mostrar("erro", err && err.message ? err.message : ""); teste.disabled = false; });
+  });
   b.addEventListener("click", function () {
     b.disabled = true; mostrar("", "");
     window.Facial.capturar({}).then(function (r) {
