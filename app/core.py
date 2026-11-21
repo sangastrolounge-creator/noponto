@@ -347,7 +347,7 @@ ROTAS_PERMISSAO = (
     ("/painel/ausencias", "ausencias"), ("/painel/feriados", "ausencias"), ("/painel/ferias", "ausencias"),
     ("/painel/fechamento", "fechamento"), ("/painel/folha", "fechamento"),
     ("/painel/pagamento", "pagamento"),
-    ("/painel/equipe", "equipe"),
+    ("/painel/equipe", "equipe"), ("/painel/setores", "equipe"),
     ("/painel/locais", "locais"), ("/painel/totens", "locais"),
     ("/painel/relatorios", "ponto"), ("/painel/conformidade", "ponto"), ("/painel/importar-equipe", "equipe"), ("/painel/perguntas", "ponto"), ("/painel/cerca", "locais"),
     ("/painel/gerentes", "dono"), ("/painel/config", "dono"),

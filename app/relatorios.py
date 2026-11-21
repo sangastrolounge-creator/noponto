@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import apuracao, custos, regras
+from . import apuracao, custos, regras, setores
 from .core import data_iso, gestor_logado, pode, render
 from .db import AvaliacaoTurno, Batida, Turno, Usuario, get_db
 from .i18n import _
@@ -18,11 +18,12 @@ rota = APIRouter()
 MAX_DIAS = 92
 
 
-def montar(db: Session, e, ini: date, fim: date) -> dict:
+def montar(db: Session, e, ini: date, fim: date, setor: int = 0) -> dict:
     hoje = regras.hoje(e)
     agora_l = regras.agora_local(e)
     fim_ef = min(fim, hoje)
-    pessoas = {u.id: u for u in db.scalars(select(Usuario).where(Usuario.empresa_id == e.id))}
+    pessoas = {u.id: u for u in db.scalars(select(Usuario).where(Usuario.empresa_id == e.id))
+               if setores.no_setor(u, setor)}
     linhas: dict[int, dict] = {}
 
     def linha(uid):
@@ -125,11 +126,12 @@ def _periodo(e, ini: str, fim: str) -> tuple[date, date]:
 
 
 @rota.get("/painel/relatorios")
-def tela(request: Request, ini: str = "", fim: str = "", formato: str = "",
+def tela(request: Request, ini: str = "", fim: str = "", formato: str = "", setor: str = "",
          u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     e = u.empresa
     i, f = _periodo(e, ini, fim)
-    r = montar(db, e, i, f)
+    sid = setores.ler_filtro(db, e.id, setor)
+    r = montar(db, e, i, f, sid)
     ver_custo = pode(u, "pagamento")
     if formato == "csv":
         buf = io.StringIO()
@@ -159,4 +161,5 @@ def tela(request: Request, ini: str = "", fim: str = "", formato: str = "",
         return Response("﻿" + buf.getvalue(), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="report-{i.isoformat()}-{f.isoformat()}.csv"'})
     return render(request, "painel_relatorios.html", u=u, e=e, aba="relatorios", ini=i, fim=f, r=r,
+                  setores=setores.setores_da(db, e.id), setor=sid,
                   ver_custo=ver_custo, hoje=regras.hoje(e))

@@ -1,5 +1,6 @@
 {% extends "painel_base.html" %}
 {% from "_estrelas.html" import estrelas %}
+{% from "_setor_filtro.html" import filtro_setor %}
 {% block conteudo %}
 {% set t = r.tot %}
 <div class="cabecalho">
@@ -8,8 +9,9 @@
   <form method="get" action="/painel/relatorios" class="semana-nav relatorio-filtro">
     <label class="pequeno">{{ _('De') }} <input type="date" name="ini" value="{{ ini.isoformat() }}" max="{{ hoje.isoformat() }}"></label>
     <label class="pequeno">{{ _('Até') }} <input type="date" name="fim" value="{{ fim.isoformat() }}" max="{{ hoje.isoformat() }}"></label>
+    {{ filtro_setor(setores, setor) }}
     <button class="botao claro" type="submit">{{ _('Ver') }}</button>
-    <a class="botao claro" href="/painel/relatorios?ini={{ ini.isoformat() }}&fim={{ fim.isoformat() }}&formato=csv">{{ _('Baixar CSV') }}</a>
+    <a class="botao claro" href="/painel/relatorios?ini={{ ini.isoformat() }}&fim={{ fim.isoformat() }}{{ '&setor=' ~ setor if setor }}&formato=csv">{{ _('Baixar CSV') }}</a>
   </form>
 </div>
 

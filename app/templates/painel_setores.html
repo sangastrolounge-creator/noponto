@@ -1,0 +1,51 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>{{ _('Setores') }}</h1><p class="suave" style="margin:0">{{ _('Divida a equipe em setores (ex.: Cozinha, Salão, Caixa) para filtrar a Equipe, a Escala, o Ponto e os Relatórios.') }}</p></div>
+  <a class="botao claro" href="/painel/equipe">{{ _('Voltar à equipe') }}</a></div>
+
+<div class="cartao">
+  <h2>{{ _('Novo setor') }}</h2>
+  <form method="post" action="/painel/setores" class="setor-novo">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="campo" style="margin:0;flex:1 1 220px"><label for="s-nome">{{ _('Nome do setor') }}</label><input id="s-nome" type="text" name="nome" maxlength="60" placeholder="{{ _('Ex.: Cozinha') }}" required></div>
+    <button class="botao" type="submit">{{ _('Criar setor') }}</button>
+  </form>
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Setores ({v1})', v1=setores|length) }}</h2>
+  {% if setores %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Setor') }}</th><th>{{ _('Pessoas ativas') }}</th><th></th></tr></thead>
+    <tbody>
+      {% for s in setores %}
+      <tr id="s{{ s.id }}" class="{{ 'inativo' if not s.ativo }}">
+        <td><span class="nome-forte">{{ s.nome }}</span>{% if not s.ativo %} <span class="etiqueta">{{ _('desativado') }}</span>{% endif %}</td>
+        <td>{% set n = contagem.get(s.id, 0) %}{% if n %}<a href="/painel/equipe?setor={{ s.id }}">{{ _('{v1} pessoa(s)', v1=n) }}</a>{% else %}<span class="suave">{{ _('ninguém ainda') }}</span>{% endif %}</td>
+        <td class="direita"><div class="acoes" style="justify-content:flex-end">
+          <details class="menu-editar"><summary class="botao mini claro">{{ _('Renomear') }}</summary>
+            <form method="post" action="/painel/setores/{{ s.id }}" class="form-local">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <div class="campo"><label>{{ _('Nome') }}</label><input type="text" name="nome" value="{{ s.nome }}" maxlength="60" required></div>
+              <button class="botao mini" type="submit" name="acao" value="salvar">{{ _('Salvar') }}</button>
+            </form>
+          </details>
+          <form method="post" action="/painel/setores/{{ s.id }}" class="inline">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button class="botao mini claro" type="submit" name="acao" value="{{ 'desativar' if s.ativo else 'reativar' }}">{{ _('Desativar') if s.ativo else _('Reativar') }}</button>
+          </form>
+          <form method="post" action="/painel/setores/{{ s.id }}" class="inline" data-confirma="{{ _('Excluir o setor {v1}? As pessoas dele ficam sem setor.', v1=s.nome) }}">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button class="botao mini perigo" type="submit" name="acao" value="excluir">{{ _('Excluir') }}</button>
+          </form>
+        </div></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% if sem_setor %}<p class="ajuda"><a href="/painel/equipe?setor=-1">{{ _('{v1} pessoa(s) ainda sem setor', v1=sem_setor) }}</a>. {{ _('Escolha o setor de cada uma em Equipe → Ficha completa.') }}</p>{% endif %}
+  {% else %}
+  <div class="vazio">{{ _('Nenhum setor ainda. Crie o primeiro acima.') }}</div>
+  {% endif %}
+</div>
+{% endblock %}

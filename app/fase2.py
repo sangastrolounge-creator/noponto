@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import apuracao, push, regras
+from . import apuracao, push, regras, setores
 from . import db as banco
 from .apuracao import MSG_FECHADO, TIPOS_AUSENCIA
 from .core import (avisar, conferir_senha, da_empresa, data_iso, exigir_csrf, gestor_logado,
@@ -212,8 +212,15 @@ def periodo_sugerido(db: Session, e) -> tuple[date, date]:
     return ini, min(fim_mes, hoje)
 
 
+def _do_setor(db: Session, e, resultado: list[dict], setor: str) -> tuple[list[dict], int, str]:
+    """Só as pessoas do setor escolhido (o fechamento em si continua valendo para todos)."""
+    sid = setores.ler_filtro(db, e.id, setor)
+    nome = ("Sem setor" if sid == setores.SEM_SETOR else setores.nomes(db, e.id).get(sid, "")) if sid else ""
+    return [r for r in resultado if setores.no_setor(r["u"], sid)], sid, nome
+
+
 @rota.get("/painel/fechamento")
-def fechamento(request: Request, de: str = "", ate: str = "",
+def fechamento(request: Request, de: str = "", ate: str = "", setor: str = "",
                u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     e = u.empresa
     hoje = regras.hoje(e)
@@ -221,7 +228,7 @@ def fechamento(request: Request, de: str = "", ate: str = "",
     ini, fim = data_iso(de, sug[0]), data_iso(ate, sug[1])
     if ini > fim or (fim - ini).days > 100:
         ini, fim = sug
-    resultado = apuracao.apurar(db, e, ini, fim)
+    resultado, sid, _nome = _do_setor(db, e, apuracao.apurar(db, e, ini, fim), setor)
     fechados = list(db.scalars(select(Fechamento).where(Fechamento.empresa_id == e.id)
                                .order_by(Fechamento.fim.desc()).limit(24)))
     limite = apuracao.fechado_ate(db, e)
@@ -240,7 +247,7 @@ def fechamento(request: Request, de: str = "", ate: str = "",
         Usuario.empresa_id == e.id, Usuario.ativo.is_(True)).order_by(Usuario.nome)))
     return render(request, "painel_fechamento.html", u=u, e=e, aba="fechamento", ini=ini,
                   fim=fim, resultado=resultado, fechados=fechados, motivo=motivo, hoje=hoje,
-                  pendentes=pendentes, equipe=equipe,
+                  pendentes=pendentes, equipe=equipe, setores=setores.setores_da(db, e.id), setor=sid,
                   incompletos=sum(r["incompletos"] for r in resultado),
                   sem_escala=sum(r["sem_escala"] for r in resultado))
 
@@ -333,7 +340,7 @@ def fechamento_csv(fid: int, u: Usuario = Depends(gestor_logado), db: Session = 
 
 
 @rota.get("/painel/fechamento/resumo")
-def fechamento_resumo(request: Request, de: str = "", ate: str = "",
+def fechamento_resumo(request: Request, de: str = "", ate: str = "", setor: str = "",
                       u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     """Resumo da folha de toda a equipe numa página só, para imprimir ou salvar em PDF."""
     e = u.empresa
@@ -341,7 +348,7 @@ def fechamento_resumo(request: Request, de: str = "", ate: str = "",
     ini, fim = data_iso(de, sug[0]), data_iso(ate, sug[1])
     if ini > fim or (fim - ini).days > 100:
         ini, fim = sug
-    resultado = apuracao.apurar(db, e, ini, fim)
+    resultado, sid, nome_setor = _do_setor(db, e, apuracao.apurar(db, e, ini, fim), setor)
     fechado = db.scalar(select(Fechamento).where(
         Fechamento.empresa_id == e.id, Fechamento.inicio == ini, Fechamento.fim == fim))
     chaves = ("trabalhado", "noturno", "extra_normal", "extra_especial", "falta_min", "faltas",
@@ -352,11 +359,12 @@ def fechamento_resumo(request: Request, de: str = "", ate: str = "",
                   pn=fechado.pct_normal if fechado else e.pct_extra_normal,
                   pe=fechado.pct_especial if fechado else e.pct_extra_especial,
                   pnot=fechado.pct_noturno if fechado else e.pct_noturno,
-                  volta=f"/painel/fechamento?de={ini}&ate={fim}")
+                  volta=f"/painel/fechamento?de={ini}&ate={fim}" + (f"&setor={sid}" if sid else ""),
+                  nome_setor=nome_setor)
 
 
 @rota.get("/painel/fechamento/horas")
-def fechamento_horas(request: Request, de: str = "", ate: str = "",
+def fechamento_horas(request: Request, de: str = "", ate: str = "", setor: str = "",
                      u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     """Tabela curta para imprimir: extras, extras em folga/feriado, noturnas e faltas em horas."""
     e = u.empresa
@@ -364,7 +372,7 @@ def fechamento_horas(request: Request, de: str = "", ate: str = "",
     ini, fim = data_iso(de, sug[0]), data_iso(ate, sug[1])
     if ini > fim or (fim - ini).days > 100:
         ini, fim = sug
-    resultado = apuracao.apurar(db, e, ini, fim)
+    resultado, sid, nome_setor = _do_setor(db, e, apuracao.apurar(db, e, ini, fim), setor)
     fechado = db.scalar(select(Fechamento).where(
         Fechamento.empresa_id == e.id, Fechamento.inicio == ini, Fechamento.fim == fim))
     total = {k: sum(r[k] for r in resultado) for k in ("extra_normal", "extra_especial", "noturno", "falta_min")}
@@ -373,7 +381,8 @@ def fechamento_horas(request: Request, de: str = "", ate: str = "",
                   pn=fechado.pct_normal if fechado else e.pct_extra_normal,
                   pe=fechado.pct_especial if fechado else e.pct_extra_especial,
                   pnot=fechado.pct_noturno if fechado else e.pct_noturno,
-                  volta=f"/painel/fechamento?de={ini}&ate={fim}")
+                  volta=f"/painel/fechamento?de={ini}&ate={fim}" + (f"&setor={sid}" if sid else ""),
+                  nome_setor=nome_setor)
 
 
 def linha_do_periodo(db: Session, usuario_id: int, ini: date, fim: date) -> FechamentoLinha | None:

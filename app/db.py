@@ -277,6 +277,7 @@ class Usuario(Base):
     # Só para menores de 18 (regras de trabalho de menores); vazio para os demais.
     nascimento: Mapped[date | None] = mapped_column(Date, nullable=True)
     local_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    setor_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     # Consentimento do funcionário para localização (e foto) ao bater o ponto.
     consentimento_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     mural_visto_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -337,6 +338,15 @@ class Local(Base):
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
     # Cerca desenhada no mapa: [[lat, lng], ...]. Vazia = vale o raio.
     cerca: Mapped[str] = mapped_column(Text, default="")
+
+
+class Setor(Base):
+    """Setor da empresa (Cozinha, Salão, Caixa...). Cada pessoa pode estar em um setor."""
+    __tablename__ = "setores"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
+    nome: Mapped[str] = mapped_column(String(60))
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class Totem(Base):
@@ -887,6 +897,7 @@ class RespostaTurno(Base):
 
 # Colunas acrescentadas depois da primeira versão: (tabela, coluna, definição SQL).
 COLUNAS_NOVAS = [
+    ("usuarios", "setor_id", "INTEGER"),
     ("empresas", "exigir_foto", "BOOLEAN NOT NULL DEFAULT 0"),
     ("empresas", "aparelho_unico", "BOOLEAN NOT NULL DEFAULT 1"),
     ("empresas", "ajuste_dias", "INTEGER NOT NULL DEFAULT 7"),
