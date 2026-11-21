@@ -295,6 +295,8 @@ def render(request: Request, nome: str, status_code: int = 200, **ctx):
     base = {"app_nome": plat["nome"], "csrf": csrf_token(request), "plat": plat,
             "flash": request.session.pop("flash", None),
             "cadastro_aberto": plat["cadastro_aberto"],
+            "google_ok": bool(os.environ.get("GOOGLE_CLIENT_ID") and os.environ.get("GOOGLE_CLIENT_SECRET")),
+            "ent_imagens": [n for n in (plat.get("entrada_imagens") or "").split(",") if n],
             "suporte": bool(request.session.get("master_uid"))}
     return templates.TemplateResponse(request, nome, {**base, **ctx},
                                       status_code=status_code)
