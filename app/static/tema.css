@@ -214,6 +214,11 @@ code { border-radius: 6px; background: var(--cartao-2); }
   .icone-conta:hover { background: color-mix(in srgb, var(--cor) 8%, transparent); color: var(--texto); }
   .recolher-lateral { color: var(--lateral-texto); border-radius: 10px; }
   .contagem-teste { border-radius: 12px; background: var(--degrade-suave); border: 1px solid var(--borda); color: var(--texto); }
+  /* o texto e o trilho eram brancos (do menu escuro antigo) e sumiam no modo claro */
+  .contagem-texto { color: var(--texto); }
+  .contagem-barra { background: color-mix(in srgb, var(--cor) 14%, transparent); }
+  .contagem-teste:hover { background: color-mix(in srgb, var(--cor) 10%, var(--cartao)); }
+  .contagem-teste.urgente { border-color: color-mix(in srgb, #f59e0b 45%, transparent); }
 }
 /* ---------- menu: tablet e celular ---------- */
 @media (max-width: 1100px) {

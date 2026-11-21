@@ -84,6 +84,28 @@ def datas_iphone(p):
     nav.close()
 
 
+def teste_gratis(p):
+    """Barra do teste grátis no menu lateral, nos dois temas."""
+    import sqlite3
+    from datetime import date, timedelta
+    c = sqlite3.connect("dados/visualizar.db")
+    c.execute("update empresas set isenta=0, pago_ate=null, teste_ate=?", ((date.today() + timedelta(days=5)).isoformat(),))
+    c.commit()
+    nav = p.chromium.launch()
+    for tema in ("light", "dark"):
+        ctx = nav.new_context(color_scheme=tema, locale="pt-BR", viewport={"width": 1440, "height": 1000})
+        pag = ctx.new_page()
+        pag.goto(BASE + "/entrar")
+        pag.fill("input[name=login], input[type=email], input[type=text]", "demo@noponto.test")
+        pag.fill("input[type=password]", "demo1234")
+        pag.click("form button[type=submit]")
+        pag.wait_for_load_state("networkidle")
+        pag.goto(BASE + "/painel", wait_until="networkidle")
+        pag.screenshot(path=str(SAIDA / f"teste-gratis-{'claro' if tema == 'light' else 'escuro'}.png"))
+        ctx.close()
+    nav.close()
+
+
 def main():
     SAIDA.mkdir(exist_ok=True)
     with sync_playwright() as p:
@@ -147,6 +169,8 @@ def main():
             camera_falsa(p)
         if not so or "datas" in so:
             datas_iphone(p)
+        if not so or "teste" in so:
+            teste_gratis(p)  # por último: muda a empresa de demonstração
     print("capturas:", len(list(SAIDA.glob("*.png"))))
 
 
