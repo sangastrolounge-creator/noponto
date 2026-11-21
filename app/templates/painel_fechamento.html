@@ -31,7 +31,7 @@
   <h2>{{ _('{v1} a {v2}', v1=(ini.strftime('%d/%m/%Y')), v2=(fim.strftime('%d/%m/%Y'))) }}</h2>
   {% if resultado %}
   <div class="rolagem"><table>
-    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Previsto') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Extras ({v1}%)', v1=(e.pct_extra_normal)) }}</th><th>{{ _('Extras em folga/feriado ({v1}%)', v1=(e.pct_extra_especial)) }}</th><th>{{ _('Extras com acréscimo') }}</th><th>{{ _('Noturnas ({v1}%)', v1=(e.pct_noturno)) }}</th><th>{{ _('Atrasos e saídas') }}</th><th>{{ _('Faltas') }}</th><th>{{ _('Ausências') }}</th><th>{{ _('DSR') }}</th>{% if tem_int %}<th>{{ _('Intervalo não concedido') }}</th>{% endif %}{% if tem_sob %}<th>{{ _('Sobreaviso (1/3)') }}</th>{% endif %}
+    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Previsto') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Extras ({v1}%)', v1=(e.pct_extra_normal)) }}</th><th>{{ _('Extras em folga/feriado ({v1}%)', v1=(e.pct_extra_especial)) }}</th><th>{{ _('Noturnas ({v1}%)', v1=(e.pct_noturno)) }}</th><th>{{ _('Atrasos e saídas') }}</th><th>{{ _('Faltas') }}</th><th>{{ _('Ausências') }}</th><th>{{ _('DSR') }}</th>{% if tem_int %}<th>{{ _('Intervalo não concedido') }}</th>{% endif %}{% if tem_sob %}<th>{{ _('Sobreaviso (1/3)') }}</th>{% endif %}
       {% if banco %}<th>{{ _('Saldo anterior') }}</th><th>{{ _('Saldo do banco') }}</th>{% else %}<th>{{ _('Saldo do período') }}</th>{% endif %}<th></th></tr></thead>
     <tbody>
     {% for r in resultado %}
@@ -40,7 +40,6 @@
       <td>{{ fmt_min(r.previsto) }}</td><td>{{ fmt_min(r.trabalhado) }}</td>
       <td>{{ fmt_min(r.extra_normal) if r.extra_normal else '—' }}</td>
       <td>{{ fmt_min(r.extra_especial) if r.extra_especial else '—' }}</td>
-      <td>{{ fmt_min(com_acrescimo(r.extra_normal, r.extra_especial, e.pct_extra_normal, e.pct_extra_especial)) if r.extra_normal or r.extra_especial else '—' }}</td>
       <td>{{ fmt_min(r.noturno) if r.noturno else '—' }}</td>
       <td>{{ fmt_min(r.debito) if r.debito else '—' }}</td>
       <td>{% if r.faltas %}<span class="etiqueta erro">{{ _('{v1} dia(s)', v1=(r.faltas)) }}</span>{% else %}—{% endif %}</td>
@@ -56,11 +55,12 @@
     {% endfor %}
     </tbody>
   </table></div>
-  <p class="ajuda">{{ _('Previsto = escala menos o intervalo. Diferença de até {v1} min no dia não conta. Falta é dia de escala sem nenhuma batida e fica fora do saldo. “Extras com acréscimo” é quanto as extras valem em horas normais se forem pagas (1h a 50% = 1h30){v2}. “Noturnas” são as horas entre 22h e 5h{v3}, sobre as quais incide o adicional. Os percentuais ficam em Configurações.', v1=(e.tolerancia_dia_min), v2=(_('; o banco de horas continua contando hora por hora') if banco), v3=(_(', já com a hora reduzida') if e.noturno_reduzida)) }}{% if e.dsr_faltas or e.dsr_extras %} {{ _('DSR:') }}{% if e.dsr_faltas %} {{ _('quem falta sem justificativa perde o descanso remunerado da semana;') }}{% endif %}{% if e.dsr_extras and not banco %} {{ _('o reflexo das extras é extras com acréscimo ÷ dias úteis × folgas da escala e feriados.') }}{% elif e.dsr_extras %} {{ _('o reflexo sobre extras só é calculado no controle por hora extra.') }}{% endif %}{% endif %}</p>
+  <p class="ajuda">{{ _('Previsto = escala menos o intervalo. Diferença de até {v1} min no dia não conta. Falta é dia de escala sem nenhuma batida e fica fora do saldo{v2}. “Noturnas” são as horas entre 22h e 5h{v3}, sobre as quais incide o adicional. Os percentuais ficam em Configurações.', v1=(e.tolerancia_dia_min), v2=(_('; o banco de horas conta hora por hora') if banco), v3=(_(', já com a hora reduzida') if e.noturno_reduzida)) }}{% if e.dsr_faltas or e.dsr_extras %} {{ _('DSR:') }}{% if e.dsr_faltas %} {{ _('quem falta sem justificativa perde o descanso remunerado da semana;') }}{% endif %}{% if e.dsr_extras and not banco %} {{ _('o reflexo das extras é extras com acréscimo ÷ dias úteis × folgas da escala e feriados.') }}{% elif e.dsr_extras %} {{ _('o reflexo sobre extras só é calculado no controle por hora extra.') }}{% endif %}{% endif %}</p>
   <form method="post" action="/painel/fechamento" data-confirma="{{ _('Fechar o ponto de {v1} a {v2}? Depois disso as batidas, a escala e as ausências desse período não podem mais ser alteradas (a não ser reabrindo).', v1=(ini.strftime('%d/%m/%Y')), v2=(fim.strftime('%d/%m/%Y'))) }}">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="de" value="{{ ini.isoformat() }}"><input type="hidden" name="ate" value="{{ fim.isoformat() }}">
     <button class="botao" type="submit" {{ 'disabled' if motivo }}>{{ _('Fechar este período') }}</button>
+    <a class="botao claro" href="/painel/fechamento/horas?{{ consulta }}">{{ _('Imprimir tabela (PDF)') }}</a>
     <a class="botao claro" href="/painel/fechamento/resumo?{{ consulta }}">{{ _('Resumo em PDF') }}</a>
     {% if motivo %}<span class="suave pequeno" style="margin-left:8px">{{ _(motivo) }}</span>{% endif %}
   </form>

@@ -195,6 +195,14 @@ def main():
                    "Faltas em dias", "8h00"):
         assert trecho in resumo, trecho
     assert "Adicional noturno" not in resumo                 # ninguém trabalhou à noite
+    tela_f = g.get(f"/painel/fechamento?de={SEG}&ate={SEX}").text
+    assert "Extras com acréscimo" not in tela_f and "/painel/fechamento/horas?" in tela_f
+    horas = g.get(f"/painel/fechamento/horas?de={SEG}&ate={SEX}").text
+    cab = horas.split("<thead>")[1].split("</thead>")[0]
+    for col in ("Funcionários", "Extras (50%)", "Extras em folga/feriado (100%)", "Noturnas (20%)", "Faltas em horas"):
+        assert col in cab, col
+    assert cab.count("<th>") == 5 and "Imprimir ou salvar em PDF" in horas
+    assert "Ana Souza" in horas and "4h00" in horas and "8h00" in horas and "2h05" in horas
     folha = g.get(f"/painel/folha?func={ids['Ana']}&de={SEG}&ate={SEX}").text
     assert "Folha de ponto" in folha and "Feriado" in folha and "Atestado" in folha
     assert "período ainda aberto" in folha and "27h40" in folha
