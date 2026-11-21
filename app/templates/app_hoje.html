@@ -235,9 +235,7 @@
     }).then(function (x) {
       if (x.ok) { mostrar("ok", x.j.mensagem); setTimeout(function () { location.href = "/app"; }, 1800); }
       else if (x.j.codigo === "precisa_motivo" && !dados.motivo) {
-        var motivo = window.prompt(x.j.erro + "
-
-" + t("Motivo (ex.: entrega externa, evento, GPS errado):"));
+        var motivo = window.prompt(x.j.erro + "\n\n" + t("Motivo (ex.: entrega externa, evento, GPS errado):"));
         if (motivo && motivo.trim()) { dados.motivo = motivo.trim().slice(0, 200); enviar(dados); }
         else { mostrar("erro", t("Sem o motivo, o ponto fora da área não é registrado.")); botao.disabled = false; }
       }
