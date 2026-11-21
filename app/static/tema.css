@@ -609,3 +609,23 @@ a.botao-google:hover { border-color: color-mix(in srgb, var(--ent1) 40%, var(--b
 .ent-galeria img { width: 100%; aspect-ratio: 16/10; object-fit: cover; display: block; }
 .ent-galeria figcaption { display: flex; gap: 6px; align-items: center; justify-content: space-between; padding: 8px; flex-wrap: wrap; }
 .passos-simples li { margin-bottom: 6px; }
+/* Logo com o nome: versão clara/escura conforme o tema */
+.logo-nome { display: inline-flex; align-items: center; }
+.logo-nome img { display: block; height: var(--ln-altura, 38px); width: auto; max-width: 100%; }
+.logo-nome .ln-escuro { display: none; }
+:root[data-tema="escuro"] .logo-nome .ln-claro { display: none; }
+:root[data-tema="escuro"] .logo-nome .ln-escuro { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) .logo-nome .ln-claro { display: none; }
+  :root:not([data-tema="claro"]) .logo-nome .ln-escuro { display: block; }
+}
+.marca.marca-nome { background: none !important; -webkit-background-clip: border-box !important; background-clip: border-box !important; color: inherit; }
+.caixa .marca-nome { --ln-altura: 46px; display: flex; justify-content: center; margin-bottom: 18px; }
+.v-topo .marca-nome, .legal .marca-nome { --ln-altura: 34px; }
+.ent-marca .logo-nome { --ln-altura: 40px; }
+/* menu lateral: nome inteiro aberto, só a digital quando recolhido */
+.topo .marca .logo-nome.na-lateral { --ln-altura: 34px; }
+.topo .marca .marca-icone { display: none; width: 34px; height: 34px; }
+:root[data-lateral="recolhida"] .topo .marca .marca-icone { display: block; }
+@media (max-width: 1100px) { .topo .marca .logo-nome.na-lateral { --ln-altura: 28px; } }
+@media (max-width: 960px) { .ent-marca .logo-nome { --ln-altura: 32px; } }

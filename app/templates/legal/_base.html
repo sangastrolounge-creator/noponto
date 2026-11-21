@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% block titulo %}{% block nome_doc %}{% endblock %} — {{ L.marca }}{% endblock %}
 {% block corpo %}
+{% from "_marca.html" import logo_nome %}
 {% from "_idioma.html" import seletor %}
 <main class="legal">
   <div class="legal-topo">
-    <a class="marca" href="/"><img src="/static/logo.png" alt="">{{ L.marca }}</a>
+    <a class="marca marca-nome" href="/">{{ logo_nome() }}</a>
     {{ seletor() }}
   </div>
   <nav class="legal-abas" aria-label="{{ _('Documentos legais') }}">

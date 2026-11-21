@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block titulo %}{{ _('{v1} — escala, ponto e tarefas da equipe', v1=(app_nome)) }}{% endblock %}
 {% block corpo %}
+{% from "_marca.html" import logo_nome %}
 {% from "_idioma.html" import seletor %}
 <div class="barra-site">
-  <span class="marca"><img src="/static/logo.png" alt="">{{ app_nome }}</span>
+  <span class="marca marca-nome">{{ logo_nome() }}</span>
   <div class="acoes" style="align-items:center">{{ seletor() }}<a class="botao claro" href="/entrar">{{ _('Entrar') }}</a></div>
 </div>
 <section class="heroi">
