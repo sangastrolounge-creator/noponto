@@ -167,7 +167,7 @@ def main():
         db.add(pl)
         db.flush()
         e = db.get(Empresa, 1)
-        e.plano_id, e.teste_ate, e.pago_ate = pl.id, None, banco.agora() + timedelta(days=20)
+        e.plano_id, e.teste_ate, e.pago_ate, e.isenta = pl.id, None, banco.agora() + timedelta(days=20), False
         e.exigir_foto = True
         db.commit()
         assert not facial.ligado(db.get(Empresa, 1))
