@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from . import db as banco
 from . import i18n
-from .db import Empresa, Plataforma, SessionLocal, Usuario, criar_tabelas, get_db
+from .db import Config, Empresa, Plataforma, SessionLocal, Usuario, criar_tabelas, get_db
 
 log = logging.getLogger("turno")
 
@@ -57,8 +57,31 @@ def plataforma() -> dict:
 
 
 def plataforma_mudou():
-    global _plat_cache
+    global _plat_cache, _google_cache
     _plat_cache = None
+    _google_cache = None
+
+
+_google_cache: tuple[str, str] | None = None
+
+
+def google_credenciais() -> tuple[str, str]:
+    """(ID do cliente, chave secreta) do login com o Google. As salvas no Painel Master valem
+    mais que as do .env (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET). ("", "") = desligado."""
+    global _google_cache
+    if _google_cache is None:
+        with SessionLocal() as db:
+            gid, sec = db.get(Config, "google_client_id"), db.get(Config, "google_client_secret")
+            gid, sec = (gid.valor if gid else ""), (sec.valor if sec else "")
+        if not (gid and sec):
+            gid, sec = os.environ.get("GOOGLE_CLIENT_ID", ""), os.environ.get("GOOGLE_CLIENT_SECRET", "")
+        _google_cache = (gid.strip(), sec.strip())
+    return _google_cache
+
+
+def google_ligado() -> bool:
+    gid, sec = google_credenciais()
+    return bool(gid and sec)
 
 
 def _carencia(campo: str) -> int:
@@ -295,7 +318,7 @@ def render(request: Request, nome: str, status_code: int = 200, **ctx):
     base = {"app_nome": plat["nome"], "csrf": csrf_token(request), "plat": plat,
             "flash": request.session.pop("flash", None),
             "cadastro_aberto": plat["cadastro_aberto"],
-            "google_ok": bool(os.environ.get("GOOGLE_CLIENT_ID") and os.environ.get("GOOGLE_CLIENT_SECRET")),
+            "google_ok": google_ligado(),
             "ent_imagens": [n for n in (plat.get("entrada_imagens") or "").split(",") if n],
             "suporte": bool(request.session.get("master_uid"))}
     return templates.TemplateResponse(request, nome, {**base, **ctx},

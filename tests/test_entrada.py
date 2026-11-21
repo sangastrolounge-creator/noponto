@@ -50,6 +50,7 @@ def google(cli, perfil, modo="entrar"):
     assert r.status_code == 303 and r.headers["location"].startswith("https://accounts.google.com/")
     q = parse_qs(urlsplit(r.headers["location"]).query)
     assert q["redirect_uri"][0].endswith("/entrar/google/volta") and q["scope"][0] == "openid email profile"
+    assert q["client_id"][0] == "246108975377-xyz789.apps.googleusercontent.com"
     entrada._perfil_google = lambda request, code: perfil
     return cli.get(f"/entrar/google/volta?code=abc&state={q['state'][0]}")
 
@@ -88,8 +89,20 @@ def main():
     posta(c, f"/master/entrada/imagem/{segunda}", tc, acao="remover")
     assert entrada.imagens() == nomes
 
-    # ---- com as chaves do Google
-    os.environ["GOOGLE_CLIENT_ID"], os.environ["GOOGLE_CLIENT_SECRET"] = "id-teste", "segredo-teste"
+    # ---- liga o Google pelo Painel Master (sem mexer no servidor)
+    posta(c, "/master/entrada/google", tc, client_id="errado", client_secret="GOCSPX-abcdefghijklmnopqrstu")
+    assert "Continuar com o Google" not in novo().get("/entrar").text
+    posta(c, "/master/entrada/google", tc, client_id=" 246108975377-abc123.apps.googleusercontent.com ",
+          client_secret="")
+    assert "Continuar com o Google" not in novo().get("/entrar").text          # falta a chave
+    posta(c, "/master/entrada/google", tc, client_id="246108975377-abc123.apps.googleusercontent.com",
+          client_secret="GOCSPX-abcdefghijklmnopqrstu")
+    pagina = c.get("/master/entrada").text
+    assert "GOCSPX-abcdefghijklmnopqrstu" not in pagina and "246108975377-abc123" in pagina and "ligado" in pagina
+    # trocar o ID sem colar a chave de novo mantém a chave
+    posta(c, "/master/entrada/google", tc, client_id="246108975377-xyz789.apps.googleusercontent.com", client_secret="")
+    from app.core import google_credenciais
+    assert google_credenciais() == ("246108975377-xyz789.apps.googleusercontent.com", "GOCSPX-abcdefghijklmnopqrstu")
     g = novo()
     assert "Continuar com o Google" in g.get("/entrar").text and "Criar conta com o Google" in g.get("/cadastro").text
 
@@ -134,6 +147,9 @@ def main():
         db.commit()
     r = google(novo(), {"sub": "g-777", "email": "ana@gmail.com", "email_verified": True})
     assert r.headers["location"] == "/entrar"
+    # desligar pelo Master
+    posta(c, "/master/entrada/google", tc, acao="desligar")
+    assert "Continuar com o Google" not in novo().get("/entrar").text
     print("OK: telas de entrada e Google passaram")
 
 
