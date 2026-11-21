@@ -145,7 +145,7 @@
 </dialog>
 <input type="file" id="foto-arquivo" accept="image/*" capture="user" hidden>
 {% endif %}
-{% if facial_usa %}<script src="/static/facial.js?v=1" defer></script>{% endif %}
+{% if facial_usa %}<script src="/static/facial.js?v=2"></script>{% endif %}
 <script>
 (function () {
   var EXIGE_FOTO = {{ 'true' if exige_foto(e) else 'false' }};
@@ -207,12 +207,18 @@
         tirarFoto(localizar, function (msg) { if (msg) mostrar("erro", msg); else ret.hidden = true; botao.disabled = false; });
       } else localizar(null);
     }
-    if (FACIAL && window.Facial) {
+    if (FACIAL && !window.Facial) {
+      mostrar("erro", t("O reconhecimento facial não carregou. Recarregue a página e tente de novo."));
+      botao.disabled = false;
+    } else if (FACIAL) {
       window.Facial.capturar({ foto: EXIGE_FOTO }).then(function (r) {
         extra.facial = r.descritor;
         localizar(r.foto || null);
       }, function (err) {
-        if (err && err.codigo === "suporte") { semRosto(); return; }   // aparelho sem suporte: bate sem o rosto
+        if (err && err.codigo === "suporte") {          // aparelho sem suporte: avisa e bate sem o rosto
+          mostrar("info", (err.message ? err.message + " " : "") + t("O ponto será registrado sem o rosto."));
+          setTimeout(semRosto, 1200); return;
+        }
         if (err && err.message) mostrar("erro", err.message); else ret.hidden = true;
         botao.disabled = false;
       });

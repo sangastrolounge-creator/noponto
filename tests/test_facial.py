@@ -109,6 +109,13 @@ def main():
         assert db.scalar(select(Historico).where(Historico.detalhe == "Ana Souza aceitou o termo de reconhecimento facial."))
     tela = ana.get("/app").text
     assert "/static/facial.js" in tela and "var FACIAL = true" in tela and "Cadastre o seu rosto" not in tela
+    assert "Testar reconhecimento" in ana.get("/app/facial").text
+    r = ana.post("/app/facial/testar", json={"descritor": rosto(1, 0.05)}, headers={"X-CSRF": ta})
+    assert r.status_code == 200 and r.json() == {"confere": True}
+    r = ana.post("/app/facial/testar", json={"descritor": rosto(7)}, headers={"X-CSRF": ta})
+    assert r.json() == {"confere": False}
+    with SessionLocal() as db:   # testar não cria batida
+        assert not db.scalar(select(Batida.id).where(Batida.usuario_id == ids["Ana"][0]))
     assert "Aceito eletronicamente por Ana Souza" in ana.get("/app/facial/termo").text
 
     # ---- Bia recusa: continua batendo sem rosto e sem marca
