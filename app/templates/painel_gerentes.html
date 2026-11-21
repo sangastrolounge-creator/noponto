@@ -6,6 +6,20 @@
     {% endfor %}
   </div>
 {% endmacro %}
+{% macro alcance(g) %}
+  {% set gs = alc_s[g.id] if g else [] %}{% set gl = alc_l[g.id] if g else [] %}
+  {% if setores or locais %}
+  <details class="alcance" {{ 'open' if gs or gl }} style="margin-top:12px">
+    <summary class="pequeno" style="font-weight:700">{{ _('Setores e locais que gerencia') }}{% if gs or gl %} <span class="etiqueta azul">{{ _('limitado') }}</span>{% endif %}</summary>
+    <p class="ajuda" style="margin:6px 0 8px">{{ _('Sem nada marcado, vê a equipe inteira. Marcando setores e/ou locais, só vê e mexe nas pessoas deles (quando marca os dois, a pessoa precisa estar num dos setores e num dos locais).') }}</p>
+    {% if setores %}<div class="pequeno suave" style="margin-bottom:4px">{{ _('Setores') }}</div>
+    <div class="perm-grade">{% for s in setores %}<label class="marcar"><input type="checkbox" name="s_{{ s.id }}" value="1" {{ 'checked' if s.id in gs }}><span>{{ s.nome }}</span></label>{% endfor %}</div>{% endif %}
+    {% if locais %}<div class="pequeno suave" style="margin:8px 0 4px">{{ _('Locais') }}</div>
+    <div class="perm-grade"><label class="marcar"><input type="checkbox" name="l_0" value="1" {{ 'checked' if 0 in gl }}><span>{{ _('{v1} (principal)', v1=e.nome) }}</span></label>{% for l in locais %}<label class="marcar"><input type="checkbox" name="l_{{ l.id }}" value="1" {{ 'checked' if l.id in gl }}><span>{{ l.nome }}</span></label>{% endfor %}</div>{% endif %}
+    <p class="ajuda" style="margin-top:8px">{{ _('Fechar o período, a folha de pagamento, feriados, locais, setores e importar planilha continuam só com quem vê a empresa inteira.') }}</p>
+  </details>
+  {% endif %}
+{% endmacro %}
 {% block conteudo %}
 <div class="cabecalho">
   <div><h1>{{ _('Gerentes e permissões') }}</h1>
@@ -31,6 +45,7 @@
     <input type="hidden" name="acao" value="salvar">
     <label class="pequeno" style="font-weight:700">{{ _('Pode usar') }}</label>
     {{ caixas(g) }}
+    {{ alcance(g) }}
     <label class="marcar" style="margin-top:8px"><input type="checkbox" name="na_escala" value="1" {{ 'checked' if g.na_escala }}><span>{{ _('Também trabalha na escala e bate o ponto') }}</span></label>
     <div class="acoes" style="margin-top:10px">
       <button class="botao" type="submit">{{ _('Salvar permissões') }}</button>
@@ -59,6 +74,7 @@
   </div>
   <label class="pequeno" style="font-weight:700">{{ _('Pode usar') }}</label>
   {{ caixas(None) }}
+  {{ alcance(None) }}
   <label class="marcar" style="margin-top:8px"><input type="checkbox" name="na_escala" value="1"><span>{{ _('Também trabalha na escala e bate o ponto') }}</span></label>
   <button class="botao" type="submit" style="margin-top:12px">{{ _('Cadastrar e gerar o link') }}</button>
   <p class="ajuda">{{ _('A pessoa abre o link, cria a própria senha e passa a entrar com o e-mail. Tudo o que ela fizer fica no histórico com o nome dela.') }}</p>

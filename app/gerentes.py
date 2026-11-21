@@ -7,9 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import regras
-from .core import (PERMISSOES, avisar, base_url, celular_limpo, celular_valido, da_empresa,
+from .core import (PERMISSOES, alcance_locais, alcance_setores, avisar, base_url, celular_limpo, celular_valido, da_empresa,
                    email_valido, exigir_csrf, gestor_logado, ir, permissoes_de, render)
-from .db import Usuario, get_db
+from .db import Local, Usuario, get_db
+from .fase3 import locais_da
+from .setores import setores_da
 
 rota = APIRouter()
 CSRF = [Depends(exigir_csrf)]
@@ -17,6 +19,13 @@ CSRF = [Depends(exigir_csrf)]
 
 def _lista(form) -> str:
     return ",".join(k for k in PERMISSOES if form.get(f"p_{k}"))
+
+
+def _alcance(db: Session, e, form) -> tuple[str, str]:
+    """Setores e locais marcados (só os da empresa). "0" = endereço principal."""
+    s = [str(x.id) for x in setores_da(db, e.id) if form.get(f"s_{x.id}")]
+    l = (["0"] if form.get("l_0") else []) + [str(x.id) for x in locais_da(db, e.id) if form.get(f"l_{x.id}")]
+    return ",".join(s), ",".join(l)
 
 
 def link(request: Request, g: Usuario) -> str:
@@ -29,6 +38,8 @@ def gerentes(request: Request, u: Usuario = Depends(gestor_logado), db: Session 
         Usuario.empresa_id == u.empresa_id, Usuario.papel == "gestor")
         .order_by(Usuario.dono.desc(), Usuario.ativo.desc(), Usuario.nome)))
     return render(request, "painel_gerentes.html", u=u, e=u.empresa, aba="equipe",
+                  setores=setores_da(db, u.empresa_id), locais=locais_da(db, u.empresa_id),
+                  alc_s={g.id: alcance_setores(g) for g in lista}, alc_l={g.id: alcance_locais(g) for g in lista},
                   gerentes=lista, links={g.id: link(request, g) for g in lista},
                   perms={g.id: permissoes_de(g) for g in lista})
 
@@ -44,11 +55,11 @@ async def gerente_novo(request: Request, u: Usuario = Depends(gestor_logado),
     erro = None
     if not nome or not email_valido(email):
         erro = "Informe o nome e um e-mail válido (é o login do gerente)."
-    elif db.scalar(select(Usuario.id).where(Usuario.email == email)):
+    elif db.scalar(select(Usuario.id).where(Usuario.email == email).execution_options(alcance_livre=True)):
         erro = "Já existe uma conta com este e-mail."
     elif cel and not celular_valido(cel):
         erro = "Celular inválido: use o DDD (ex.: 98 99999-1234)."
-    elif cel and db.scalar(select(Usuario.id).where(Usuario.celular == cel)):
+    elif cel and db.scalar(select(Usuario.id).where(Usuario.celular == cel).execution_options(alcance_livre=True)):
         erro = "Este celular já está cadastrado."
     if erro:
         avisar(request, erro, "erro")
@@ -57,6 +68,7 @@ async def gerente_novo(request: Request, u: Usuario = Depends(gestor_logado),
                 cargo=str(form.get("cargo", "")).strip()[:80], papel="gestor", dono=False,
                 na_escala=na_escala, permissoes=_lista(form),
                 convite_token=secrets.token_urlsafe(18))
+    g.alcance_setores, g.alcance_locais = _alcance(db, u.empresa, form)
     db.add(g)
     regras.registrar(db, u.empresa_id, u.nome, "gerente cadastrado",
                      f"{nome} ({email}): {g.permissoes or 'sem permissões'}.")
@@ -78,8 +90,14 @@ async def gerente_editar(request: Request, gid: int, u: Usuario = Depends(gestor
     if acao == "salvar":
         g.permissoes = _lista(form)
         g.na_escala = bool(form.get("na_escala"))
+        g.alcance_setores, g.alcance_locais = _alcance(db, u.empresa, form)
+        nomes = [x.nome for x in setores_da(db, u.empresa_id) if x.id in alcance_setores(g)]
+        nomes += [u.empresa.nome if lid == 0 else (db.get(Local, lid).nome if db.get(Local, lid) else "")
+                  for lid in sorted(alcance_locais(g))]
+        perms = g.permissoes or "sem permissões"
+        nomes_txt = ", ".join(n for n in nomes if n)
         regras.registrar(db, u.empresa_id, u.nome, "permissões do gerente",
-                         f"{g.nome}: {g.permissoes or 'sem permissões'}.")
+                         f"{g.nome}: {perms}; só {nomes_txt}." if nomes else f"{g.nome}: {perms}; equipe inteira.")
         avisar(request, f"Permissões de {g.primeiro_nome} salvas.")
     elif acao in ("desativar", "reativar"):
         g.ativo = acao == "reativar"

@@ -156,7 +156,9 @@ def escala_publicar(request: Request, tarefas_bg: BackgroundTasks, semana: str =
         pub = EscalaPublicada(empresa_id=e.id, semana=seg)
         db.add(pub)
     primeira = pub.publicado_em is None
-    pub.assinaturas, pub.publicado_em, pub.publicado_por = json.dumps(atuais), banco.agora(), u.nome
+    # Mescla com a publicação anterior: um gerente que só vê parte da equipe não apaga a dos outros.
+    todas = {**(json.loads(pub.assinaturas) if pub.assinaturas else {}), **atuais}
+    pub.assinaturas, pub.publicado_em, pub.publicado_por = json.dumps(todas), banco.agora(), u.nome
     regras.registrar(db, e.id, u.nome, "escala publicada",
                      f"Semana de {seg:%d/%m}; {len(ids)} pessoa(s) avisada(s).")
     db.commit()

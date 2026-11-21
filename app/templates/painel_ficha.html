@@ -25,12 +25,12 @@
     <h2>{{ _('Trabalho') }}</h2>
     <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
       <div class="campo"><label for="f-local">{{ _('Local') }}</label><select id="f-local" name="local_id">
-        <option value="">{{ _('{v1} (principal)', v1=e.nome) }}</option>
-        {% for l in locais %}<option value="{{ l.id }}" {{ 'selected' if (val('local_id') or (alvo.local_id|string if alvo and alvo.local_id else '')) == l.id|string }}>{{ l.nome }}</option>{% endfor %}</select></div>
+        {% if not alc_l or 0 in alc_l %}<option value="">{{ _('{v1} (principal)', v1=e.nome) }}</option>{% endif %}
+        {% for l in locais if not alc_l or l.id in alc_l %}<option value="{{ l.id }}" {{ 'selected' if (val('local_id') or (alvo.local_id|string if alvo and alvo.local_id else '')) == l.id|string }}>{{ l.nome }}</option>{% endfor %}</select></div>
       <div class="campo"><label for="f-setor">{{ _('Setor') }}</label><select id="f-setor" name="setor_id">
         {% set atual_setor = val('setor_id') or (alvo.setor_id|string if alvo and alvo.setor_id else '') %}
-        <option value="">{{ _('Sem setor') }}</option>
-        {% for s in setores if s.ativo or atual_setor == s.id|string %}<option value="{{ s.id }}" {{ 'selected' if atual_setor == s.id|string }}>{{ s.nome }}</option>{% endfor %}</select>
+        {% if not alc_s %}<option value="">{{ _('Sem setor') }}</option>{% endif %}
+        {% for s in setores if (s.ativo or atual_setor == s.id|string) and (not alc_s or s.id in alc_s) %}<option value="{{ s.id }}" {{ 'selected' if atual_setor == s.id|string }}>{{ s.nome }}</option>{% endfor %}</select>
         <div class="ajuda">{% if setores %}<a href="/painel/setores">{{ _('Gerenciar setores') }}</a>{% else %}{{ _('Nenhum setor criado.') }} <a href="/painel/setores">{{ _('Criar setores') }}</a>{% endif %}</div></div>
       <div class="campo"><label for="f-inicio">{{ _('Data de admissão') }}</label><input id="f-inicio" type="date" name="data_admissao" value="{{ val('data_admissao', alvo.data_admissao.isoformat() if alvo and alvo.data_admissao else '') }}"></div>
       <div class="campo"><label for="f-nasc">{{ _('Data de nascimento (só para menores de 18)') }}</label><input id="f-nasc" type="date" name="nascimento" value="{{ val('nascimento', alvo.nascimento.isoformat() if alvo and alvo.nascimento else '') }}">

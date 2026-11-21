@@ -51,6 +51,18 @@ def nomes(db: Session, empresa_id: int) -> dict[int, str]:
     return {s.id: s.nome for s in db.scalars(select(Setor).where(Setor.empresa_id == empresa_id))}
 
 
+def descrever_alcance(db: Session, u: Usuario) -> str:
+    """Texto curto com os setores/locais de um gerente limitado ("" = vê todos)."""
+    from .core import alcance_locais, alcance_setores, restrito
+    from .db import Local
+    if not restrito(u):
+        return ""
+    s = [x.nome for x in setores_da(db, u.empresa_id, so_ativos=False) if x.id in alcance_setores(u)]
+    l = [u.empresa.nome if i == 0 else (db.get(Local, i).nome if db.get(Local, i) else "")
+         for i in sorted(alcance_locais(u))]
+    return ", ".join(n for n in s + l if n)
+
+
 @rota.get("/painel/setores")
 def tela(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     lista = setores_da(db, u.empresa_id, so_ativos=False)

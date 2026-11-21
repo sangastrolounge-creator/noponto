@@ -2,8 +2,9 @@
 {% from "_setor_filtro.html" import filtro_setor %}
 {% block conteudo %}
 <div class="cabecalho"><div><h1>{{ _('Equipe') }}</h1><p class="suave" style="margin:0">{{ _('Cada funcionário recebe um link para criar a própria senha. Depois entra com o celular.') }}</p></div>
-  <span class="acoes"><a class="botao claro" href="/painel/setores">{{ _('Setores') }}</a>{% if u.dono %} <a class="botao claro" href="/painel/gerentes">{{ _('Gerentes e permissões') }}</a>{% endif %}</span></div>
+  <span class="acoes">{% if not meu_alcance %}<a class="botao claro" href="/painel/setores">{{ _('Setores') }}</a>{% endif %}{% if u.dono %} <a class="botao claro" href="/painel/gerentes">{{ _('Gerentes e permissões') }}</a>{% endif %}</span></div>
 
+{% if meu_alcance %}<div class="aviso">{{ _('Você gerencia só: {v1}. As outras pessoas da empresa não aparecem para você.', v1=meu_alcance) }}</div>{% endif %}
 <div class="cartao" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
   <div><h2 style="margin:0">{{ _('Adicionar pessoa') }}</h2><p class="suave pequeno" style="margin:4px 0 0">{{ _('Contato, funções e salários, nível de acesso e classificação tributária, numa página só.') }}</p></div>
   <span class="acoes"><a class="botao claro" href="/painel/importar-equipe">{{ _('Importar planilha') }}</a> <a class="botao" href="/painel/equipe/novo">{{ _('Adicionar pessoa') }}</a></span>
