@@ -128,7 +128,7 @@ templates.env.globals.update(
     TIPOS_AUSENCIA=i18n.Traduzido(apuracao.TIPOS_AUSENCIA), zap=fase3.zap,
     mural_novas=mural.novas, SITUACOES_OFERTA=i18n.Traduzido(trocas.SITUACOES),
     alertas_liberados=core.alertas_liberados, contadores_menu=menu.contadores, gps_liberado=core.gps_liberado,
-    foto_liberada=core.foto_liberada, cerca_liberada=core.cerca_liberada, exige_foto=core.exige_foto, pode=core.pode,
+    foto_liberada=core.foto_liberada, facial_liberado=core.facial_liberado, cerca_liberada=core.cerca_liberada, exige_foto=core.exige_foto, pode=core.pode,
     PERMISSOES=i18n.Traduzido(core.PERMISSOES), funcoes_empresa=triagem.funcoes_da, modelos_turno=triagem.modelos_da)
 
 

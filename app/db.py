@@ -101,6 +101,7 @@ class Plano(Base):
     com_alertas: Mapped[bool] = mapped_column(Boolean, default=True)  # alertas de atraso e de não comparecimento
     com_gps: Mapped[bool] = mapped_column(Boolean, default=True)      # ponto conferido pela localização (GPS)
     com_foto: Mapped[bool] = mapped_column(Boolean, default=True)     # foto (selfie) ao bater o ponto
+    com_facial: Mapped[bool] = mapped_column(Boolean, default=True)   # reconhecimento facial no ponto
     com_cerca: Mapped[bool] = mapped_column(Boolean, default=True)    # cerca desenhada e conferência no turno
     # Cobrança por pessoa (opcional): base + valor por pessoa que trabalhou nos últimos 30 dias,
     # nunca abaixo do mínimo. Com valor por pessoa = 0, vale o preço fixo (preco_centavos).
@@ -950,6 +951,7 @@ COLUNAS_NOVAS = [
     ("planos", "com_alertas", "BOOLEAN NOT NULL DEFAULT 1"),
     ("planos", "com_gps", "BOOLEAN NOT NULL DEFAULT 1"),
     ("planos", "com_foto", "BOOLEAN NOT NULL DEFAULT 1"),
+    ("planos", "com_facial", "BOOLEAN NOT NULL DEFAULT 1"),
     ("empresas", "trocas_aprovacao", "BOOLEAN NOT NULL DEFAULT 1"),
     ("empresas", "avaliar_turno", "BOOLEAN NOT NULL DEFAULT 1"),
     ("empresas", "segmento", "VARCHAR(20) NOT NULL DEFAULT ''"),

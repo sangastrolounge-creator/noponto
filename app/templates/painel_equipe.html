@@ -74,7 +74,7 @@
         </div>
       </form>
     </details>
-    {% if e.facial_ativo %}
+    {% if e.facial_ativo and facial_liberado(e) %}
     <div class="facial-linha pequeno">
       🙂 {% if p.facial_consentimento == 'aceito' and p.facial_descritor %}{{ _('Rosto cadastrado') }}
       {% elif p.facial_consentimento == 'aceito' %}{{ _('Aceitou o termo; falta cadastrar o rosto') }}

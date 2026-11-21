@@ -269,7 +269,7 @@ def _ler_plano(p: Plano, nome: str, preco: str, limite: int, descricao: str,
                destaque: str, ativo: str, ordem: int, limite_locais: int = 0,
                com_pagamento: str = "", com_alertas: str = "", com_gps: str = "",
                com_foto: str = "", com_cerca: str = "", base: str = "", por_pessoa: str = "",
-               minimo: str = "") -> str | None:
+               minimo: str = "", com_facial: str = "") -> str | None:
     centavos = ler_centavos(preco)
     b, pp, mn = (ler_centavos(x.strip() or "0") for x in (base, por_pessoa, minimo))
     if None in (b, pp, mn) or max(b or 0, pp or 0, mn or 0) > 10_000_000:
@@ -287,7 +287,7 @@ def _ler_plano(p: Plano, nome: str, preco: str, limite: int, descricao: str,
         descricao.strip()[:1000], bool(destaque), bool(ativo), ordem)
     p.limite_locais, p.com_pagamento = limite_locais, bool(com_pagamento)
     p.com_alertas, p.com_gps, p.com_foto = bool(com_alertas), bool(com_gps), bool(com_foto)
-    p.com_cerca = bool(com_cerca)
+    p.com_cerca, p.com_facial = bool(com_cerca), bool(com_facial)
     p.base_centavos, p.por_pessoa_centavos, p.minimo_centavos = b, pp, mn
     if pp:   # plano por pessoa: o "preço" passa a ser o menor valor possível (1 pessoa ou o mínimo)
         p.preco_centavos = max(mn, b + pp)
@@ -301,11 +301,12 @@ def plano_novo(request: Request, u: Usuario = Depends(admin_logado),
                ativo: str = Form(""), ordem: int = Form(0), limite_locais: int = Form(0),
                com_pagamento: str = Form(""), com_alertas: str = Form(""),
                com_gps: str = Form(""), com_foto: str = Form(""), com_cerca: str = Form(""),
-               base: str = Form(""), por_pessoa: str = Form(""), minimo: str = Form("")):
+               base: str = Form(""), por_pessoa: str = Form(""), minimo: str = Form(""),
+               com_facial: str = Form("")):
     p = Plano()
     erro = _ler_plano(p, nome, preco, limite, descricao, destaque, ativo, ordem,
                       limite_locais, com_pagamento, com_alertas, com_gps, com_foto, com_cerca,
-                      base, por_pessoa, minimo)
+                      base, por_pessoa, minimo, com_facial)
     if erro:
         avisar(request, erro, "erro")
     else:
@@ -322,13 +323,14 @@ def plano_salvar(plano_id: int, request: Request, u: Usuario = Depends(admin_log
                  ativo: str = Form(""), ordem: int = Form(0), limite_locais: int = Form(0),
                  com_pagamento: str = Form(""), com_alertas: str = Form(""),
                  com_gps: str = Form(""), com_foto: str = Form(""), com_cerca: str = Form(""),
-                 base: str = Form(""), por_pessoa: str = Form(""), minimo: str = Form("")):
+                 base: str = Form(""), por_pessoa: str = Form(""), minimo: str = Form(""),
+                 com_facial: str = Form("")):
     p = db.get(Plano, plano_id)
     if not p:
         return ir("/master/planos")
     erro = _ler_plano(p, nome, preco, limite, descricao, destaque, ativo, ordem,
                       limite_locais, com_pagamento, com_alertas, com_gps, com_foto, com_cerca,
-                      base, por_pessoa, minimo)
+                      base, por_pessoa, minimo, com_facial)
     if erro:
         db.rollback()
         avisar(request, erro, "erro")

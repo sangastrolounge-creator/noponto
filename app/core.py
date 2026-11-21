@@ -122,6 +122,11 @@ def foto_liberada(e: Empresa) -> bool:
     return situacao(e) in ("teste", "cortesia") or not e.plano or e.plano.com_foto
 
 
+def facial_liberado(e: Empresa) -> bool:
+    """Reconhecimento facial no ponto: no teste vale tudo; depois, conforme o plano."""
+    return situacao(e) in ("teste", "cortesia") or not e.plano or e.plano.com_facial
+
+
 def exige_foto(e: Empresa) -> bool:
     """A empresa ligou a foto e o plano dela inclui."""
     return bool(e.exigir_foto) and foto_liberada(e)

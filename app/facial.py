@@ -21,7 +21,8 @@ from sqlalchemy.orm import Session
 
 from . import db as banco
 from . import i18n, regras
-from .core import avisar, da_empresa, exigir_csrf, gestor_logado, ir, render, usuario_logado
+from .core import (avisar, da_empresa, exigir_csrf, facial_liberado, gestor_logado, ir, render,
+                   usuario_logado)
 from .db import Alerta, Batida, Empresa, Usuario, get_db
 
 rota = APIRouter()
@@ -49,12 +50,17 @@ def distancia(a: list[float], b: list[float]) -> float:
 
 def usa(u: Usuario) -> bool:
     """A pessoa bate o ponto com o rosto (empresa ligou, ela aceitou e cadastrou)."""
-    return bool(u.empresa.facial_ativo and u.facial_consentimento == "aceito" and u.facial_descritor)
+    return bool(ligado(u.empresa) and u.facial_consentimento == "aceito" and u.facial_descritor)
+
+
+def ligado(e: Empresa) -> bool:
+    """A empresa ligou e o plano dela inclui o reconhecimento facial."""
+    return bool(e.facial_ativo) and facial_liberado(e)
 
 
 def pendente(u: Usuario) -> str:
     """O que falta a pessoa fazer: "termo", "cadastro" ou ""."""
-    if not u.empresa.facial_ativo:
+    if not ligado(u.empresa):
         return ""
     if u.facial_consentimento == "":
         return "termo"
@@ -104,6 +110,9 @@ def resumo_equipe(db: Session, e: Empresa) -> dict:
 def config_facial(request: Request, ativo: str = Form(""), u: Usuario = Depends(gestor_logado),
                   db: Session = Depends(get_db)):
     e = u.empresa
+    if ativo and not facial_liberado(e):
+        avisar(request, "O reconhecimento facial não está no seu plano. Veja os planos em Assinatura.", "erro")
+        return ir("/painel/config#facial")
     e.facial_ativo = bool(ativo)
     regras.registrar(db, e.id, u.nome, "reconhecimento facial",
                      "Ligado no ponto." if e.facial_ativo else "Desligado no ponto.")
@@ -134,7 +143,7 @@ def refazer(request: Request, fid: int, u: Usuario = Depends(gestor_logado), db:
 # ---------------------------------------------------------------- funcionário
 @rota.get("/app/facial")
 def app_facial(request: Request, u: Usuario = Depends(usuario_logado)):
-    if not u.empresa.facial_ativo:
+    if not ligado(u.empresa):
         return ir("/app")
     return render(request, "app_facial.html", u=u, e=u.empresa, aba="hoje", pessoa=u)
 
@@ -147,7 +156,7 @@ def termo_app(request: Request, u: Usuario = Depends(usuario_logado)):
 @rota.post("/app/facial/consentimento", dependencies=CSRF)
 def consentimento(request: Request, escolha: str = Form(""), u: Usuario = Depends(usuario_logado),
                   db: Session = Depends(get_db)):
-    if not u.empresa.facial_ativo or escolha not in ("aceito", "recusado"):
+    if not ligado(u.empresa) or escolha not in ("aceito", "recusado"):
         return ir("/app")
     u.facial_consentimento, u.facial_consentido_em = escolha, banco.agora()
     if escolha == "recusado":
@@ -164,7 +173,7 @@ def consentimento(request: Request, escolha: str = Form(""), u: Usuario = Depend
 
 @rota.post("/app/facial/cadastro", dependencies=CSRF)
 async def cadastro(request: Request, u: Usuario = Depends(usuario_logado), db: Session = Depends(get_db)):
-    if not u.empresa.facial_ativo or u.facial_consentimento != "aceito":
+    if not ligado(u.empresa) or u.facial_consentimento != "aceito":
         return i18n.resposta_erro({"erro": "Aceite o termo antes de cadastrar o rosto."}, 400)
     try:
         dados = await request.json()
