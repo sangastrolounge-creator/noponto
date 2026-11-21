@@ -93,7 +93,9 @@ window.ligarAvisos = function (botao, estado, chavePublica, csrf, textoLigado) {
 (function () {
   var CHAVE = "rolagem-volta";
   function guardar() {
-    try { sessionStorage.setItem(CHAVE, JSON.stringify({ p: location.pathname, y: window.scrollY, t: Date.now() })); } catch (e) {}
+    // a rolagem pode estar na janela ou no <body> (que rola sozinho no modo "app")
+    var y = window.scrollY || document.body.scrollTop || document.documentElement.scrollTop || 0;
+    try { sessionStorage.setItem(CHAVE, JSON.stringify({ p: location.pathname, y: y, t: Date.now() })); } catch (e) {}
   }
   document.addEventListener("submit", function (ev) {
     var f = ev.target;
@@ -107,7 +109,7 @@ window.ligarAvisos = function (botao, estado, chavePublica, csrf, textoLigado) {
   try { d = JSON.parse(sessionStorage.getItem(CHAVE) || "null"); sessionStorage.removeItem(CHAVE); } catch (e) {}
   if (d && d.p === location.pathname && Date.now() - d.t < 60000 && !location.hash && d.y > 0) {
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-    var voltar = function () { window.scrollTo(0, d.y); };
+    var voltar = function () { window.scrollTo(0, d.y); document.body.scrollTop = d.y; document.documentElement.scrollTop = d.y; };
     document.addEventListener("DOMContentLoaded", voltar);
     window.addEventListener("load", voltar);
   }
