@@ -919,10 +919,12 @@ def link_convite(request: Request, f: Usuario) -> str:
 @app.get("/painel/equipe")
 def equipe(request: Request, u: Usuario = Depends(gestor_logado),
            db: Session = Depends(get_db)):
-    # Os gerentes (menos o dono) ficam na tela Gerentes.
-    pessoas = list(db.scalars(select(Usuario).where(
-        Usuario.empresa_id == u.empresa_id,
-        (Usuario.papel != "gestor") | Usuario.dono.is_(True) | (Usuario.id == u.id))
+    # O dono vê todos, gerentes incluídos (para editar o cadastro deles); as permissões
+    # continuam na tela Gerentes. Um gerente vê os funcionários, o dono e a si mesmo.
+    filtro = [Usuario.empresa_id == u.empresa_id]
+    if not u.dono:
+        filtro.append((Usuario.papel != "gestor") | Usuario.dono.is_(True) | (Usuario.id == u.id))
+    pessoas = list(db.scalars(select(Usuario).where(*filtro)
         .order_by(Usuario.ativo.desc(), Usuario.papel.desc(), Usuario.nome)))
     convites = {}
     for f in pessoas:
