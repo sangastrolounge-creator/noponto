@@ -80,11 +80,14 @@ def main():
               rh_estado_civil="casado", rh_instrucao="07", rh_raca_cor="3", rh_nome_mae="Maria Souza",
               rh_cep="65000-000", rh_cidade="São Luís", rh_uf="MA", rh_banco="Caixa", rh_agencia="1234",
               rh_conta="5678-9", rh_tipo_conta="corrente", rh_pix=CPF, rh_emergencia_nome="João",
-              rh_emergencia_telefone="98 99999-0000", rh_rg_emissao="2010-05-04")
+              rh_emergencia_telefone="98 99999-0000", rh_rg_emissao="2010-05-04", rh_nome_social="Aninha",
+              rh_categoria_esocial="101", rh_tipo_contrato="experiencia", rh_fim_experiencia="2027-02-15",
+              rh_insalubridade="20", rh_filhos="2", rh_camisa="M")
     assert r.status_code == 303, r.text[:400]
     d = dados("Ana Souza")
     assert d.cpf == CPF and d.pis == PIS and d.rg_numero == "123456" and d.cep == "65000000"
     assert d.banco == "Caixa" and d.conta == "5678-9" and d.raca_cor == "3" and d.rg_emissao == "2010-05-04"
+    assert d.tipo_contrato == "experiencia" and d.insalubridade == "20" and d.filhos == "2" and d.nome_social == "Aninha"
     ficha = g.get(f"/painel/equipe/{pessoa('Ana Souza').id}/ficha").text
     assert 'value="529.982.247-25"' in ficha and 'value="65000-000"' in ficha and 'value="120.56412.54-5"' in ficha
     with SessionLocal() as db:
