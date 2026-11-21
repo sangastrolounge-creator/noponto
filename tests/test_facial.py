@@ -170,9 +170,8 @@ def main():
         e.plano_id, e.teste_ate, e.pago_ate, e.isenta = pl.id, None, banco.agora() + timedelta(days=20), False
         e.exigir_foto = True
         db.commit()
-        from app import core
-        e = db.get(Empresa, 1)
-        assert not facial.ligado(e), (core.situacao(e), e.plano and e.plano.com_facial, e.plano_id, e.isenta, e.pago_ate, banco.agora())
+    with SessionLocal() as db:   # sessão nova: a empresa já com o plano novo
+        assert not facial.ligado(db.get(Empresa, 1))
     tela = g.get("/painel/config").text
     assert "O reconhecimento facial não está no seu plano." in tela and "Fora do seu plano" in tela
     posta(g, "/painel/config/facial", tg, ativo="1")
