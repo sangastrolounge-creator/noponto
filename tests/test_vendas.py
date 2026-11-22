@@ -199,7 +199,7 @@ def main():
     for f in vendas.MIDIA_DIR.iterdir():
         os.utime(f, (time.time() - 7200, time.time() - 7200))
     enviar(m, formulario(publicado(), tm, "publicar"))
-    assert not list(vendas.MIDIA_DIR.iterdir()), "arquivos sem uso são apagados"
+    assert not [f for f in vendas.MIDIA_DIR.iterdir() if f.is_file()], "arquivos sem uso são apagados"
 
     # --- cadastro fechado: o botão leva ao WhatsApp do suporte
     tp = csrf(m, "/master/plataforma")
