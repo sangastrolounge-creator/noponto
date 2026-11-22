@@ -22,7 +22,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import core
 from . import db as banco
-from . import entrada
+from . import crescimento, entrada, parceiros
 from . import setores as setores_mod
 from . import (apuracao, asaas, cobranca, desligamento, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
@@ -124,6 +124,8 @@ app.include_router(apropriacao.rota)
 app.include_router(faturamento.rota)
 app.include_router(setores_mod.rota)
 app.include_router(entrada.rota)
+app.include_router(crescimento.rota)
+app.include_router(parceiros.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 
 templates.env.globals.update(
@@ -236,7 +238,8 @@ def cadastro_form(request: Request, plano: int = 0, google: int = 0, db: Session
 @app.post("/cadastro", dependencies=CSRF)
 def cadastro(request: Request, tarefas_bg: BackgroundTasks, empresa: str = Form(""), nome: str = Form(""),
              email: str = Form(""), senha: str = Form(""), plano: int = Form(0),
-             aceito: str = Form(""), db: Session = Depends(get_db)):
+             aceito: str = Form(""), cupom: str = Form(""), contador: str = Form(""),
+             db: Session = Depends(get_db)):
     if not master.plataforma()["cadastro_aberto"]:
         return ir("/entrar")
     empresa, nome, email = empresa.strip()[:120], nome.strip()[:120], email.strip().lower()
@@ -259,6 +262,7 @@ def cadastro(request: Request, tarefas_bg: BackgroundTasks, empresa: str = Form(
     u = master.criar_empresa(db, empresa, nome, email, senha, plano)
     legal.registrar_aceite(u)
     db.commit()
+    crescimento.ao_criar_empresa(request, db, u, cupom, bool(contador))
     tarefas_bg.add_task(avisos_master.nova_empresa, u.empresa_id)
     request.session["uid"] = u.id
     avisar(request, "Conta criada. Responda 7 perguntas rápidas e deixamos tudo pronto.")
@@ -1078,7 +1082,8 @@ def config(request: Request, u: Usuario = Depends(gestor_logado), db: Session = 
     return render(request, "painel_config.html", u=u, e=e, aba="config", fusos=regras.FUSOS,
                   sm=salario_minimo.situacao(db, e, regras.hoje(e)),
                   sm_atualizado=salario_minimo.ATUALIZADO_EM, REGIMES=faturamento.REGIMES,
-                  facial_resumo=facial.resumo_equipe(db, e))
+                  facial_resumo=facial.resumo_equipe(db, e),
+                  contador=parceiros.contador_da_empresa(db, e))
 
 
 @app.post("/painel/config", dependencies=CSRF)

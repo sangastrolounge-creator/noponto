@@ -1,0 +1,15 @@
+{% extends "_entrada.html" %}
+{% block titulo %}{{ _('Entrar como parceiro — {v1}', v1=(app_nome)) }}{% endblock %}
+{% block formulario %}
+    <h1>{{ _('Área do parceiro') }}</h1>
+    <p class="suave ent-sub">{{ _('Contadores e revendas: acompanhe os seus clientes e as suas comissões.') }}</p>
+    {% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+    {% if flash %}<div class="aviso {{ 'erro' if flash.tipo == 'erro' }}">{{ flash.texto }}</div>{% endif %}
+    <form method="post" action="/parceiros/entrar">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label for="email">{{ _('E-mail') }}</label><input id="email" type="email" name="email" value="{{ email }}" required autofocus autocomplete="username"></div>
+      <div class="campo"><label for="senha">{{ _('Senha') }}</label><input id="senha" type="password" name="senha" required autocomplete="current-password"></div>
+      <button class="botao ent-botao" type="submit">{{ _('Entrar') }}</button>
+    </form>
+    <p class="ent-troca">{{ _('Ainda não é parceiro?') }} <a href="/parceiros">{{ _('Cadastre-se') }}</a></p>
+{% endblock %}

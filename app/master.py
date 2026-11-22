@@ -269,7 +269,7 @@ def _ler_plano(p: Plano, nome: str, preco: str, limite: int, descricao: str,
                destaque: str, ativo: str, ordem: int, limite_locais: int = 0,
                com_pagamento: str = "", com_alertas: str = "", com_gps: str = "",
                com_foto: str = "", com_cerca: str = "", base: str = "", por_pessoa: str = "",
-               minimo: str = "", com_facial: str = "") -> str | None:
+               minimo: str = "", com_facial: str = "", extra: dict | None = None) -> str | None:
     centavos = ler_centavos(preco)
     b, pp, mn = (ler_centavos(x.strip() or "0") for x in (base, por_pessoa, minimo))
     if None in (b, pp, mn) or max(b or 0, pp or 0, mn or 0) > 10_000_000:
@@ -291,6 +291,17 @@ def _ler_plano(p: Plano, nome: str, preco: str, limite: int, descricao: str,
     p.base_centavos, p.por_pessoa_centavos, p.minimo_centavos = b, pp, mn
     if pp:   # plano por pessoa: o "preço" passa a ser o menor valor possível (1 pessoa ou o mínimo)
         p.preco_centavos = max(mn, b + pp)
+    x = extra or {}
+    vol = (x.get("descontos_volume") or "").replace(" ", "")
+    if vol and not re.fullmatch(r"\d{1,6}:\d{1,2}([;,]\d{1,6}:\d{1,2})*", vol):
+        return "Desconto por volume inválido. Use o formato 50:15;150:30."
+    if not 0 <= int(x.get("tolerancia") or 0) <= 1000:
+        return "Tolerância inválida."
+    p.grupo = re.sub(r"[^a-z0-9-]", "", (x.get("grupo") or "").strip().lower().replace(" ", "-"))[:30]
+    p.tolerancia, p.descontos_volume = int(x.get("tolerancia") or 0), vol[:80]
+    for chave in ("com_escala", "com_fechamento", "com_rh", "com_totem", "com_gerentes", "com_cmo"):
+        if x.get("v2"):   # formulário com estes campos (formulários antigos não mexem neles)
+            setattr(p, chave, bool(x.get(chave)))
     return None
 
 
@@ -302,11 +313,20 @@ def plano_novo(request: Request, u: Usuario = Depends(admin_logado),
                com_pagamento: str = Form(""), com_alertas: str = Form(""),
                com_gps: str = Form(""), com_foto: str = Form(""), com_cerca: str = Form(""),
                base: str = Form(""), por_pessoa: str = Form(""), minimo: str = Form(""),
-               com_facial: str = Form("")):
+               com_facial: str = Form(""),
+               grupo: str = Form(""), tolerancia: int = Form(0), descontos_volume: str = Form(""),
+               com_escala: str = Form(""), com_fechamento: str = Form(""), com_rh: str = Form(""),
+               com_totem: str = Form(""), com_gerentes: str = Form(""), com_cmo: str = Form(""),
+               recursos_v2: str = Form(""),
+               ):
     p = Plano()
     erro = _ler_plano(p, nome, preco, limite, descricao, destaque, ativo, ordem,
                       limite_locais, com_pagamento, com_alertas, com_gps, com_foto, com_cerca,
-                      base, por_pessoa, minimo, com_facial)
+                      base, por_pessoa, minimo, com_facial,
+                      extra=dict(grupo=grupo, tolerancia=tolerancia, descontos_volume=descontos_volume,
+                                 com_escala=com_escala, com_fechamento=com_fechamento, com_rh=com_rh,
+                                 com_totem=com_totem, com_gerentes=com_gerentes, com_cmo=com_cmo,
+                                 v2=recursos_v2))
     if erro:
         avisar(request, erro, "erro")
     else:
@@ -324,13 +344,22 @@ def plano_salvar(plano_id: int, request: Request, u: Usuario = Depends(admin_log
                  com_pagamento: str = Form(""), com_alertas: str = Form(""),
                  com_gps: str = Form(""), com_foto: str = Form(""), com_cerca: str = Form(""),
                  base: str = Form(""), por_pessoa: str = Form(""), minimo: str = Form(""),
-                 com_facial: str = Form("")):
+                 com_facial: str = Form(""),
+                 grupo: str = Form(""), tolerancia: int = Form(0), descontos_volume: str = Form(""),
+                 com_escala: str = Form(""), com_fechamento: str = Form(""), com_rh: str = Form(""),
+                 com_totem: str = Form(""), com_gerentes: str = Form(""), com_cmo: str = Form(""),
+               recursos_v2: str = Form(""),
+                 ):
     p = db.get(Plano, plano_id)
     if not p:
         return ir("/master/planos")
     erro = _ler_plano(p, nome, preco, limite, descricao, destaque, ativo, ordem,
                       limite_locais, com_pagamento, com_alertas, com_gps, com_foto, com_cerca,
-                      base, por_pessoa, minimo, com_facial)
+                      base, por_pessoa, minimo, com_facial,
+                      extra=dict(grupo=grupo, tolerancia=tolerancia, descontos_volume=descontos_volume,
+                                 com_escala=com_escala, com_fechamento=com_fechamento, com_rh=com_rh,
+                                 com_totem=com_totem, com_gerentes=com_gerentes, com_cmo=com_cmo,
+                                 v2=recursos_v2))
     if erro:
         db.rollback()
         avisar(request, erro, "erro")

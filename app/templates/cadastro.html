@@ -13,6 +13,12 @@
       <input type="hidden" name="plano" value="{{ plano.id if plano else 0 }}">
       <div class="campo"><label for="empresa">{{ _('Nome da empresa') }}</label><input id="empresa" type="text" name="empresa" value="{{ v.empresa }}" required maxlength="120" autofocus></div>
       <div class="campo"><label for="nome">{{ _('Seu nome') }}</label><input id="nome" type="text" name="nome" value="{{ v.nome }}" required maxlength="120" autocomplete="name"></div>
+      {% if cad_parceiro %}
+      <div class="alerta pequeno">{{ _('Você chegou pelo parceiro {v1}.', v1=cad_parceiro) }}</div>
+      <label class="marcar campo"><input type="checkbox" name="contador" value="1" checked>
+        <span>{{ _('Permitir que {v1} baixe o resumo de horas da equipe para fazer a folha', v1=cad_parceiro) }}</span></label>
+      {% endif %}
+      <div class="campo"><label for="cupom">{{ _('Cupom de desconto (opcional)') }}</label><input id="cupom" type="text" name="cupom" value="{{ cad_cupom }}" maxlength="30" autocapitalize="characters"></div>
       <label class="marcar campo"><input type="checkbox" name="aceito" value="1" required>
         <span>{{ _('Li e aceito os') }} <a href="/terms" target="_blank">{{ _('Termos de Uso') }}</a> {{ _('e a') }} <a href="/privacy" target="_blank">{{ _('Política de Privacidade') }}</a>.</span></label>
       <button class="botao ent-botao" type="submit">{{ _('Criar conta') }}</button>
@@ -33,6 +39,12 @@
         <div class="ent-senha"><input id="senha" type="password" name="senha" required minlength="6" autocomplete="new-password">
         <button type="button" class="ent-olho" data-olho="senha" aria-label="{{ _('Mostrar a senha') }}" aria-pressed="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
         <div class="ajuda">{{ _('Pelo menos 6 caracteres.') }}</div></div>
+      {% if cad_parceiro %}
+      <div class="alerta pequeno">{{ _('Você chegou pelo parceiro {v1}.', v1=cad_parceiro) }}</div>
+      <label class="marcar campo"><input type="checkbox" name="contador" value="1" checked>
+        <span>{{ _('Permitir que {v1} baixe o resumo de horas da equipe para fazer a folha', v1=cad_parceiro) }}</span></label>
+      {% endif %}
+      <div class="campo"><label for="cupom">{{ _('Cupom de desconto (opcional)') }}</label><input id="cupom" type="text" name="cupom" value="{{ cad_cupom }}" maxlength="30" autocapitalize="characters"></div>
       <label class="marcar campo"><input type="checkbox" name="aceito" value="1" required>
         <span>{{ _('Li e aceito os') }} <a href="/terms" target="_blank">{{ _('Termos de Uso') }}</a> {{ _('e a') }} <a href="/privacy" target="_blank">{{ _('Política de Privacidade') }}</a>.</span></label>
       <button class="botao ent-botao" type="submit">{{ _('Criar conta') }}</button>

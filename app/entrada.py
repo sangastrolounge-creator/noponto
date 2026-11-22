@@ -256,7 +256,7 @@ def google_pendente(request: Request) -> dict | None:
 @rota.post("/cadastro/google", dependencies=CSRF)
 def cadastro_google(request: Request, tarefas_bg: BackgroundTasks, empresa: str = Form(""),
                     nome: str = Form(""), plano: int = Form(0), aceito: str = Form(""),
-                    db: Session = Depends(get_db)):
+                    cupom: str = Form(""), contador: str = Form(""), db: Session = Depends(get_db)):
     g = google_pendente(request)
     if not g or not plataforma()["cadastro_aberto"]:
         return ir("/cadastro")
@@ -275,6 +275,8 @@ def cadastro_google(request: Request, tarefas_bg: BackgroundTasks, empresa: str 
     u.google_sub = g["sub"]
     legal.registrar_aceite(u)
     db.commit()
+    from . import crescimento
+    crescimento.ao_criar_empresa(request, db, u, cupom, bool(contador))
     request.session.pop("google_novo", None)
     tarefas_bg.add_task(avisos_master.nova_empresa, u.empresa_id)
     request.session["uid"] = u.id

@@ -8,6 +8,7 @@ import re
 import secrets
 import time
 from collections import defaultdict, deque
+from contextvars import ContextVar
 from pathlib import Path
 
 from datetime import date, datetime, timedelta
@@ -20,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from . import db as banco
 from . import i18n
-from .db import Config, Empresa, Plataforma, SessionLocal, Usuario, criar_tabelas, get_db
+from .db import Config, Empresa, Plano, Plataforma, SessionLocal, Usuario, criar_tabelas, get_db
 
 log = logging.getLogger("turno")
 
@@ -150,6 +151,35 @@ def facial_liberado(e: Empresa) -> bool:
     return situacao(e) in ("teste", "cortesia") or not e.plano or e.plano.com_facial
 
 
+# Recursos ligados ao plano (além dos de cima): chave do plano -> nome para o aviso.
+RECURSOS = {"com_escala": "a escala", "com_fechamento": "o fechamento, o banco de horas e os relatórios",
+            "com_rh": "os dados de RH, as férias e o desligamento", "com_totem": "o totem (ponto no tablet)",
+            "com_gerentes": "gerentes e setores", "com_cmo": "o faturamento e o custo de mão de obra"}
+# Caminho do painel -> recurso do plano necessário.
+RECURSO_ROTAS = (
+    ("/painel/escala", "com_escala"), ("/painel/ofertas", "com_escala"),
+    ("/painel/fechamento", "com_fechamento"), ("/painel/folha", "com_fechamento"),
+    ("/painel/relatorios", "com_fechamento"), ("/painel/banco", "com_fechamento"),
+    ("/painel/ferias", "com_rh"), ("/painel/totens", "com_totem"),
+    ("/painel/gerentes", "com_gerentes"), ("/painel/setores", "com_gerentes"),
+    ("/painel/faturamento", "com_cmo"), ("/painel/vendas", "com_cmo"), ("/painel/config/faturamento", "com_cmo"),
+)
+
+
+def recurso_liberado(e: Empresa, chave: str) -> bool:
+    """Recurso do plano: no teste e na cortesia vale tudo; depois, conforme o plano."""
+    return situacao(e) in ("teste", "cortesia") or not e.plano or bool(getattr(e.plano, chave, True))
+
+
+def recurso_da_rota(caminho: str) -> str | None:
+    if caminho.startswith("/painel/equipe/") and caminho.endswith("/desligar"):
+        return "com_rh"
+    for prefixo, chave in RECURSO_ROTAS:
+        if caminho == prefixo or caminho.startswith(prefixo + "/") or caminho.startswith(prefixo + "."):
+            return chave
+    return None
+
+
 def exige_foto(e: Empresa) -> bool:
     """A empresa ligou a foto e o plano dela inclui."""
     return bool(e.exigir_foto) and foto_liberada(e)
@@ -179,9 +209,23 @@ def dias_restantes(e: Empresa) -> int | None:
     return max(0, -(-int((v - banco.agora()).total_seconds()) // 86400))
 
 
+def limite_do_plano(p: Plano) -> int:
+    """Funcionários que o plano aceita, com a tolerância. Plano de um grupo (faixas): vale a maior
+    faixa à venda, porque a empresa muda de faixa sozinha. 0 = ilimitado."""
+    if not p.grupo:
+        return p.limite_efetivo
+    from sqlalchemy import select
+    from sqlalchemy.orm import object_session
+    s = object_session(p)
+    faixas = [p] + (list(s.scalars(select(Plano).where(Plano.grupo == p.grupo, Plano.ativo.is_(True))))
+                    if s is not None else [])
+    limites = [f.limite_efetivo for f in faixas]
+    return 0 if 0 in limites else max(limites)
+
+
 def limite_funcionarios(e: Empresa) -> int:
     """0 = ilimitado (cortesia e empresa sem plano também)."""
-    return 0 if e.isenta or not e.plano else e.plano.limite_funcionarios
+    return 0 if e.isenta or not e.plano else limite_do_plano(e.plano)
 
 
 def funcionarios_ativos(db: Session, empresa_id: int) -> int:
@@ -219,7 +263,8 @@ templates.env.globals.update(situacao=situacao, SITUACOES=SITUACOES, validade=va
                              fim_da_carencia=fim_da_carencia,
                              dias_restantes=dias_restantes, _=i18n._, idioma=i18n.idioma,
                              IDIOMAS=i18n.IDIOMAS, caminho_atual=i18n.caminho_atual,
-                             textos_js=i18n.textos_js)
+                             textos_js=i18n.textos_js, marca_atual=marca_atual,
+                             recurso_liberado=recurso_liberado)
 templates.env.filters.update(traduz=i18n._)
 templates.env.filters.update(dinheiro=dinheiro, data=data_br, fromjson=json.loads)
 
@@ -313,16 +358,40 @@ def avisar(request: Request, texto: str, tipo: str = "ok"):
     request.session["flash"] = {"texto": i18n._(texto), "tipo": tipo}
 
 
+_marca_atual: ContextVar = ContextVar("marca_atual", default=None)
+
+
+def marca_atual() -> dict | None:
+    """Marca própria do parceiro na tela que está sendo montada (domínio dele) ou None."""
+    return _marca_atual.get()
+
+
 def render(request: Request, nome: str, status_code: int = 200, **ctx):
+    from . import parceiros
     plat = plataforma()
+    marca = parceiros.marca_do_host(request)
+    _marca_atual.set(marca)
+    if marca:   # domínio de um parceiro com marca própria: nome e cor dele, sem login do Google
+        plat = {**plat, "nome": marca["nome"], "nome_curto": marca["nome"],
+                "entrada_cor1": marca["cor"] or plat["entrada_cor1"],
+                "entrada_cor2": marca["cor"] or plat["entrada_cor2"]}
     base = {"app_nome": plat["nome"], "csrf": csrf_token(request), "plat": plat,
             "flash": request.session.pop("flash", None),
             "cadastro_aberto": plat["cadastro_aberto"],
-            "google_ok": google_ligado(),
+            "google_ok": google_ligado() and not marca, "marca": marca,
             "ent_imagens": [n for n in (plat.get("entrada_imagens") or "").split(",") if n],
             "suporte": bool(request.session.get("master_uid"))}
-    return templates.TemplateResponse(request, nome, {**base, **ctx},
-                                      status_code=status_code)
+    if nome == "cadastro.html":   # cupom e parceiro que vieram pelo link
+        with SessionLocal() as db:
+            par = parceiros.parceiro_da_visita(request, db)
+            base["cad_parceiro"] = (par.escritorio or par.nome) if par else ""
+        base["cad_cupom"] = request.session.get("cupom", "")
+    tudo = {**base, **ctx}
+    if marca:
+        tudo["google_ok"] = False
+        if marca["cor"]:
+            tudo["ent_cor1"] = tudo["ent_cor2"] = marca["cor"]
+    return templates.TemplateResponse(request, nome, tudo, status_code=status_code)
 
 
 def usuario_logado(request: Request, db: Session = Depends(get_db)) -> Usuario:
@@ -405,6 +474,11 @@ def gestor_logado(request: Request, u: Usuario = Depends(usuario_logado),
     # Assinatura vencida: o gestor só enxerga a tela Assinatura (o suporte entra mesmo assim).
     if (not pode_usar(u.empresa) and not request.session.get("master_uid")
             and not request.url.path.startswith("/painel/assinatura")):
+        raise Redirecionar("/painel/assinatura")
+    recurso = recurso_da_rota(request.url.path)
+    if recurso and not recurso_liberado(u.empresa, recurso) and not request.session.get("master_uid"):
+        avisar(request, f"Seu plano {u.empresa.plano.nome} não inclui {RECURSOS[recurso]}. "
+                        "Veja os planos abaixo para liberar.", "erro")
         raise Redirecionar("/painel/assinatura")
     chave = permissao_da_rota(request.url.path, request.method)
     if chave and not pode(u, chave) and not request.session.get("master_uid"):

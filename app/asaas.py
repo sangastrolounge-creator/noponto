@@ -98,6 +98,23 @@ def mais_um_mes(data_iso: str) -> datetime:
     raise ValueError(data_iso)
 
 
+def mais_meses(data_iso: str, meses: int) -> datetime:
+    """Mesmo dia, `meses` depois (ou o último dia do mês), em UTC sem tzinfo."""
+    d = date.fromisoformat(data_iso[:10])
+    total = d.year * 12 + d.month - 1 + meses
+    a, m = divmod(total, 12)
+    for dia in (d.day, 30, 29, 28):
+        try:
+            return datetime(a, m + 1, dia, 23, 59)
+        except ValueError:
+            continue
+    raise ValueError(data_iso)
+
+
+def mais_um_ano(data_iso: str) -> datetime:
+    return mais_meses(data_iso, 12)
+
+
 # --------------------------------------------------------------- operações
 def criar_cliente(nome: str, email: str, cpf_cnpj: str, ref: str) -> str:
     return chamar("POST", "/customers", {
@@ -130,11 +147,12 @@ def criar_cobranca(cliente: str, centavos: int, descricao: str, ref: str,
 
 def criar_assinatura(cliente: str, centavos: int, descricao: str, ref: str,
                      primeiro_vencimento: str | None = None,
-                     url_retorno: str | None = None) -> dict:
-    """Assinatura mensal. Devolve a assinatura com a primeira cobrança em 'primeira'."""
+                     url_retorno: str | None = None, ciclo: str = "MONTHLY") -> dict:
+    """Assinatura mensal (ou anual, ciclo YEARLY). Devolve a assinatura com a primeira cobrança
+    em 'primeira'."""
     ass = _com_retorno("/subscriptions", {
         "customer": cliente, "billingType": "UNDEFINED", "value": centavos / 100,
-        "nextDueDate": primeiro_vencimento or hoje(), "cycle": "MONTHLY",
+        "nextDueDate": primeiro_vencimento or hoje(), "cycle": ciclo,
         "description": descricao[:500], "externalReference": ref}, url_retorno)
     cobr = chamar("GET", f"/subscriptions/{ass['id']}/payments",
                   params={"limit": 10}).get("data") or []
@@ -146,6 +164,15 @@ def mudar_valor_assinatura(assinatura_id: str, centavos: int):
     """Muda o valor das próximas cobranças da assinatura (as já geradas ficam como estão)."""
     chamar("PUT", f"/subscriptions/{assinatura_id}", {
         "value": centavos / 100, "updatePendingPayments": False})
+
+
+def adiar_assinatura(assinatura_id: str, meses: int = 1) -> str:
+    """Empurra o próximo vencimento da assinatura (mês grátis). Devolve a nova data."""
+    ass = chamar("GET", f"/subscriptions/{assinatura_id}")
+    proximo = ass.get("nextDueDate") or hoje()
+    nova = mais_meses(proximo, meses).date().isoformat()
+    chamar("PUT", f"/subscriptions/{assinatura_id}", {"nextDueDate": nova, "updatePendingPayments": False})
+    return nova
 
 
 def valor_assinatura(assinatura_id: str) -> int:

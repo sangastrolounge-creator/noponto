@@ -633,3 +633,11 @@ a.botao-google:hover { border-color: color-mix(in srgb, var(--ent1) 40%, var(--b
 .envio-video { margin-top: 8px; }
 .envio-barra { height: 10px; border-radius: 99px; background: var(--cartao-2); overflow: hidden; border: 1px solid var(--borda); }
 .envio-barra i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--cor), #38bdf8); transition: width .3s; }
+
+/* Programa de parceiros e marca própria */
+.niveis-parceiro { width: 100%; border-collapse: collapse; margin: 4px 0 14px; font-size: .9rem; }
+.niveis-parceiro th, .niveis-parceiro td { padding: 6px 8px; border-bottom: 1px solid var(--borda); text-align: left; }
+.niveis-parceiro th { color: var(--suave); font-weight: 600; font-size: .8rem; }
+main.legal.parceiro { max-width: 1040px; }
+.logo-parceiro img { height: var(--ln-altura, 38px); width: auto; max-width: 220px; }
+.logo-parceiro strong { font-size: 1.2rem; color: var(--texto); letter-spacing: -.01em; }

@@ -16,10 +16,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Re
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import asaas, avisos_master, regras
+from . import asaas, avisos_master, crescimento, regras
 from . import db as banco
 from .core import (admin_logado, avisar, base_url, dentro_do_limite, exigir_csrf,
-                   funcionarios_ativos, gestor_logado, ir, limite_funcionarios, log,
+                   funcionarios_ativos, gestor_logado, ir, limite_do_plano, limite_funcionarios, log,
                    plataforma, render, situacao, validade)
 from .db import AsaasEvento, Empresa, Pagamento, Plano, SessionLocal, Usuario, get_db
 
@@ -53,29 +53,38 @@ def pessoas_cobradas(db: Session, e: Empresa) -> int:
 
 
 def valor_atual(db: Session, e: Empresa, p: Plano | None = None) -> tuple[int, int]:
-    """(valor do mês em centavos, pessoas contadas) para a empresa no plano `p` (ou no dela)."""
-    p = p or e.plano
-    if not p:
-        return 0, 0
-    n = pessoas_cobradas(db, e) if p.por_pessoa else 0
-    return p.valor_mensal(n), n
+    """(valor do mês em centavos, pessoas contadas) para a empresa no plano `p` (ou no dela),
+    na faixa mais barata do grupo e com o cupom da empresa."""
+    valor, n, _ = crescimento.calcular(db, e, p)
+    return valor, n
 
 
 def ajustar_valores(db: Session, forcar: bool = False) -> int:
-    """Uma vez por dia: nas assinaturas de planos por pessoa, atualiza no Asaas o valor das
-    próximas cobranças. Devolve quantas assinaturas mudaram."""
+    """Uma vez por dia, nas assinaturas: muda a empresa de faixa (planos de um grupo) e atualiza no
+    Asaas o valor das próximas cobranças (pessoas, faixa, fim do cupom). Devolve quantas mudaram."""
     if not asaas.configurado():
         return 0
     hoje = banco.agora().date()
     mudou = 0
-    for e in db.scalars(select(Empresa).where(Empresa.asaas_assinatura_id != "")):
+    for e in list(db.scalars(select(Empresa).where(Empresa.asaas_assinatura_id != ""))):
         p = e.plano
-        if not p or not p.por_pessoa:
+        if not p:
             continue
         if not forcar and e.valor_conferido_em and e.valor_conferido_em.date() == hoje:
             continue
-        valor, n = valor_atual(db, e, p)
+        mensal, n, faixa = crescimento.calcular(db, e, p)
+        valor = crescimento.valor_do_ciclo(mensal, e.ciclo)
+        if faixa and faixa.id != p.id:
+            e.plano_id, e.plano = faixa.id, faixa
+            regras.registrar(db, e.id, "cobrança", "faixa",
+                             f"Empresa passou para a faixa {faixa.nome} ({n} pessoa(s)).")
+            log.info("Empresa %s mudou para a faixa %s", e.id, faixa.nome)
         e.pessoas_cobradas, e.valor_conferido_em = n, banco.agora()
+        # Preço fixo sem faixas nem cupom: o valor combinado na assinatura não muda sozinho
+        # (se o master mudar o preço do plano, quem já assina continua no preço antigo).
+        if not p.por_pessoa and not p.grupo and (not e.cupom_id or valor == e.valor_assinatura_centavos):
+            db.commit()
+            continue
         try:
             if valor >= asaas.VALOR_MINIMO_CENTAVOS and asaas.valor_assinatura(e.asaas_assinatura_id) != valor:
                 asaas.mudar_valor_assinatura(e.asaas_assinatura_id, valor)
@@ -115,7 +124,8 @@ def _registro(db: Session, e: Empresa, pay: dict, status: str) -> Pagamento:
                     asaas_id=pay["id"], fatura_url=(pay.get("invoiceUrl") or "")[:300],
                     plano_id=e.plano_id, plano_nome=e.plano.nome if e.plano else "",
                     valor_centavos=round(float(pay.get("value") or 0) * 100),
-                    dias=DIAS_AVULSO, forma=FORMAS.get(pay.get("billingType"), "outro"),
+                    dias=365 if e.ciclo == "anual" else DIAS_AVULSO,
+                    forma=FORMAS.get(pay.get("billingType"), "outro"),
                     registrado_por="asaas", criado_em=banco.agora())
     db.add(reg)
     return reg
@@ -137,14 +147,16 @@ def confirmar_pagamento(db: Session, pay: dict) -> bool:
     reg.forma = FORMAS.get(pay.get("billingType"), reg.forma)
     base = max(agora, e.pago_ate or agora)
     if pay.get("subscription") and pay.get("dueDate"):
-        # Assinatura: cobre até o próximo vencimento.
-        e.pago_ate = max(asaas.mais_um_mes(pay["dueDate"]), base)
+        # Assinatura: cobre até o próximo vencimento (mês ou ano).
+        fim = asaas.mais_um_ano(pay["dueDate"]) if e.ciclo == "anual" else asaas.mais_um_mes(pay["dueDate"])
+        e.pago_ate = max(fim, base)
     else:
         e.pago_ate = base + timedelta(days=reg.dias or DIAS_AVULSO)
     if reg.plano_id and db.get(Plano, reg.plano_id):
         e.plano_id = reg.plano_id
     db.commit()
     log.info("Pagamento %s confirmado: empresa %s liberada até %s", pay["id"], e.id, e.pago_ate)
+    crescimento.apos_pagamento(db, e, reg)
     return True
 
 
@@ -202,11 +214,16 @@ def assinatura(request: Request, u: Usuario = Depends(gestor_logado),
     pagos = list(db.scalars(select(Pagamento).where(
         Pagamento.empresa_id == e.id, Pagamento.status == "pago")
         .order_by(Pagamento.pago_em.desc()).limit(12)))
+    planos = _planos(db)
+    precos = {p.id: valor_atual(db, e, p)[0] for p in planos}
     return render(request, "painel_assinatura.html", u=u, e=e, aba="assinatura",
-                  planos=_planos(db), usados=funcionarios_ativos(db, e.id),
+                  planos=planos, usados=funcionarios_ativos(db, e.id),
                   limite=limite_funcionarios(e), asaas_ok=asaas.configurado(),
                   cobradas=pessoas_cobradas(db, e), aberta=aberta, pagos=pagos,
-                  gratis=plano_gratis(db))
+                  gratis=plano_gratis(db), precos=precos,
+                  proxima=valor_atual(db, e)[0] if e.plano else 0,
+                  meses_anual=crescimento.meses_anual(), cupom=crescimento.cupom_valido(db, e),
+                  texto_cupom=crescimento.texto_cupom, indica=crescimento.resumo_indicacoes(db, e))
 
 
 @rota.post("/painel/assinatura/gratis", dependencies=CSRF)
@@ -222,8 +239,8 @@ def ir_para_gratis(request: Request, u: Usuario = Depends(gestor_logado),
         erro = "Sua conta é cortesia: não há o que mudar."
     elif e.asaas_assinatura_id:
         erro = "Encerre antes a cobrança automática."
-    elif p.limite_funcionarios and funcionarios_ativos(db, e.id) > p.limite_funcionarios:
-        erro = (f"O plano {p.nome} permite até {p.limite_funcionarios} funcionários e você tem "
+    elif limite_do_plano(p) and funcionarios_ativos(db, e.id) > limite_do_plano(p):
+        erro = (f"O plano {p.nome} permite até {limite_do_plano(p)} funcionários e você tem "
                 f"{funcionarios_ativos(db, e.id)} ativos. Desative alguém em Equipe antes.")
     elif p.limite_locais and 1 + len(locais_da(db, e.id)) > p.limite_locais:
         erro = (f"O plano {p.nome} permite {p.limite_locais} local(is) de ponto. Desative os "
@@ -242,10 +259,15 @@ def ir_para_gratis(request: Request, u: Usuario = Depends(gestor_logado),
 @rota.post("/painel/assinatura/pagar", dependencies=CSRF)
 def pagar(request: Request, u: Usuario = Depends(gestor_logado),
           db: Session = Depends(get_db), plano: int = Form(0),
-          cpf_cnpj: str = Form(""), modo: str = Form("automatica")):
+          cpf_cnpj: str = Form(""), modo: str = Form("automatica"), ciclo: str = Form("mensal")):
     e = u.empresa
+    ciclo = "anual" if ciclo == "anual" else "mensal"
     escolhido = next((p for p in _planos(db) if p.id == plano), None)
-    valor = valor_atual(db, e, escolhido)[0] if escolhido else 0
+    if escolhido:   # plano de um grupo: vale a faixa que cabe e fica mais barata
+        mensal, _, faixa = crescimento.calcular(db, e, escolhido)
+        escolhido = faixa or escolhido
+    valor = crescimento.valor_do_ciclo(mensal, ciclo) if escolhido else 0
+    dias = 365 if ciclo == "anual" else DIAS_AVULSO
     erro = None
     if not asaas.configurado():
         erro = "O pagamento online não está disponível. Fale com o suporte."
@@ -255,9 +277,9 @@ def pagar(request: Request, u: Usuario = Depends(gestor_logado),
         erro = "Escolha um plano."
     elif valor < asaas.VALOR_MINIMO_CENTAVOS:
         erro = "Este plano não tem valor para cobrança online. Fale com o suporte."
-    elif (escolhido.limite_funcionarios
-          and funcionarios_ativos(db, e.id) > escolhido.limite_funcionarios):
-        erro = (f"O plano {escolhido.nome} permite até {escolhido.limite_funcionarios} "
+    elif (limite_do_plano(escolhido)
+          and funcionarios_ativos(db, e.id) > limite_do_plano(escolhido)):
+        erro = (f"O plano {escolhido.nome} permite até {limite_do_plano(escolhido)} "
                 f"funcionários e você tem {funcionarios_ativos(db, e.id)} ativos. Escolha um "
                 "plano maior ou desative alguém em Equipe.")
     elif e.asaas_assinatura_id:
@@ -285,13 +307,14 @@ def pagar(request: Request, u: Usuario = Depends(gestor_logado),
             igual = db.scalar(select(Pagamento).where(
                 Pagamento.empresa_id == e.id, Pagamento.tipo == "avulso",
                 Pagamento.status == "pendente", Pagamento.plano_id == escolhido.id,
-                Pagamento.valor_centavos == valor,
+                Pagamento.valor_centavos == valor, Pagamento.dias == dias,
                 Pagamento.criado_em >= banco.agora() - timedelta(hours=12)))
             if igual and igual.fatura_url:
                 return ir(igual.fatura_url)
             pay = asaas.criar_cobranca(
                 e.asaas_cliente_id, valor,
-                f"{nome_plat} · {escolhido.nome} · {DIAS_AVULSO} dias", f"{REF}:{e.id}", retorno)
+                f"{nome_plat} · {escolhido.nome} · " + ("12 meses" if ciclo == "anual" else f"{DIAS_AVULSO} dias"),
+                f"{REF}:{e.id}", retorno)
             tipo = "avulso"
         else:
             # Quem ainda tem dias (teste ou pagos) só começa a ser cobrado quando acabarem.
@@ -299,15 +322,16 @@ def pagar(request: Request, u: Usuario = Depends(gestor_logado),
             primeiro = None
             if v and v > banco.agora() + timedelta(days=2):
                 primeiro = (v + timedelta(hours=FUSO_HORAS)).date().isoformat()
+            extra = {"ciclo": "YEARLY"} if ciclo == "anual" else {}
             ass = asaas.criar_assinatura(
                 e.asaas_cliente_id, valor,
-                f"{nome_plat} · {escolhido.nome} · mensalidade", f"{REF}:{e.id}", primeiro,
-                retorno)
+                f"{nome_plat} · {escolhido.nome} · " + ("anuidade" if ciclo == "anual" else "mensalidade"),
+                f"{REF}:{e.id}", primeiro, retorno, **extra)
             pay = ass.get("primeira")
             if not pay or not pay.get("invoiceUrl"):
                 asaas.cancelar_assinatura(ass["id"])
                 raise asaas.AsaasErro("O Asaas não gerou a primeira cobrança. Tente de novo.")
-            e.asaas_assinatura_id = ass["id"]
+            e.asaas_assinatura_id, e.ciclo = ass["id"], ciclo
             e.valor_assinatura_centavos, e.valor_conferido_em = valor, banco.agora()
             tipo = "assinatura"
     except asaas.AsaasErro as ex:
@@ -319,7 +343,7 @@ def pagar(request: Request, u: Usuario = Depends(gestor_logado),
         empresa_id=e.id, tipo=tipo, status="pendente", asaas_id=pay["id"],
         fatura_url=(pay.get("invoiceUrl") or "")[:300], plano_id=escolhido.id,
         plano_nome=escolhido.nome, valor_centavos=valor,
-        dias=DIAS_AVULSO, forma="outro", registrado_por=u.email or u.nome,
+        dias=dias, forma="outro", registrado_por=u.email or u.nome,
         criado_em=banco.agora()))
     db.commit()
     return ir(pay["invoiceUrl"])
@@ -388,6 +412,8 @@ async def webhook(request: Request, tarefas_bg: BackgroundTasks, db: Session = D
         reg = db.scalar(select(Pagamento).where(Pagamento.asaas_id == pay["id"]))
         if reg and tipo == "PAYMENT_REFUNDED":
             reg.status = "estornado"
+            from . import parceiros
+            parceiros.estornar(db, reg)
         elif reg and reg.status != "pago":
             reg.status = "cancelado"
         db.commit()

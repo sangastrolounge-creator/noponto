@@ -1,0 +1,36 @@
+{% extends "master/base.html" %}
+{% macro campos(c) %}
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+    <div class="campo"><label>{{ _('Código') }}</label><input name="codigo" value="{{ c.codigo if c else '' }}" maxlength="30" required autocapitalize="characters"></div>
+    <div class="campo"><label>{{ _('Desconto (%)') }}</label><input type="number" name="pct" min="1" max="100" value="{{ c.pct if c else 10 }}" required></div>
+    <div class="campo"><label>{{ _('Por quantos meses') }}</label><input type="number" name="meses" min="0" max="120" value="{{ c.meses if c else 0 }}"><div class="ajuda">{{ _('0 = para sempre') }}</div></div>
+    <div class="campo"><label>{{ _('Limite de usos') }}</label><input type="number" name="max_usos" min="0" value="{{ c.max_usos if c else 0 }}"><div class="ajuda">{{ _('0 = sem limite') }}</div></div>
+    <div class="campo"><label>{{ _('Usar até') }}</label><input type="date" name="valido_ate" value="{{ c.valido_ate.isoformat() if c and c.valido_ate else '' }}"></div>
+  </div>
+  <div class="campo"><label>{{ _('Descrição (só para você)') }}</label><input name="descricao" value="{{ c.descricao if c else '' }}" maxlength="200"></div>
+  <label class="marcar"><input type="checkbox" name="ativo" value="1" {{ 'checked' if not c or c.ativo }}><span>{{ _('Ativo (pode ser usado)') }}</span></label>
+{% endmacro %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Cupons e plano anual') }}</h1><p class="suave" style="margin:0">{{ _('Cupons de desconto para campanhas. O cliente usa no cadastro, na tela Assinatura ou pelo link /cupom/CÓDIGO. Desligar um cupom impede novos usos; quem já usa continua com o desconto.') }}</p></div></div>
+<form method="post" action="/master/plataforma/anual" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Plano anual') }}</h2>
+  <div class="linha-form" style="grid-template-columns:220px auto;align-items:end">
+    <div class="campo"><label>{{ _('Mensalidades cobradas por 12 meses') }}</label><input type="number" name="meses" min="1" max="12" value="{{ plat.meses_anual }}"><div class="ajuda">{{ _('10 = 2 meses grátis') }}</div></div>
+    <div class="campo"><button class="botao" type="submit">{{ _('Salvar') }}</button></div>
+  </div>
+</form>
+{% for c in cupons %}
+<div class="cartao">
+  <form method="post" action="/master/cupons/{{ c.id }}">{{ campos(c) }}
+    <div class="acoes" style="margin-top:12px;align-items:center"><button class="botao" type="submit">{{ _('Salvar') }}</button>
+    <span class="suave pequeno">{{ texto_cupom(c) }} · {{ _('{v1} uso(s)', v1=c.usos) }}{% if c.max_usos %} {{ _('de {v1}', v1=c.max_usos) }}{% endif %} · {{ _('{v1} empresa(s) com o cupom', v1=em_uso.get(c.id, 0)) }} · <code>/cupom/{{ c.codigo }}</code></span></div>
+  </form>
+</div>
+{% endfor %}
+<div class="cartao">
+  <h2>{{ _('Novo cupom') }}</h2>
+  <form method="post" action="/master/cupons">{{ campos(None) }}<button class="botao" type="submit" style="margin-top:12px">{{ _('Criar cupom') }}</button></form>
+</div>
+{% endblock %}
