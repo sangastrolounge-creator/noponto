@@ -28,7 +28,9 @@
   {% endif %}
   <input type="url" name="{{ nome }}_link" value="{{ '' if arquivo else valor }}" placeholder="{{ _('Link do YouTube ou do Vimeo (https://...)') }}" maxlength="300">
   <div class="ajuda" style="margin-bottom:8px">{{ _('Ou envie o arquivo do vídeo (MP4 ou WEBM, até 100 MB):') }}</div>
-  <input type="file" name="{{ nome }}" accept="video/mp4,video/webm">
+  <input type="file" name="{{ nome }}" accept="video/mp4,video/webm" data-pedacos="{{ nome }}">
+  <input type="hidden" name="{{ nome }}_enviado" value="">
+  <div class="envio-video" hidden><div class="envio-barra"><i></i></div><span class="ajuda envio-texto"></span></div>
   <div class="ajuda">{{ _('Se a seção tiver imagem e vídeo, o vídeo é o que aparece.') }}</div>
 </div>
 {% endmacro %}
@@ -164,9 +166,39 @@
       e.classList.toggle("ok", cx.checked);
     });
   });
+  /* Vídeo: vai em pedaços de 8 MB, com barra de andamento; o formulário só leva o endereço. */
+  var subindo = 0, PEDACO = 8 * 1024 * 1024;
+  var csrf = document.querySelector("#pagina input[name=csrf]").value;
+  function hex() { var a = new Uint8Array(12); crypto.getRandomValues(a); return Array.from(a, function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }
+  document.querySelectorAll("input[data-pedacos]").forEach(function (inp) {
+    inp.addEventListener("change", function () {
+      var arq = inp.files && inp.files[0]; if (!arq) return;
+      var caixa = inp.parentNode.querySelector(".envio-video"), barra = caixa.querySelector("i"), txt = caixa.querySelector(".envio-texto");
+      var oculto = inp.parentNode.querySelector("input[name='" + inp.dataset.pedacos + "_enviado']");
+      if (arq.size > 100 * 1024 * 1024) { caixa.hidden = false; txt.textContent = t("O vídeo passa de 100 MB. Use um arquivo menor ou um link do YouTube."); inp.value = ""; return; }
+      var envio = hex(), n = Math.max(1, Math.ceil(arq.size / PEDACO)), i = 0, tentativas = 0;
+      caixa.hidden = false; subindo++; oculto.value = ""; inp.disabled = true;
+      function mostrar() { var p = Math.round(i / n * 100); barra.style.width = p + "%"; txt.textContent = t("Enviando o vídeo…") + " " + p + "%"; }
+      function falhou(msg) { subindo--; inp.disabled = false; inp.value = ""; barra.style.width = "0"; txt.textContent = msg || t("O envio caiu. Escolha o arquivo de novo."); }
+      function proximo() {
+        mostrar();
+        fetch("/master/midia/pedaco?envio=" + envio + "&i=" + i + "&n=" + n, { method: "POST", headers: { "X-CSRF": csrf, "Content-Type": "application/octet-stream" }, body: arq.slice(i * PEDACO, (i + 1) * PEDACO), credentials: "same-origin" })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+          .then(function (x) {
+            if (!x.ok) return falhou(x.j.erro);
+            tentativas = 0; i++;
+            if (x.j.url) { subindo--; oculto.value = x.j.url; inp.removeAttribute("name"); barra.style.width = "100%"; txt.textContent = t("Vídeo enviado. Agora clique em Salvar ou Publicar."); return; }
+            proximo();
+          })
+          .catch(function () { if (++tentativas <= 3) setTimeout(proximo, 1500 * tentativas); else falhou(); });
+      }
+      proximo();
+    });
+  });
   var enviando = false;
   document.getElementById("pagina").addEventListener("submit", function (ev) {
     var b = ev.submitter;
+    if (subindo) { ev.preventDefault(); window.alert(t("Espere o vídeo terminar de enviar.")); return; }
     if (b && b.value === "publicar" && !window.confirm(t("Publicar agora? A página passa a ser o que os visitantes veem."))) { ev.preventDefault(); return; }
     if (b && b.value !== "previa") { if (enviando) { ev.preventDefault(); return; } enviando = true; b.textContent = t("Enviando…"); }
   });
