@@ -9,7 +9,7 @@
   <form method="post" action="/master/parceiros/{{ p.id }}" class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));align-items:end">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="campo"><label>{{ _('Nível') }}</label><select name="nivel_manual"><option value="0">{{ _('Automático') }}</option>{% for n, nome, mi, pct in niveis %}<option value="{{ n }}" {{ 'selected' if p.nivel_manual == n }}>{{ _(nome) }} ({{ pct }}%)</option>{% endfor %}</select></div>
-    <div class="campo"><label>{{ _('Domínio da marca') }}</label><input name="dominio" value="{{ p.dominio }}" maxlength="120"></div>
+    <div class="campo"><label>{{ _('Domínio da marca') }}</label><input type="text" name="dominio" value="{{ p.dominio }}" maxlength="120"></div>
     <label class="marcar campo"><input type="checkbox" name="marca_liberada" value="1" {{ 'checked' if p.marca_liberada }}><span>{{ _('Marca própria liberada') }}</span></label>
     <label class="marcar campo"><input type="checkbox" name="ativo" value="1" {{ 'checked' if p.ativo }}><span>{{ _('Ativo') }}</span></label>
     <div class="campo"><button class="botao" type="submit">{{ _('Salvar') }}</button></div>

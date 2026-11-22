@@ -170,7 +170,7 @@
   <label class="marcar campo"><input type="checkbox" name="acesso" value="1" {{ 'checked' if e.contador_acesso }}><span>{{ _('Permitir que o contador baixe o resumo de horas') }}</span></label>
   {% else %}
   <p class="suave pequeno">{{ _('Seu contador é parceiro do {v1}? Informe o código dele para ligar a empresa e ele poder baixar o resumo de horas do mês para a folha.', v1=app_nome) }}</p>
-  <div class="campo" style="max-width:260px"><label for="codigo-contador">{{ _('Código do parceiro') }}</label><input id="codigo-contador" name="codigo" maxlength="12"></div>
+  <div class="campo" style="max-width:260px"><label for="codigo-contador">{{ _('Código do parceiro') }}</label><input type="text" id="codigo-contador" name="codigo" maxlength="12"></div>
   <label class="marcar campo"><input type="checkbox" name="acesso" value="1" checked><span>{{ _('Permitir que o contador baixe o resumo de horas') }}</span></label>
   {% endif %}
   <button class="botao" type="submit">{{ _('Salvar') }}</button>
