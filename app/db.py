@@ -270,7 +270,7 @@ class Empresa(Base):
     cupom_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cupom_desde: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # Indique e ganhe: código do link desta empresa, quem indicou e se o mês grátis já foi dado.
-    codigo_indicacao: Mapped[str] = mapped_column(String(12), default="", index=True)
+    codigo_indicacao: Mapped[str] = mapped_column(String(12), default="")
     indicada_por_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     indicacao_premiada: Mapped[bool] = mapped_column(Boolean, default=False)
     # Parceiro (contador ou revenda) que trouxe a empresa e se ele pode baixar os relatórios de ponto.

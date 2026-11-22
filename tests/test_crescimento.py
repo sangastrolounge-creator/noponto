@@ -169,7 +169,7 @@ def main():
     # ---- recursos por plano: Iniciante sem fechamento nem gerentes
     with SessionLocal() as db:
         e = db.get(Empresa, bid)
-        e.plano_id, e.teste_ate, e.pago_ate = ids["Iniciante"], None, None
+        e.plano, e.teste_ate, e.pago_ate = db.get(Plano, ids["Iniciante"]), None, None
         db.commit()
         assert core.situacao(db.get(Empresa, bid)) == "gratis"
     r = b.get("/painel/fechamento")
@@ -179,7 +179,7 @@ def main():
     assert b.get("/painel/escala").status_code == 200
     with SessionLocal() as db:
         e = db.get(Empresa, bid)
-        e.plano_id, e.pago_ate = ids["Ilimitado"], relogio["agora"] + timedelta(days=30)
+        e.plano, e.pago_ate = db.get(Plano, ids["Ilimitado"]), relogio["agora"] + timedelta(days=30)
         db.commit()
     assert b.get("/painel/fechamento").status_code == 200
 
@@ -190,7 +190,7 @@ def main():
         for f in fx.values():
             f.ativo = True
         e = db.get(Empresa, bid)
-        e.plano_id = fx[10].id
+        e.plano = fx[10]
         db.commit()
         e = db.get(Empresa, bid)
         crescimento.pessoas = lambda db_, e_, p_: 25
