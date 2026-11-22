@@ -11,9 +11,9 @@
 {% endif %}
 
 <div class="grade">
-  <div class="numero"><div class="rotulo">{{ _('Plano') }}</div><div class="valor" style="font-size:1.4rem">{{ e.plano.nome if e.plano else (_('Cortesia') if e.isenta else _('Sem plano')) }}</div><div class="nota">{% if e.plano and e.plano.gratis %}{{ _('sem cobrança') }}{% elif e.plano %}{{ _('{v1} por mês', v1=(e.plano.preco_centavos|dinheiro)) }}{% endif %}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Plano') }}</div><div class="valor" style="font-size:1.4rem">{{ e.plano.nome if e.plano else (_('Cortesia') if e.isenta else _('Sem plano')) }}</div><div class="nota">{% if e.plano and e.plano.gratis %}{{ _('sem cobrança') }}{% elif e.plano %}{{ _('{v1} por mês', v1=(proxima|dinheiro)) }}{% if e.ciclo == 'anual' %} · {{ _('plano anual') }}{% endif %}{% endif %}{% if cupom %}<br>{{ _('cupom {v1}: {v2}', v1=cupom.codigo, v2=texto_cupom(cupom)) }}{% endif %}</div></div>
   <div class="numero"><div class="rotulo">{{ _('Validade') }}</div><div class="valor" style="font-size:1.4rem">{% if e.isenta or s == 'gratis' %}{{ _('Não vence') }}{% else %}{{ validade(e)|data('%d/%m/%Y') or '—' }}{% endif %}</div><div class="nota">{% if s == 'gratis' %}{{ _('plano grátis') }}{% elif s == 'teste' %}{{ _('período de teste, {v1} dia(s) restante(s)', v1=(dias_restantes(e))) }}{% elif s == 'ativa' %}{{ _('{v1} dia(s) restante(s)', v1=(dias_restantes(e))) }}{% endif %}</div></div>
-  {% if e.plano and e.plano.por_pessoa %}<div class="numero"><div class="rotulo">{{ _('Pessoas cobradas') }}</div><div class="valor" style="font-size:1.4rem">{{ cobradas }}</div><div class="nota">{{ _('trabalharam nos últimos 30 dias · próxima cobrança: {v1}', v1=(e.plano.valor_mensal(cobradas)|dinheiro)) }}</div></div>{% endif %}
+  {% if e.plano and e.plano.por_pessoa %}<div class="numero"><div class="rotulo">{{ _('Pessoas cobradas') }}</div><div class="valor" style="font-size:1.4rem">{{ cobradas }}</div><div class="nota">{{ _('trabalharam nos últimos 30 dias · próxima cobrança: {v1}', v1=(proxima|dinheiro)) }}</div></div>{% endif %}
   <div class="numero"><div class="rotulo">{{ _('Funcionários ativos') }}</div><div class="valor" style="font-size:1.4rem">{{ usados }}{% if limite %}<span class="suave" style="font-size:1rem"> {{ _('de {v1}', v1=(limite)) }}</span>{% endif %}</div><div class="nota">{{ _('limite do seu plano') if limite else _('sem limite') }}</div></div>
 </div>
 
@@ -47,7 +47,7 @@
       {% for p in pagos_planos %}
       <label class="opcao-plano">
         <input type="radio" name="plano" value="{{ p.id }}" {{ 'checked' if p.id == marcado }} required>
-        <span><strong>{{ p.nome }}</strong> {% if p.por_pessoa %}{{ _('· {v1}/pessoa/mês', v1=(p.por_pessoa_centavos|dinheiro)) }}{% if p.base_centavos %} {{ _('+ {v1} de base', v1=(p.base_centavos|dinheiro)) }}{% endif %}{% if p.minimo_centavos %} {{ _('(mínimo {v1})', v1=(p.minimo_centavos|dinheiro)) }}{% endif %} · {{ _('hoje daria {v1}/mês', v1=(p.valor_mensal(cobradas)|dinheiro)) }}{% else %}{{ _('· {v1}/mês', v1=(p.preco_centavos|dinheiro)) }}{% endif %}<br><span class="suave pequeno">{{ _('Funcionários ilimitados') if p.limite_funcionarios == 0 else _('Até ') ~ p.limite_funcionarios ~ _(' funcionários') }}{% if p.limite_funcionarios and usados > p.limite_funcionarios %} {{ _('· você tem {v1} ativos', v1=(usados)) }}{% endif %}</span></span>
+        <span><strong>{{ p.nome }}</strong> {% if p.por_pessoa %}{{ _('· {v1}/pessoa/mês', v1=(p.por_pessoa_centavos|dinheiro)) }}{% if p.base_centavos %} {{ _('+ {v1} de base', v1=(p.base_centavos|dinheiro)) }}{% endif %}{% if p.minimo_centavos %} {{ _('(mínimo {v1})', v1=(p.minimo_centavos|dinheiro)) }}{% endif %} · {{ _('hoje daria {v1}/mês', v1=(precos[p.id]|dinheiro)) }}{% else %}{{ _('· {v1}/mês', v1=(precos[p.id]|dinheiro)) }}{% if cupom and precos[p.id] < p.preco_centavos %} <span class="suave">({{ _('de {v1}', v1=(p.preco_centavos|dinheiro)) }})</span>{% endif %}{% endif %} <span class="suave">· {{ _('ou {v1} por ano', v1=((precos[p.id] * meses_anual)|dinheiro)) }}</span><br><span class="suave pequeno">{{ _('Funcionários ilimitados') if p.limite_funcionarios == 0 else _('Até ') ~ p.limite_funcionarios ~ _(' funcionários') }}{% if p.limite_funcionarios and usados > p.limite_funcionarios %} {{ _('· você tem {v1} ativos', v1=(usados)) }}{% endif %}</span></span>
       </label>
       {% endfor %}
     </div>
@@ -55,9 +55,14 @@
     <div class="campo" style="max-width:320px"><label for="cpf_cnpj">{{ _('CPF ou CNPJ') }}</label><input id="cpf_cnpj" type="text" name="cpf_cnpj" inputmode="numeric" maxlength="18" value="{{ e.cpf_cnpj }}" required><div class="ajuda">{{ _('Exigido para emitir a cobrança.') }}</div></div>
     {% endif %}
     <div class="campo">
+      <label>{{ _('Período') }}</label>
+      <label class="opcao-plano"><input type="radio" name="ciclo" value="mensal" checked><span><strong>{{ _('Mensal') }}</strong><br><span class="suave pequeno">{{ _('Paga mês a mês.') }}</span></span></label>
+      <label class="opcao-plano"><input type="radio" name="ciclo" value="anual"><span><strong>{{ _('Anual: pague {v1} meses e use 12', v1=meses_anual) }}</strong><br><span class="suave pequeno">{{ _('{v1} meses grátis. No cartão dá para parcelar na página do Asaas.', v1=(12 - meses_anual)) }}</span></span></label>
+    </div>
+    <div class="campo">
       <label>{{ _('Como pagar') }}</label>
-      <label class="opcao-plano"><input type="radio" name="modo" value="automatica" checked><span><strong>{{ _('Cobrança automática mensal') }}</strong><br><span class="suave pequeno">{{ _('Uma cobrança por mês, por Pix, boleto ou cartão.') }} {% if s in ('teste', 'ativa') and dias_restantes(e) and dias_restantes(e) > 2 %}{{ _('A primeira vence em {v1}, quando terminam os dias que você já tem.', v1=(validade(e)|data('%d/%m/%Y'))) }}{% endif %} {{ _('Encerre quando quiser.') }}</span></span></label>
-      <label class="opcao-plano"><input type="radio" name="modo" value="avulso"><span><strong>{{ _('Pagar só 30 dias') }}</strong><br><span class="suave pequeno">{{ _('Uma cobrança única agora; os dias são somados aos que você já tem.') }}</span></span></label>
+      <label class="opcao-plano"><input type="radio" name="modo" value="automatica" checked><span><strong>{{ _('Cobrança automática') }}</strong><br><span class="suave pequeno">{{ _('Uma cobrança por mês, por Pix, boleto ou cartão.') }} {% if s in ('teste', 'ativa') and dias_restantes(e) and dias_restantes(e) > 2 %}{{ _('A primeira vence em {v1}, quando terminam os dias que você já tem.', v1=(validade(e)|data('%d/%m/%Y'))) }}{% endif %} {{ _('Encerre quando quiser.') }}</span></span></label>
+      <label class="opcao-plano"><input type="radio" name="modo" value="avulso"><span><strong>{{ _('Pagar uma vez') }}</strong><br><span class="suave pequeno">{{ _('Uma cobrança única agora (30 dias ou 12 meses); os dias são somados aos que você já tem.') }}</span></span></label>
     </div>
     <button class="botao" type="submit">{{ _('Ir para o pagamento') }}</button>
     <div class="ajuda">{{ _('Você será levado à página segura do Asaas. A liberação é automática assim que o pagamento é confirmado.') }}</div>
@@ -78,6 +83,29 @@
   </form>
   {% endif %}
   {% if plat.whatsapp %}<p class="pequeno"><a target="_blank" rel="noopener" href="{{ zap(plat.whatsapp, _('Olá! Quero falar sobre a assinatura do ') ~ app_nome ~ _(' da empresa ') ~ e.nome ~ '.') }}">{{ _('Falar com o suporte no WhatsApp') }}</a></p>{% endif %}
+{% endif %}
+
+{% if s != 'cortesia' %}
+{% if not cupom and not e.asaas_assinatura_id %}
+<form method="post" action="/painel/assinatura/cupom" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Tem um cupom?') }}</h2>
+  <div class="linha-form" style="grid-template-columns:1fr auto;align-items:end;max-width:520px">
+    <div class="campo"><label for="codigo">{{ _('Código do cupom') }}</label><input id="codigo" name="codigo" maxlength="30" autocapitalize="characters" required></div>
+    <div class="campo"><button class="botao claro" type="submit">{{ _('Aplicar') }}</button></div>
+  </div>
+</form>
+{% endif %}
+<div class="cartao" id="indique">
+  <h2>{{ _('Indique e ganhe 1 mês grátis') }}</h2>
+  <p class="suave">{{ _('Mande o seu link para outro empresário. Quando a empresa dele pagar a primeira vez, vocês dois ganham 1 mês grátis.') }}</p>
+  {% set link = request.base_url ~ 'i/' ~ indica.codigo %}
+  <div class="linha-form" style="grid-template-columns:1fr auto;align-items:end;max-width:620px">
+    <div class="campo"><label for="link-indica">{{ _('Seu link') }}</label><input id="link-indica" value="{{ link }}" readonly onclick="this.select()"></div>
+    <div class="campo"><a class="botao claro" target="_blank" rel="noopener" href="https://wa.me/?text={{ (_('Uso o {v1} para o ponto e a escala da equipe e recomendo. Teste grátis:', v1=app_nome) ~ ' ' ~ link)|urlencode }}">{{ _('Enviar pelo WhatsApp') }}</a></div>
+  </div>
+  <p class="pequeno suave">{{ _('{v1} empresa(s) indicada(s) · {v2} já pagaram e deram o mês grátis', v1=indica.indicadas, v2=indica.premiadas) }}</p>
+</div>
 {% endif %}
 
 {% if pagos %}

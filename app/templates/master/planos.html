@@ -1,6 +1,6 @@
 {% extends "master/base.html" %}
 {% macro campos(p) %}
-  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="recursos_v2" value="1">
   <div class="linha-form" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr">
     <div class="campo"><label>{{ _('Nome') }}</label><input type="text" name="nome" value="{{ p.nome if p else '' }}" maxlength="60" required></div>
     <div class="campo"><label>{{ _('Preço por mês (R$)') }}</label><input type="text" name="preco" inputmode="decimal" value="{{ ('%.2f'|format(p.preco_centavos / 100)).replace('.', ',') if p else '' }}" placeholder="49,90" required><div class="ajuda">{{ _('0 = plano grátis') }}</div></div>
@@ -16,6 +16,14 @@
       <div class="campo"><label>{{ _('Mínimo por mês (R$)') }}</label><input type="text" name="minimo" inputmode="decimal" value="{{ ('%.2f'|format(p.minimo_centavos / 100)).replace('.', ',') if p and p.minimo_centavos else '' }}" placeholder="29,90"></div>
     </div>
   </fieldset>
+  <fieldset class="cobranca-pessoa">
+    <legend class="pequeno"><strong>{{ _('Faixas e volume (opcional)') }}</strong> · <span class="suave">{{ _('Planos com o mesmo grupo viram faixas de um produto: a empresa vai sozinha para a faixa mais barata para o número de pessoas dela.') }}</span></legend>
+    <div class="linha-form" style="grid-template-columns:repeat(3,1fr)">
+      <div class="campo"><label>{{ _('Grupo') }}</label><input name="grupo" value="{{ p.grupo if p else '' }}" maxlength="30" placeholder="por-pessoa"></div>
+      <div class="campo"><label>{{ _('Tolerância de pessoas') }}</label><input type="number" name="tolerancia" min="0" value="{{ p.tolerancia if p else 0 }}"><div class="ajuda">{{ _('aceita X pessoas além do limite') }}</div></div>
+      <div class="campo"><label>{{ _('Desconto por volume') }}</label><input name="descontos_volume" value="{{ p.descontos_volume if p else '' }}" maxlength="80" placeholder="50:15;150:30"><div class="ajuda">{{ _('acima de 50 pessoas 15%; acima de 150, 30%') }}</div></div>
+    </div>
+  </fieldset>
   <div class="campo"><label>{{ _('Benefícios (um por linha)') }}</label><textarea name="descricao" maxlength="1000" style="min-height:76px">{{ p.descricao if p else '' }}</textarea></div>
   <div class="acoes" style="align-items:center;gap:10px 16px;flex-wrap:wrap">
     <label class="marcar"><input type="checkbox" name="ativo" value="1" {{ 'checked' if not p or p.ativo }}><span>{{ _('À venda (aparece na página inicial)') }}</span></label>
@@ -25,11 +33,23 @@
     <label class="marcar"><input type="checkbox" name="com_alertas" value="1" {{ 'checked' if not p or p.com_alertas }}><span>{{ _('Inclui alertas de atraso e de não comparecimento') }}</span></label>
     <label class="marcar"><input type="checkbox" name="com_pagamento" value="1" {{ 'checked' if not p or p.com_pagamento }}><span>{{ _('Inclui Pagamento e revisão do Claude') }}</span></label>
     <label class="marcar"><input type="checkbox" name="com_cerca" value="1" {{ 'checked' if not p or p.com_cerca }}><span>{{ _('Inclui cerca virtual (contorno no mapa e conferência no turno)') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_escala" value="1" {{ 'checked' if not p or p.com_escala }}><span>{{ _('Inclui escala, trocas e turnos abertos') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_fechamento" value="1" {{ 'checked' if not p or p.com_fechamento }}><span>{{ _('Inclui fechamento, banco de horas e relatórios') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_rh" value="1" {{ 'checked' if not p or p.com_rh }}><span>{{ _('Inclui dados de RH, férias e desligamento') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_totem" value="1" {{ 'checked' if not p or p.com_totem }}><span>{{ _('Inclui totem (ponto no tablet)') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_gerentes" value="1" {{ 'checked' if not p or p.com_gerentes }}><span>{{ _('Inclui gerentes e setores') }}</span></label>
+    <label class="marcar"><input type="checkbox" name="com_cmo" value="1" {{ 'checked' if not p or p.com_cmo }}><span>{{ _('Inclui faturamento e custo de mão de obra') }}</span></label>
     <label class="marcar"><input type="checkbox" name="destaque" value="1" {{ 'checked' if p and p.destaque }}><span>{{ _('Destacar como “Mais escolhido”') }}</span></label>
   </div>
 {% endmacro %}
 {% block master %}
 <div class="cabecalho"><div><h1>{{ _('Planos') }}</h1><p class="suave" style="margin:0">{{ _('O que você vende: preço mensal, quantos funcionários ativos e locais a empresa pode ter. Preço 0 = plano grátis, que nunca vence.') }}</p></div></div>
+<form method="post" action="/master/pacote-planos" class="cartao" data-confirma="{{ _('Aplicar o pacote recomendado? Os planos atuais saem de venda (quem já usa continua neles).') }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Pacote recomendado') }}</h2>
+  <p class="suave">{{ _('Cria os 5 planos por tamanho de equipe (Iniciante grátis, Essencial R$ 59,90, Profissional R$ 139,90, Empresarial R$ 299,90 e Ilimitado R$ 599,90), as faixas por pessoa (fora de venda, prontas para ligar), o cupom FUNDADORES (30% para sempre, 100 usos) e deixa o teste em 14 dias.') }}</p>
+  <button class="botao claro" type="submit">{{ _('Aplicar pacote recomendado') }}</button>
+</form>
 {% for p in planos %}
 <div class="cartao">
   <form method="post" action="/master/planos/{{ p.id }}" id="plano-{{ p.id }}">{{ campos(p) }}</form>

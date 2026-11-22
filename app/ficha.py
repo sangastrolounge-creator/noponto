@@ -154,12 +154,18 @@ def _contexto(db: Session, e, alvo: Usuario | None, quem: Usuario | None = None)
 
 
 def _rh_ctx(db: Session, alvo: Usuario | None, u: Usuario) -> dict:
+    from .core import recurso_liberado
+    if not recurso_liberado(u.empresa, "com_rh"):   # o plano não inclui os dados de RH
+        return {"RH": rh, "rh_dados": None, "ve_banco": False, "rh_grupos": [], "rh_bloqueado": True}
     ve_banco = pode(u, "pagamento")
     return {"RH": rh, "rh_dados": rh.da_pessoa(db, alvo) if alvo else None, "ve_banco": ve_banco,
             "rh_grupos": rh.grupos_visiveis(ve_banco)}
 
 
 def _ler_rh(db: Session, e, form, u: Usuario, alvo_id: int | None) -> tuple[dict, str | None]:
+    from .core import recurso_liberado
+    if not recurso_liberado(e, "com_rh"):
+        return {}, None
     dr, erro = rh.ler(form, pode(u, "pagamento"))
     if not erro and rh.cpf_repetido(db, e.id, dr.get("cpf", ""), alvo_id):
         erro = "Já existe outra pessoa com este CPF na empresa."
@@ -167,6 +173,8 @@ def _ler_rh(db: Session, e, form, u: Usuario, alvo_id: int | None) -> tuple[dict
 
 
 def _registrar_rh(db: Session, e, u: Usuario, alvo: Usuario, dr: dict) -> None:
+    if not dr:
+        return
     mudou = rh.salvar(db, alvo, dr)
     if mudou:   # só os nomes dos campos, nunca os números (LGPD)
         regras.registrar(db, e.id, u.nome, "documentos alterados", f"{alvo.nome}: {', '.join(mudou)}.")

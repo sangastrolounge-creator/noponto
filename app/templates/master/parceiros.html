@@ -1,0 +1,26 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Parceiros') }}</h1><p class="suave" style="margin:0">{{ _('Contadores e revendas. O nível sobe sozinho com os clientes pagantes; fixe um nível se combinar outra condição. Pague as comissões por Pix e marque como pagas.') }} <a href="/parceiros" target="_blank">{{ _('Página de cadastro de parceiros') }}</a></p></div></div>
+{% for x in lista %}{% set p = x.p %}
+<div class="cartao">
+  <h2 style="margin-bottom:4px">{{ p.nome }}{% if p.escritorio %} · <span class="suave">{{ p.escritorio }}</span>{% endif %}</h2>
+  <p class="suave pequeno">{{ p.email }}{% if p.celular %} · {{ p.celular }}{% endif %} · {{ _('código') }} {{ p.codigo }} · {{ _('Pix:') }} {{ p.chave_pix or '—' }}</p>
+  <p>{{ _('{v1} empresa(s), {v2} pagante(s)', v1=x.empresas, v2=x.pagantes) }} · <strong>{{ _(x.nivel[1]) }} ({{ x.nivel[3] }}%)</strong> · {{ _('a pagar') }} <strong>{{ x.totais.a_pagar|dinheiro }}</strong> · {{ _('pago') }} {{ x.totais.paga|dinheiro }}</p>
+  <form method="post" action="/master/parceiros/{{ p.id }}" class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));align-items:end">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="campo"><label>{{ _('Nível') }}</label><select name="nivel_manual"><option value="0">{{ _('Automático') }}</option>{% for n, nome, mi, pct in niveis %}<option value="{{ n }}" {{ 'selected' if p.nivel_manual == n }}>{{ _(nome) }} ({{ pct }}%)</option>{% endfor %}</select></div>
+    <div class="campo"><label>{{ _('Domínio da marca') }}</label><input name="dominio" value="{{ p.dominio }}" maxlength="120"></div>
+    <label class="marcar campo"><input type="checkbox" name="marca_liberada" value="1" {{ 'checked' if p.marca_liberada }}><span>{{ _('Marca própria liberada') }}</span></label>
+    <label class="marcar campo"><input type="checkbox" name="ativo" value="1" {{ 'checked' if p.ativo }}><span>{{ _('Ativo') }}</span></label>
+    <div class="campo"><button class="botao" type="submit">{{ _('Salvar') }}</button></div>
+  </form>
+  {% if x.totais.a_pagar %}
+  <form method="post" action="/master/parceiros/{{ p.id }}/pagar" data-confirma="{{ _('Já fez o Pix de {v1}? Marcar as comissões como pagas?', v1=(x.totais.a_pagar|dinheiro)) }}" style="margin-top:8px">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao claro" type="submit">{{ _('Marcar {v1} como pago', v1=(x.totais.a_pagar|dinheiro)) }}</button>
+  </form>
+  {% endif %}
+</div>
+{% else %}
+<div class="cartao"><p class="suave">{{ _('Nenhum parceiro ainda. Mande o link da página de parceiros para contadores da sua cidade.') }}</p></div>
+{% endfor %}
+{% endblock %}

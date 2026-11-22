@@ -1,0 +1,24 @@
+{% extends "_entrada.html" %}
+{% block titulo %}{{ _('Programa de parceiros — {v1}', v1=(app_nome)) }}{% endblock %}
+{% block formulario %}
+    <h1>{{ _('Seja parceiro do {v1}', v1=app_nome) }}</h1>
+    <p class="suave ent-sub">{{ _('Para contadores, escritórios de contabilidade e revendas. Indique o sistema para os seus clientes e ganhe uma parte de tudo o que eles pagarem, todo mês.') }}</p>
+    <table class="niveis-parceiro">
+      <thead><tr><th>{{ _('Nível') }}</th><th>{{ _('Clientes pagantes') }}</th><th>{{ _('Comissão') }}</th></tr></thead>
+      <tbody>{% for n, nome, minimo, pct in niveis %}<tr><td>{{ _(nome) }}</td><td>{{ _('a partir de {v1}', v1=(minimo or 1)) }}</td><td><strong>{{ pct }}%</strong></td></tr>{% endfor %}</tbody>
+    </table>
+    {% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+    {% if flash %}<div class="aviso {{ 'erro' if flash.tipo == 'erro' }}">{{ flash.texto }}</div>{% endif %}
+    <form method="post" action="/parceiros">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label for="nome">{{ _('Seu nome') }}</label><input id="nome" name="nome" value="{{ v.nome }}" required maxlength="120" autocomplete="name"></div>
+      <div class="campo"><label for="escritorio">{{ _('Escritório ou empresa (opcional)') }}</label><input id="escritorio" name="escritorio" value="{{ v.escritorio }}" maxlength="120"></div>
+      <div class="campo"><label for="email">{{ _('E-mail') }}</label><input id="email" type="email" name="email" value="{{ v.email }}" required autocomplete="username"></div>
+      <div class="campo"><label for="celular">{{ _('WhatsApp') }}</label><input id="celular" name="celular" value="{{ v.celular }}" inputmode="tel" maxlength="20"></div>
+      <div class="campo"><label for="senha">{{ _('Senha') }}</label><input id="senha" type="password" name="senha" required minlength="8" autocomplete="new-password"><div class="ajuda">{{ _('Pelo menos 8 caracteres.') }}</div></div>
+      <label class="marcar campo"><input type="checkbox" name="aceito" value="1" required>
+        <span>{{ _('Aceito as regras: a comissão vale sobre os pagamentos confirmados das empresas que vierem pelo meu link, é paga por Pix até o dia 10 do mês seguinte e é cancelada se o pagamento for estornado.') }}</span></label>
+      <button class="botao ent-botao" type="submit">{{ _('Quero ser parceiro') }}</button>
+    </form>
+    <p class="ent-troca">{{ _('Já é parceiro?') }} <a href="/parceiros/entrar">{{ _('Entrar') }}</a></p>
+{% endblock %}

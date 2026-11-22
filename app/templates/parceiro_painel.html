@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Painel do parceiro — {v1}', v1=(app_nome)) }}{% endblock %}
+{% block corpo %}
+{% from "_marca.html" import logo_nome %}
+{% from "_idioma.html" import seletor %}
+{% set rot = {'a_pagar': _('A pagar'), 'paga': _('Paga'), 'cancelada': _('Cancelada')} %}
+<main class="legal parceiro">
+  <div class="legal-topo">
+    <a class="marca marca-nome" href="/parceiro">{{ logo_nome() }}</a>
+    <div style="display:flex;gap:10px;align-items:center">{{ seletor() }}
+      <form method="post" action="/parceiros/sair" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao link" type="submit">{{ _('Sair') }}</button></form></div>
+  </div>
+  {% if flash %}<div class="aviso {{ 'erro' if flash.tipo == 'erro' }}">{{ flash.texto }}</div>{% endif %}
+  <div class="cabecalho"><div><h1>{{ _('Olá, {v1}', v1=par.nome.split()[0]) }}</h1><p class="suave" style="margin:0">{{ par.escritorio or _('Parceiro') }} · {{ _('código') }} <strong>{{ par.codigo }}</strong></p></div></div>
+
+  <div class="grade">
+    <div class="numero"><div class="rotulo">{{ _('Seu nível') }}</div><div class="valor" style="font-size:1.4rem">{{ _(nivel[1]) }}</div><div class="nota">{{ _('{v1}% de comissão', v1=nivel[3]) }}</div></div>
+    <div class="numero"><div class="rotulo">{{ _('Clientes pagantes') }}</div><div class="valor" style="font-size:1.4rem">{{ pagantes }}</div><div class="nota">{% if proximo %}{{ _('faltam {v1} para {v2} ({v3}%)', v1=(proximo[2] - pagantes), v2=_(proximo[1]), v3=proximo[3]) }}{% else %}{{ _('nível máximo') }}{% endif %}</div></div>
+    <div class="numero"><div class="rotulo">{{ _('A receber') }}</div><div class="valor" style="font-size:1.4rem">{{ totais.a_pagar|dinheiro }}</div><div class="nota">{{ _('pago por Pix até o dia 10') }}</div></div>
+    <div class="numero"><div class="rotulo">{{ _('Já recebido') }}</div><div class="valor" style="font-size:1.4rem">{{ totais.paga|dinheiro }}</div></div>
+  </div>
+
+  <div class="cartao">
+    <h2>{{ _('Seu link de indicação') }}</h2>
+    <p class="suave">{{ _('Quem criar a conta por este link fica ligado a você. Os clientes também podem informar o seu código em Configurações → Contador parceiro.') }}</p>
+    <div class="linha-form" style="grid-template-columns:1fr auto;align-items:end;max-width:640px">
+      <div class="campo"><label for="link">{{ _('Link') }}</label><input id="link" value="{{ link }}" readonly onclick="this.select()"></div>
+      <div class="campo"><a class="botao claro" target="_blank" rel="noopener" href="https://wa.me/?text={{ (_('Organizei o ponto e a escala dos meus clientes com o {v1}. Teste grátis:', v1=app_nome) ~ ' ' ~ link)|urlencode }}">{{ _('Enviar pelo WhatsApp') }}</a></div>
+    </div>
+  </div>
+
+  <div class="cartao">
+    <h2>{{ _('Seus clientes') }}</h2>
+    {% if empresas %}
+    <div class="rolagem"><table>
+      <thead><tr><th>{{ _('Empresa') }}</th><th>{{ _('Plano') }}</th><th>{{ _('Situação') }}</th><th>{{ _('Desde') }}</th><th>{{ _('Resumo de horas') }}</th></tr></thead>
+      <tbody>{% for e in empresas %}<tr>
+        <td>{{ e.nome }}</td><td>{{ e.plano.nome if e.plano else '—' }}</td><td>{{ SITUACOES[situacao_de(e)] }}</td><td>{{ e.criado_em|data('%d/%m/%Y') }}</td>
+        <td>{% if e.contador_acesso %}<a href="/parceiro/empresa/{{ e.id }}/horas.csv?mes={{ mes }}">{{ _('Baixar {v1}', v1=mes[5:] ~ '/' ~ mes[:4]) }}</a>{% else %}<span class="suave pequeno">{{ _('a empresa não liberou') }}</span>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="suave">{{ _('Nenhum cliente ainda. Mande o seu link para as empresas que você atende.') }}</p>{% endif %}
+  </div>
+
+  <div class="cartao">
+    <h2>{{ _('Comissões') }}</h2>
+    {% if comissoes %}
+    <div class="rolagem"><table>
+      <thead><tr><th>{{ _('Data') }}</th><th>{{ _('Empresa') }}</th><th>{{ _('Pagamento') }}</th><th>%</th><th>{{ _('Comissão') }}</th><th>{{ _('Situação') }}</th></tr></thead>
+      <tbody>{% for c in comissoes %}<tr><td>{{ c.criado_em|data('%d/%m/%Y') }}</td><td>{{ nomes.get(c.empresa_id, '—') }}</td><td>{{ c.valor_pago_centavos|dinheiro }}</td><td>{{ c.pct }}%</td><td><strong>{{ c.valor_centavos|dinheiro }}</strong></td><td>{{ rot.get(c.status, c.status) }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="suave">{{ _('As comissões aparecem aqui quando os seus clientes pagam.') }}</p>{% endif %}
+  </div>
+
+  <form method="post" action="/parceiro/dados" class="cartao" id="dados">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <h2>{{ _('Seus dados para receber') }}</h2>
+    <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div class="campo"><label for="p-nome">{{ _('Nome') }}</label><input id="p-nome" name="nome" value="{{ par.nome }}" maxlength="120" required></div>
+      <div class="campo"><label for="p-esc">{{ _('Escritório') }}</label><input id="p-esc" name="escritorio" value="{{ par.escritorio }}" maxlength="120"></div>
+      <div class="campo"><label for="p-cel">{{ _('WhatsApp') }}</label><input id="p-cel" name="celular" value="{{ par.celular }}" inputmode="tel" maxlength="20"></div>
+      <div class="campo"><label for="p-doc">{{ _('CPF ou CNPJ') }}</label><input id="p-doc" name="cpf_cnpj" value="{{ par.cpf_cnpj }}" inputmode="numeric" maxlength="18"></div>
+      <div class="campo"><label for="p-pix">{{ _('Chave Pix') }}</label><input id="p-pix" name="chave_pix" value="{{ par.chave_pix }}" maxlength="120"></div>
+    </div>
+    <button class="botao" type="submit">{{ _('Salvar') }}</button>
+  </form>
+
+  <form method="post" action="/parceiro/marca" class="cartao" id="marca" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <h2>{{ _('Marca própria') }}</h2>
+    {% if par.marca_liberada %}
+    <p class="suave">{{ _('No seu domínio, as telas de entrar, criar conta e o painel dos seus clientes mostram o seu nome, a sua logo e a sua cor. Quem se cadastra pelo seu domínio fica ligado a você.') }}</p>
+    <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div class="campo"><label for="m-nome">{{ _('Nome da marca') }}</label><input id="m-nome" name="marca_nome" value="{{ par.marca_nome }}" maxlength="60"></div>
+      <div class="campo"><label for="m-cor">{{ _('Cor principal') }}</label><input id="m-cor" type="color" name="marca_cor" value="{{ par.marca_cor or '#4f6bf5' }}"></div>
+      <div class="campo"><label for="m-dom">{{ _('Domínio') }}</label><input id="m-dom" name="dominio" value="{{ par.dominio }}" placeholder="ponto.seuescritorio.com.br" maxlength="120"></div>
+      <div class="campo"><label for="m-logo">{{ _('Logo (PNG, até 1 MB)') }}</label><input id="m-logo" type="file" name="arquivo" accept="image/png,image/jpeg,image/webp"></div>
+    </div>
+    {% if par.marca_logo %}<p><img src="/marca-logo/{{ par.marca_logo }}" alt="" style="max-height:48px"></p>{% endif %}
+    <button class="botao" type="submit">{{ _('Salvar marca') }}</button>
+    {% if par.dominio %}<p class="ajuda">{{ _('Para ativar o domínio: crie no seu provedor um registro CNAME de {v1} apontando para {v2} e avise a gente pelo WhatsApp. Nós liberamos o certificado de segurança.', v1=par.dominio, v2=request.url.hostname) }}</p>{% endif %}
+    {% else %}
+    <p class="suave">{{ _('Com mais de 100 clientes pagantes você pode usar o sistema com a sua marca e o seu domínio. Fale com a gente para liberar antes.') }}</p>
+    {% endif %}
+  </form>
+</main>
+{% endblock %}

@@ -62,6 +62,7 @@
 
   <div class="cartao" id="documentos">
     <h2>{{ _('Documentos e dados pessoais') }}</h2>
+    {% if rh_bloqueado %}<p class="suave">{{ _('Seu plano não inclui os dados de RH (CPF, PIS, carteira de trabalho, endereço, banco).') }} <a href="/painel/assinatura">{{ _('Ver planos') }}</a></p>{% endif %}
     <p class="suave pequeno" style="margin-top:-4px">{{ _('Opcional. Os campos seguem o cadastro do trabalhador no eSocial. Só quem gerencia a equipe vê estes dados; o histórico registra o que mudou, sem os números.') }}</p>
     {% for g in rh_grupos %}
     <details class="grupo-rh" {{ 'open' if loop.first }}>

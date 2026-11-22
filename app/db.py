@@ -80,6 +80,8 @@ class Plataforma(Base):
     entrada_texto: Mapped[str] = mapped_column(String(300), default="")
     entrada_imagens: Mapped[str] = mapped_column(Text, default="")  # nomes separados por vírgula
     pais_servidores: Mapped[str] = mapped_column(String(60), default="Brasil")
+    # Plano anual: quantas mensalidades a empresa paga por 12 meses (10 = 2 meses grátis).
+    meses_anual: Mapped[int] = mapped_column(Integer, default=10)
 
 
 class PaginaVendas(Base):
@@ -115,6 +117,36 @@ class Plano(Base):
     base_centavos: Mapped[int] = mapped_column(Integer, default=0)
     por_pessoa_centavos: Mapped[int] = mapped_column(Integer, default=0)
     minimo_centavos: Mapped[int] = mapped_column(Integer, default=0)
+    # Faixas: planos com o mesmo grupo são faixas de um só produto. A empresa vai sozinha para a
+    # faixa que fica mais barata para o número de pessoas dela (e nunca paga mais que a seguinte).
+    grupo: Mapped[str] = mapped_column(String(30), default="")
+    # Pessoas a mais aceitas além do limite antes de exigir o plano seguinte.
+    tolerancia: Mapped[int] = mapped_column(Integer, default=0)
+    # Desconto por volume na cobrança por pessoa: "50:15;150:30" = 15% acima de 50 pessoas, 30% acima de 150.
+    descontos_volume: Mapped[str] = mapped_column(String(80), default="")
+    # Recursos liberados no plano (além dos de cima). No teste vale tudo.
+    com_escala: Mapped[bool] = mapped_column(Boolean, default=True)      # escala, trocas e turnos abertos
+    com_fechamento: Mapped[bool] = mapped_column(Boolean, default=True)  # fechamento, banco de horas e relatórios
+    com_rh: Mapped[bool] = mapped_column(Boolean, default=True)          # dados de RH, férias e desligamento
+    com_totem: Mapped[bool] = mapped_column(Boolean, default=True)       # ponto no tablet (totem)
+    com_gerentes: Mapped[bool] = mapped_column(Boolean, default=True)    # gerentes e setores
+    com_cmo: Mapped[bool] = mapped_column(Boolean, default=True)         # faturamento e custo de mão de obra
+
+    @property
+    def limite_efetivo(self) -> int:
+        """Limite de funcionários com a tolerância (0 = ilimitado)."""
+        return (self.limite_funcionarios + (self.tolerancia or 0)) if self.limite_funcionarios else 0
+
+    def _desconto_volume(self, pessoas: int) -> int:
+        pct = 0
+        for parte in (self.descontos_volume or "").replace(",", ";").split(";"):
+            try:
+                acima, p = (int(x) for x in parte.split(":"))
+            except ValueError:
+                continue
+            if pessoas > acima and 0 <= p <= 90:
+                pct = max(pct, p)
+        return pct
 
     @property
     def gratis(self) -> bool:
@@ -127,8 +159,11 @@ class Plano(Base):
     def valor_mensal(self, pessoas: int) -> int:
         if not self.por_pessoa:
             return self.preco_centavos or 0
-        return max(self.minimo_centavos or 0,
-                   (self.base_centavos or 0) + max(0, pessoas) * self.por_pessoa_centavos)
+        pessoas_valor = max(0, pessoas) * self.por_pessoa_centavos
+        pct = self._desconto_volume(pessoas)
+        if pct:
+            pessoas_valor = round(pessoas_valor * (100 - pct) / 100)
+        return max(self.minimo_centavos or 0, (self.base_centavos or 0) + pessoas_valor)
 
 
 class Empresa(Base):
@@ -229,6 +264,18 @@ class Empresa(Base):
     pessoas_cobradas: Mapped[int] = mapped_column(Integer, default=0)
     valor_assinatura_centavos: Mapped[int] = mapped_column(Integer, default=0)
     valor_conferido_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Ciclo da assinatura: mensal ou anual (paga as mensalidades de Plataforma.meses_anual por 12 meses).
+    ciclo: Mapped[str] = mapped_column(String(8), default="mensal")
+    # Cupom de desconto (vale a partir de cupom_desde, pelos meses do cupom ou para sempre).
+    cupom_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cupom_desde: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Indique e ganhe: código do link desta empresa, quem indicou e se o mês grátis já foi dado.
+    codigo_indicacao: Mapped[str] = mapped_column(String(12), default="", index=True)
+    indicada_por_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    indicacao_premiada: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Parceiro (contador ou revenda) que trouxe a empresa e se ele pode baixar os relatórios de ponto.
+    parceiro_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    contador_acesso: Mapped[bool] = mapped_column(Boolean, default=False)
     plano: Mapped[Plano | None] = relationship(lazy="joined")
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
 
@@ -334,6 +381,60 @@ class Pagamento(Base):
     pago_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     asaas_id: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
     fatura_url: Mapped[str] = mapped_column(String(300), default="")
+
+
+class Cupom(Base):
+    """Cupom de desconto na assinatura (ex.: FUNDADORES, 30% para sempre, 100 usos)."""
+    __tablename__ = "cupons"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    codigo: Mapped[str] = mapped_column(String(30), unique=True)
+    descricao: Mapped[str] = mapped_column(String(200), default="")
+    pct: Mapped[int] = mapped_column(Integer, default=10)          # % de desconto
+    meses: Mapped[int] = mapped_column(Integer, default=0)         # por quantos meses; 0 = para sempre
+    max_usos: Mapped[int] = mapped_column(Integer, default=0)      # 0 = sem limite
+    usos: Mapped[int] = mapped_column(Integer, default=0)
+    valido_ate: Mapped[date | None] = mapped_column(Date, nullable=True)  # último dia para usar
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+
+
+class Parceiro(Base):
+    """Contador ou revenda: traz empresas pelo link e ganha comissão sobre o que elas pagam."""
+    __tablename__ = "parceiros"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nome: Mapped[str] = mapped_column(String(120))
+    escritorio: Mapped[str] = mapped_column(String(120), default="")
+    email: Mapped[str] = mapped_column(String(200), unique=True)
+    celular: Mapped[str] = mapped_column(String(20), default="")
+    senha_hash: Mapped[str] = mapped_column(String(200), default="")
+    cpf_cnpj: Mapped[str] = mapped_column(String(20), default="")
+    chave_pix: Mapped[str] = mapped_column(String(120), default="")  # para receber as comissões
+    codigo: Mapped[str] = mapped_column(String(12), unique=True)
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True)
+    nivel_manual: Mapped[int] = mapped_column(Integer, default=0)    # 0 = automático; 1 a 5 fixa o nível
+    # Marca própria (white-label): liberada pelo master; vale no domínio do parceiro.
+    marca_liberada: Mapped[bool] = mapped_column(Boolean, default=False)
+    marca_nome: Mapped[str] = mapped_column(String(60), default="")
+    marca_logo: Mapped[str] = mapped_column(String(60), default="")
+    marca_cor: Mapped[str] = mapped_column(String(7), default="")
+    dominio: Mapped[str] = mapped_column(String(120), default="", index=True)
+    aceite_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+
+
+class Comissao(Base):
+    """Comissão do parceiro sobre um pagamento confirmado de uma empresa dele."""
+    __tablename__ = "comissoes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    parceiro_id: Mapped[int] = mapped_column(ForeignKey("parceiros.id"), index=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
+    pagamento_id: Mapped[int] = mapped_column(Integer, unique=True)
+    valor_pago_centavos: Mapped[int] = mapped_column(Integer, default=0)
+    pct: Mapped[int] = mapped_column(Integer, default=0)
+    valor_centavos: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(12), default="a_pagar")  # a_pagar | paga | cancelada
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    paga_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class Local(Base):
