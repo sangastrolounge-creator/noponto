@@ -162,6 +162,9 @@ def main():
     h = {"X-CSRF": tm, "content-type": "application/octet-stream"}
     assert m.post("/master/midia/pedaco?envio=" + "cd" * 12 + "&i=0&n=1", content=b"<html>nao sou video</html>" * 10, headers=h).status_code == 415
     assert m.post("/master/midia/pedaco?envio=" + "ef" * 12 + "&i=1&n=2", content=partes[1], headers=h).status_code == 409
+    hevc = b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 64 + b"stsd....hvc1" + b"\x00" * 100
+    r = m.post("/master/midia/pedaco?envio=" + "aa" * 12 + "&i=0&n=1", content=hevc, headers=h)
+    assert r.status_code == 415 and "HEVC" in r.json()["erro"]
     assert m.post("/master/midia/pedaco?envio=../x&i=0&n=1", content=partes[0], headers=h).status_code in (400, 422)
     assert anon.post(url + "&i=0&n=2", content=partes[0], headers=h).status_code in (303, 403)
     assert m.post(url + "&i=0&n=2", content=partes[0], headers=h).json() == {"ok": True}
