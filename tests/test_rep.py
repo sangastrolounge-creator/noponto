@@ -91,9 +91,9 @@ def main():
     # ---- duas marcações: NSR seguido e hash encadeado
     with SessionLocal() as db:
         ana = db.get(Usuario, aid)
-        b1, _ = regras.bater(db, ana, None, None, None)
+        b1, _ = regras.bater(db, ana, None, None, None, aparelho="aparelho-ana-123", ua="teste")
         relogio["agora"] += timedelta(hours=4)
-        b2, _ = regras.bater(db, db.get(Usuario, aid), None, None, None)
+        b2, _ = regras.bater(db, db.get(Usuario, aid), None, None, None, aparelho="aparelho-ana-123", ua="teste")
         m7 = list(db.scalars(select(RegistroRep).where(RegistroRep.empresa_id == eid, RegistroRep.tipo == 7)
                              .order_by(RegistroRep.nsr)))
         assert [x.nsr for x in m7] == [3, 4] and m7[0].batida_id == b1.id and m7[1].batida_id == b2.id
