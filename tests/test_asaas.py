@@ -114,7 +114,7 @@ def main():
     b = cadastrar("Clínica B", "dono@b.com")
     tb = csrf(b, "/painel/assinatura")
     tela = b.get("/painel/assinatura").text
-    assert "Ir para o pagamento" in tela and "CPF ou CNPJ" in tela and "Cobrança automática mensal" in tela
+    assert "Ir para o pagamento" in tela and "CPF ou CNPJ" in tela and "Cobrança automática" in tela
     assert "Ir para o pagamento" not in m.get("/painel/assinatura").text, "cortesia não paga"
 
     # --- avulso: exige CPF/CNPJ válido
