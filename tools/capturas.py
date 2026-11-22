@@ -11,11 +11,12 @@ from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8100"
 SAIDA = Path("capturas")
-PUBLICAS = [("inicio", "/"), ("entrar", "/entrar"), ("cadastro", "/cadastro")]
+PUBLICAS = [("inicio", "/"), ("entrar", "/entrar"), ("cadastro", "/cadastro"), ("portaria671", "/portaria-671")]
 PAINEL = [("hoje", "/painel"), ("escala", "/painel/escala"), ("ponto", "/painel/ponto"),
           ("ajuste", "/painel/ponto/ajuste"), ("equipe", "/painel/equipe"), ("historico", "/painel/historico"), ("setores", "/painel/setores"), ("gerentes", "/painel/gerentes"), ("ficha", "/painel/equipe/5/ficha#documentos"),
           ("config", "/painel/config#logo"), ("relatorios", "/painel/relatorios"), ("folha", "/painel/folha?func=5"), ("fechamento", "/painel/fechamento"), ("horas", "/painel/fechamento/horas"), ("vendas", "/master/pagina/previa"),
-          ("master", "/master"), ("app", "/app")]
+          ("master", "/master"), ("app", "/app"), ("p671-painel", "/painel/portaria671"),
+          ("p671-master", "/master/portaria671"), ("comprovantes", "/app/comprovantes")]
 TELAS = {"pc": dict(viewport={"width": 1440, "height": 1000}),
          "cel": dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
                      device_scale_factor=2)}
