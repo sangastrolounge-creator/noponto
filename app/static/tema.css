@@ -641,3 +641,14 @@ a.botao-google:hover { border-color: color-mix(in srgb, var(--ent1) 40%, var(--b
 main.legal.parceiro { max-width: 1040px; }
 .logo-parceiro img { height: var(--ln-altura, 38px); width: auto; max-width: 220px; }
 .logo-parceiro strong { font-size: 1.2rem; color: var(--texto); letter-spacing: -.01em; }
+
+/* Portaria 671 */
+.p671-selo { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: .82rem; font-weight: 600; margin: 0 0 10px; }
+.p671-selo.ok { background: var(--ok-fundo); color: var(--ok); }
+.p671-selo.andamento { background: #fff4e0; color: #9a5b00; }
+.p671 .lead { font-size: 1.05rem; color: var(--suave); }
+.p671-tabela { width: 100%; border-collapse: collapse; margin: 8px 0 18px; font-size: .92rem; }
+.p671-tabela th, .p671-tabela td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--borda); }
+.p671-tabela td:first-child { font-weight: 600; width: 34%; }
+.lista-comprovantes { list-style: none; padding: 0; margin: 0; }
+.lista-comprovantes li { padding: 10px 0; border-bottom: 1px solid var(--borda); }

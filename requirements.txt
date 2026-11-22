@@ -14,3 +14,6 @@ httpx==0.28.1
 anthropic==2.9.0
 # Cobrança das assinaturas (SDK oficial do Stripe)
 stripe==17.0.0
+# Portaria 671 (REP-P): assinatura PAdES dos comprovantes e CAdES (.p7s) do AFD e do AEJ
+pyhanko>=0.21,<1
+cryptography>=42

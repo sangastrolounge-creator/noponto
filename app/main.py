@@ -22,7 +22,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import core
 from . import db as banco
-from . import crescimento, entrada, parceiros
+from . import crescimento, entrada, parceiros, rep
 from . import setores as setores_mod
 from . import (apuracao, asaas, cobranca, desligamento, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
@@ -79,9 +79,11 @@ async def _vida(_: FastAPI):
         import threading
         threading.Thread(target=asaas.garantir_webhook, daemon=True, args=(
             base_url_publica(), cobranca.email_do_dono(), master.plataforma()["nome"])).start()
+    await asyncio.to_thread(rep.evento_servico, "07")   # Portaria 671: serviço disponível
     yield
     if tarefa:
         tarefa.cancel()
+    await asyncio.to_thread(rep.evento_servico, "08")   # serviço indisponível (desligando)
 
 
 app = FastAPI(title=APP_NOME, docs_url=None, redoc_url=None, openapi_url=None,
@@ -126,6 +128,7 @@ app.include_router(setores_mod.rota)
 app.include_router(entrada.rota)
 app.include_router(crescimento.rota)
 app.include_router(parceiros.rota)
+app.include_router(rep.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 
 templates.env.globals.update(
@@ -1268,7 +1271,11 @@ async def app_ponto(request: Request, tarefas_bg: BackgroundTasks,
     msg = f"{'Entrada' if b.tipo == 'entrada' else 'Saída'} registrada às {hora}."
     if b.tipo == "entrada" and b.atraso_min > u.empresa.tolerancia_min:
         msg += f" Atraso de {b.atraso_min} min."
-    return {"ok": True, "tipo": b.tipo, "hora": hora, "mensagem": msg}
+    nsr = db.scalar(select(rep.RegistroRep.nsr).where(rep.RegistroRep.batida_id == b.id))
+    if nsr:
+        msg += f" Comprovante nº {nsr} em Meus comprovantes."
+    return {"ok": True, "tipo": b.tipo, "hora": hora, "mensagem": msg, "nsr": nsr,
+            "comprovante": f"/app/comprovante/{nsr}.pdf" if nsr else ""}
 
 
 @app.post("/app/tarefas/{tid}", dependencies=CSRF)

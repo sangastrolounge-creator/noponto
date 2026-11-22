@@ -4,6 +4,7 @@
   <div><h1>{{ _('Conformidade') }}</h1>
     <p class="suave" style="margin:0">{{ _('As regras da CLT que o sistema confere para {v1}, num lugar só. Atualiza toda vez que você abre a página.', v1=e.nome) }}</p></div>
 </div>
+<div class="alerta"><strong>{{ _('Portaria 671 (REP-P):') }}</strong> {{ _('comprovantes de ponto, AFD, AEJ e Atestado Técnico para a fiscalização.') }} <a href="/painel/portaria671">{{ _('Abrir') }}</a></div>
 
 <div class="conf-topo cartao">
   {% set cor = 'ok' if c.nota >= 90 else 'atencao' if c.nota >= 60 else 'problema' %}

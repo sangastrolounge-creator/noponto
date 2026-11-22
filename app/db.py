@@ -273,6 +273,11 @@ class Empresa(Base):
     codigo_indicacao: Mapped[str] = mapped_column(String(12), default="")
     indicada_por_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     indicacao_premiada: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Portaria 671 (REP-P): CNO ou CAEPF, CPF do responsável pelas alterações cadastrais e local
+    # da prestação do serviço que vai no comprovante (vazio = endereço da empresa).
+    rep_cno: Mapped[str] = mapped_column(String(14), default="")
+    rep_cpf_resp: Mapped[str] = mapped_column(String(11), default="")
+    rep_local: Mapped[str] = mapped_column(String(100), default="")
     # Parceiro (contador ou revenda) que trouxe a empresa e se ele pode baixar os relatórios de ponto.
     parceiro_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     contador_acesso: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -381,6 +386,27 @@ class Pagamento(Base):
     pago_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     asaas_id: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
     fatura_url: Mapped[str] = mapped_column(String(300), default="")
+
+
+class RegistroRep(Base):
+    """Armazenamento de Registro de Ponto (ARP) do REP-P, Portaria MTP 671/2021, Anexo IX.
+    Nunca é alterado nem apagado. NSR sequencial por empresa (estabelecimento). Tipos do AFD:
+    2 = identificação do empregador, 5 = inclusão/alteração/exclusão de empregado,
+    6 = evento sensível (07 serviço disponível, 08 indisponível), 7 = marcação de ponto."""
+    __tablename__ = "rep_registros"
+    __table_args__ = (UniqueConstraint("empresa_id", "nsr", name="uq_rep_nsr"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
+    nsr: Mapped[int] = mapped_column(Integer)
+    tipo: Mapped[int] = mapped_column(Integer)
+    gravado_em: Mapped[datetime] = mapped_column(DateTime, index=True)   # UTC
+    marcacao_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # UTC (tipo 7)
+    cpf: Mapped[str] = mapped_column(String(11), default="")
+    coletor: Mapped[str] = mapped_column(String(2), default="")
+    offline: Mapped[str] = mapped_column(String(1), default="0")
+    hash: Mapped[str] = mapped_column(String(64), default="")
+    batida_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    dados: Mapped[str] = mapped_column(Text, default="{}")
 
 
 class Cupom(Base):

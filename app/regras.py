@@ -462,6 +462,8 @@ def bater(db: Session, u: Usuario, lat: float | None, lng: float | None,
     if foto:
         db.flush()
         guardar_foto(b, foto)
+    from . import rep   # Portaria 671: grava a marcação no ARP com NSR e hash
+    rep.registrar_marcacao(db, b, rep.COLETOR_DISPOSITIVO if no_totem else rep.COLETOR_WEB)
     db.commit()
     return b, alertas
 

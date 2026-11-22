@@ -53,10 +53,19 @@
     fetch("/totem/estado").then(function (r) { if (r.status === 403) location.reload(); return r.json(); }).then(function (j) {
       if (!j.codigo) return;
       g("codigo").textContent = j.codigo.slice(0, 3) + " " + j.codigo.slice(3);
-      g("relogio").textContent = j.hora; resta = j.resta;
+      desvio = horaEmSeg(j.hora) - segAgora(); resta = j.resta;
       if (g("qr")) g("qr").src = "/totem/qr.svg?c=" + j.codigo;
     }).catch(function () {});
   }
+  // Relógio com horas, minutos e segundos (Portaria 671): a hora vem do servidor e avança aqui.
+  function segAgora() { var d = new Date(); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); }
+  function horaEmSeg(h) { var p = h.split(":"); return (+p[0]) * 3600 + (+p[1]) * 60 + (+(p[2] || 0)); }
+  var desvio = horaEmSeg(g("relogio").textContent) - segAgora();
+  function doisDig(n) { return ("0" + n).slice(-2); }
+  setInterval(function () {
+    var s = ((segAgora() + desvio) % 86400 + 86400) % 86400;
+    g("relogio").textContent = doisDig(Math.floor(s / 3600)) + ":" + doisDig(Math.floor(s / 60) % 60) + ":" + doisDig(s % 60);
+  }, 1000);
   setInterval(function () {
     resta -= 1;
     if (resta <= 0) { resta = 60; atualizar(); }
