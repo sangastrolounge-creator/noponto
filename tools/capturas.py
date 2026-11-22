@@ -106,6 +106,58 @@ def teste_gratis(p):
     nav.close()
 
 
+def crescimento(p):
+    """Planos novos, cupom, indique e ganhe e o programa de parceiros (muda a demonstração)."""
+    import sqlite3
+    from datetime import date, timedelta
+    nav = p.chromium.launch()
+    for tela, opc in TELAS.items():
+        ctx = nav.new_context(color_scheme="light", locale="pt-BR", **opc)
+        pag = ctx.new_page()
+        pag.goto(BASE + "/entrar")
+        pag.fill("input[name=login], input[type=email], input[type=text]", "demo@noponto.test")
+        pag.fill("input[type=password]", "demo1234")
+        pag.click("form button[type=submit]")
+        pag.wait_for_load_state("networkidle")
+        if tela == "pc":
+            pag.goto(BASE + "/master/planos", wait_until="networkidle")
+            pag.once("dialog", lambda d: d.accept())
+            pag.click("form[action='/master/pacote-planos'] button")
+            pag.wait_for_load_state("networkidle")
+            c = sqlite3.connect("dados/visualizar.db")
+            c.execute("update empresas set isenta=0, pago_ate=null, teste_ate=?", ((date.today() + timedelta(days=9)).isoformat(),))
+            c.commit()
+            pag.goto(BASE + "/painel/assinatura", wait_until="networkidle")
+            pag.fill("#codigo", "FUNDADORES")
+            pag.click("form[action='/painel/assinatura/cupom'] button")
+            pag.wait_for_load_state("networkidle")
+        for nome, url in (("assinatura", "/painel/assinatura"), ("master-planos", "/master/planos"),
+                          ("master-cupons", "/master/cupons"), ("inicio-planos", "/#planos")):
+            fotografar(pag, f"cresc-{nome}-{tela}", url)
+        ctx.close()
+        ctx = nav.new_context(color_scheme="light", locale="pt-BR", **opc)
+        pag = ctx.new_page()
+        fotografar(pag, f"cresc-parceiros-{tela}", "/parceiros")
+        if tela == "pc":
+            pag.fill("#nome", "Carla Souza")
+            pag.fill("#escritorio", "Contábil Norte")
+            pag.fill("#email", "carla@contabilnorte.test")
+            pag.fill("#celular", "98999990000")
+            pag.fill("#senha", "parceira123")
+            pag.check("input[name=aceito]")
+            pag.click("form[action='/parceiros'] button[type=submit]")
+            pag.wait_for_load_state("networkidle")
+        else:
+            pag.goto(BASE + "/parceiros/entrar")
+            pag.fill("#email", "carla@contabilnorte.test")
+            pag.fill("#senha", "parceira123")
+            pag.click("form button[type=submit]")
+            pag.wait_for_load_state("networkidle")
+        fotografar(pag, f"cresc-parceiro-painel-{tela}", "/parceiro")
+        ctx.close()
+    nav.close()
+
+
 def main():
     SAIDA.mkdir(exist_ok=True)
     with sync_playwright() as p:
@@ -169,6 +221,8 @@ def main():
             camera_falsa(p)
         if not so or "datas" in so:
             datas_iphone(p)
+        if not so or "crescimento" in so:
+            crescimento(p)
         if not so or "teste" in so:
             teste_gratis(p)  # por último: muda a empresa de demonstração
     print("capturas:", len(list(SAIDA.glob("*.png"))))
