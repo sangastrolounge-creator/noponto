@@ -263,8 +263,7 @@ templates.env.globals.update(situacao=situacao, SITUACOES=SITUACOES, validade=va
                              fim_da_carencia=fim_da_carencia,
                              dias_restantes=dias_restantes, _=i18n._, idioma=i18n.idioma,
                              IDIOMAS=i18n.IDIOMAS, caminho_atual=i18n.caminho_atual,
-                             textos_js=i18n.textos_js, marca_atual=marca_atual,
-                             recurso_liberado=recurso_liberado)
+                             textos_js=i18n.textos_js, recurso_liberado=recurso_liberado)
 templates.env.filters.update(traduz=i18n._)
 templates.env.filters.update(dinheiro=dinheiro, data=data_br, fromjson=json.loads)
 
@@ -364,6 +363,9 @@ _marca_atual: ContextVar = ContextVar("marca_atual", default=None)
 def marca_atual() -> dict | None:
     """Marca própria do parceiro na tela que está sendo montada (domínio dele) ou None."""
     return _marca_atual.get()
+
+
+templates.env.globals["marca_atual"] = marca_atual
 
 
 def render(request: Request, nome: str, status_code: int = 200, **ctx):
