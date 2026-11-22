@@ -19,9 +19,9 @@
   <fieldset class="cobranca-pessoa">
     <legend class="pequeno"><strong>{{ _('Faixas e volume (opcional)') }}</strong> · <span class="suave">{{ _('Planos com o mesmo grupo viram faixas de um produto: a empresa vai sozinha para a faixa mais barata para o número de pessoas dela.') }}</span></legend>
     <div class="linha-form" style="grid-template-columns:repeat(3,1fr)">
-      <div class="campo"><label>{{ _('Grupo') }}</label><input name="grupo" value="{{ p.grupo if p else '' }}" maxlength="30" placeholder="por-pessoa"></div>
+      <div class="campo"><label>{{ _('Grupo') }}</label><input type="text" name="grupo" value="{{ p.grupo if p else '' }}" maxlength="30" placeholder="por-pessoa"></div>
       <div class="campo"><label>{{ _('Tolerância de pessoas') }}</label><input type="number" name="tolerancia" min="0" value="{{ p.tolerancia if p else 0 }}"><div class="ajuda">{{ _('aceita X pessoas além do limite') }}</div></div>
-      <div class="campo"><label>{{ _('Desconto por volume') }}</label><input name="descontos_volume" value="{{ p.descontos_volume if p else '' }}" maxlength="80" placeholder="50:15;150:30"><div class="ajuda">{{ _('acima de 50 pessoas 15%; acima de 150, 30%') }}</div></div>
+      <div class="campo"><label>{{ _('Desconto por volume') }}</label><input type="text" name="descontos_volume" value="{{ p.descontos_volume if p else '' }}" maxlength="80" placeholder="50:15;150:30"><div class="ajuda">{{ _('acima de 50 pessoas 15%; acima de 150, 30%') }}</div></div>
     </div>
   </fieldset>
   <div class="campo"><label>{{ _('Benefícios (um por linha)') }}</label><textarea name="descricao" maxlength="1000" style="min-height:76px">{{ p.descricao if p else '' }}</textarea></div>
