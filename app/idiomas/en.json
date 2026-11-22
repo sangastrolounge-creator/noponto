@@ -1218,6 +1218,7 @@
  "Este turno já está oferecido.": "This shift is already on offer.",
  "Este turno não está mais disponível.": "This shift is no longer available.",
  "Este turno é para o cargo {v1}.": "This shift is for the {v1} role.",
+ "Este vídeo está em HEVC (H.265), formato que o Chrome no computador não toca. Exporte de novo em H.264 (MP4 “mais compatível”) e envie outra vez.": "This video is HEVC (H.265), a format Chrome on desktop can't play. Export it again as H.264 (“most compatible” MP4) and upload it again.",
  "Este é o seu acesso ao painel da": "This is your access to the dashboard of",
  "Este é o seu acesso à escala e ao ponto da": "This is your access to the schedule and time clock of",
  "Este é um aviso de teste do Master. Se chegou, os avisos estão funcionando.": "This is a test notice from Master. If it arrived, notices are working.",

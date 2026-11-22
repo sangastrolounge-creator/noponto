@@ -258,12 +258,33 @@ async def receber_pedaco(request: Request, envio: str, i: int, n: int, u: Usuari
         return JSONResponse({"ok": True})
     with open(parte, "rb") as f:
         ext = tipo_do_arquivo(f.read(16))
+    codec = codec_do_video(parte) if ext == "mp4" else ""
+    if codec == "hevc":
+        parte.unlink(missing_ok=True)
+        return JSONResponse({"erro": "Este vídeo está em HEVC (H.265), formato que o Chrome no computador não toca. "
+                                     "Exporte de novo em H.264 (MP4 “mais compatível”) e envie outra vez."}, 415)
     nome = f"{secrets.token_hex(12)}.{ext}"
     parte.replace(MIDIA_DIR / nome)
     for velho in PARTES_DIR.iterdir():   # restos de envios abandonados
         if velho.stat().st_mtime < time.time() - 6 * 3600:
             velho.unlink(missing_ok=True)
     return JSONResponse({"url": f"/midia/{nome}"})
+
+
+def codec_do_video(caminho: Path) -> str:
+    """"hevc", "h264" ou "" pelo nome do codec gravado no MP4 (caixa stsd), lido em blocos."""
+    achou, resto = set(), b""
+    with open(caminho, "rb") as f:
+        while True:
+            bloco = f.read(4 * 1024 * 1024)
+            if not bloco:
+                break
+            janela = resto + bloco
+            for marca, nome in ((b"avc1", "h264"), (b"hvc1", "hevc"), (b"hev1", "hevc")):
+                if marca in janela:
+                    achou.add(nome)
+            resto = janela[-8:]
+    return "h264" if "h264" in achou else "hevc" if "hevc" in achou else ""
 
 
 def video_info(v: str) -> dict | None:
