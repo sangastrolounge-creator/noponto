@@ -30,7 +30,17 @@ def dados() -> dict:
         "foro": (p.get("estado_lei") or "").strip(),   # cidade/UF do foro (coluna antiga: estado_lei)
         "pais": (p.get("pais_servidores") or "").strip() or "Brasil",
         "versao": date.fromisoformat(VERSAO),
+        "rep": _rep(),
     }
+
+
+def _rep() -> dict:
+    """Situação do REP-P (Portaria 671) para o texto dos Termos de Uso."""
+    from . import rep
+    from .db import SessionLocal
+    with SessionLocal() as db:
+        s = rep.situacao(db)
+    return {"completo": s["completo"], "inpi": rep.digitos(s["config"]["inpi"])}
 
 
 def registrar_aceite(u) -> None:

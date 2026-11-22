@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Portaria 671 e o registro de ponto — {v1}', v1=app_nome) }}{% endblock %}
+{% block corpo %}
+{% from "_marca.html" import logo_nome %}
+{% from "_idioma.html" import seletor %}
+<main class="legal p671">
+  <div class="legal-topo">
+    <a class="marca marca-nome" href="/">{{ logo_nome() }}</a>
+    {{ seletor() }}
+  </div>
+  <article class="cartao legal-texto">
+    <p class="p671-selo {{ 'ok' if s.completo else 'andamento' }}">
+      {% if s.completo %}{{ _('REP-P registrado no INPI · nº {v1}', v1=inpi) }}{% else %}{{ _('Registro no INPI em andamento') }}{% endif %}
+    </p>
+    <h1>{{ _('Ponto pelo celular dentro da Portaria 671') }}</h1>
+    <p class="lead">{{ _('A Portaria MTP nº 671/2021 criou o REP-P, o registro eletrônico de ponto via programa: o ponto batido pelo celular, pelo navegador ou pelo tablet, com as mesmas garantias do relógio de ponto. Veja como o {v1} atende a cada exigência.', v1=app_nome) }}</p>
+
+    <h2>{{ _('O que a portaria exige e como atendemos') }}</h2>
+    <table class="p671-tabela">
+      <thead><tr><th>{{ _('Exigência') }}</th><th>{{ _('Como o {v1} atende', v1=app_nome) }}</th></tr></thead>
+      <tbody>
+        <tr><td>{{ _('Identificar a empresa e o trabalhador') }}</td><td>{{ _('Cada marcação guarda o CNPJ ou CPF da empresa e o CPF do trabalhador, que entra com login próprio, PIN no totem ou reconhecimento facial.') }}</td></tr>
+        <tr><td>{{ _('Relógio com horas, minutos e segundos') }}</td><td>{{ _('A tela de bater o ponto e o totem mostram a hora do servidor, sincronizado com a hora oficial, com os segundos.') }}</td></tr>
+        <tr><td>{{ _('Marcações que não podem ser alteradas nem apagadas') }}</td><td>{{ _('Cada marcação recebe um número sequencial (NSR) e um código SHA-256 ligado à marcação anterior: qualquer mudança quebra a sequência. Correções do gestor entram separadas, com o motivo, e a marcação original continua guardada.') }}</td></tr>
+        <tr><td>{{ _('Comprovante de Registro de Ponto do Trabalhador') }}</td><td>{{ _('Depois de cada batida, o trabalhador abre no app o comprovante em PDF, com NSR, data, hora e código de verificação, assinado digitalmente.') }}</td></tr>
+        <tr><td>{{ _('Arquivo Fonte de Dados (AFD)') }}</td><td>{{ _('Gerado no leiaute oficial do REP-P, para qualquer período, com assinatura digital CAdES em arquivo .p7s.') }}</td></tr>
+        <tr><td>{{ _('Arquivo Eletrônico de Jornada (AEJ)') }}</td><td>{{ _('Gerado pelo programa de tratamento no leiaute oficial: marcações, inclusões com motivo, folgas, faltas e banco de horas.') }}</td></tr>
+        <tr><td>{{ _('Espelho de ponto') }}</td><td>{{ _('Folha de ponto mensal de cada trabalhador no Fechamento, pronta para imprimir e assinar.') }}</td></tr>
+        <tr><td>{{ _('Registro do programa no INPI') }}</td><td>{% if s.completo %}{{ _('Registrado sob o nº {v1}.', v1=inpi) }}{% else %}{{ _('Pedido em andamento. Esta página é atualizada quando o certificado sair.') }}{% endif %}</td></tr>
+        <tr><td>{{ _('Atestado Técnico e Termo de Responsabilidade') }}</td><td>{{ _('Cada empresa cliente baixa o seu no painel, assinado pelos responsáveis do desenvolvedor com certificado ICP-Brasil.') }}</td></tr>
+        <tr><td>{{ _('Disponibilidade e guarda dos dados') }}</td><td>{{ _('Servidor em nuvem com cópias de segurança. Os eventos de serviço disponível e indisponível ficam registrados no AFD.') }}</td></tr>
+      </tbody>
+    </table>
+
+    <h2>{{ _('Perguntas frequentes') }}</h2>
+    <h3>{{ _('Preciso de acordo coletivo para usar o REP-P?') }}</h3>
+    <p>{{ _('Não. Segundo o Ministério do Trabalho, a autorização em acordo ou convenção coletiva é exigida para o REP-A, não para o REP-P. Confira sempre a convenção da sua categoria.') }}</p>
+    <h3>{{ _('O REP-P precisa de homologação do Ministério?') }}</h3>
+    <p>{{ _('Não existe homologação do Ministério para o REP-P. A portaria exige os requisitos técnicos do Anexo IX e o registro do programa no INPI.') }}</p>
+    <h3>{{ _('O que eu entrego para o fiscal?') }}</h3>
+    <p>{{ _('O AFD e o AEJ do período pedido, com as assinaturas (.p7s), e o Atestado Técnico e Termo de Responsabilidade. Tudo sai do painel em Conformidade → Portaria 671.') }}</p>
+    <h3>{{ _('O que a minha empresa precisa fazer?') }}</h3>
+    <p>{{ _('Cadastrar o CNPJ (ou CPF) da empresa e o CPF de cada trabalhador, e guardar o Atestado Técnico. O resto o sistema faz sozinho.') }}</p>
+
+    <p class="suave pequeno">{{ _('Informação de apoio, não substitui a orientação do seu contador ou advogado.') }}</p>
+    <p style="margin-top:20px"><a class="botao" href="/cadastro">{{ _('Testar grátis') }}</a> <a class="botao claro" href="/">{{ _('Conhecer o {v1}', v1=app_nome) }}</a></p>
+  </article>
+</main>
+{% endblock %}

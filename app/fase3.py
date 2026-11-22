@@ -202,7 +202,7 @@ def _estado(t: Totem) -> dict:
     agora_u = banco.agora()
     al = regras.para_local(t.empresa, agora_u)
     return {"codigo": regras.codigo_totem(t), "resta": 60 - agora_u.second,
-            "hora": al.strftime("%H:%M")}
+            "hora": al.strftime("%H:%M:%S")}
 
 
 @rota.get("/totem")

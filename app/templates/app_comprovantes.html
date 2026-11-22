@@ -1,0 +1,15 @@
+{% extends "app_base.html" %}
+{% block saudacao %}{{ _('Meus comprovantes') }}{% endblock %}
+{% block conteudo %}
+<section class="cartao">
+  <h2>{{ _('Comprovantes de Registro de Ponto') }}</h2>
+  <p class="suave pequeno">{{ _('Cada batida gera um comprovante com o número sequencial (NSR) e um código de verificação. Toque para abrir o PDF. Aqui ficam os dos últimos 31 dias.') }}</p>
+  {% if regs %}
+  <ul class="lista-comprovantes">
+    {% for r in regs %}
+    <li><a href="/app/comprovante/{{ r.nsr }}.pdf" target="_blank" rel="noopener"><strong>{{ local(e, r.marcacao_em, '%d/%m/%Y %H:%M') }}</strong> <span class="suave pequeno">· NSR {{ '%09d'|format(r.nsr) }}</span></a></li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="suave">{{ _('Nenhum comprovante ainda. Ele aparece aqui assim que você bater o ponto.') }}</p>{% endif %}
+</section>
+{% endblock %}

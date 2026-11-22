@@ -512,7 +512,7 @@ ROTAS_PERMISSAO = (
     ("/painel/equipe", "equipe"), ("/painel/setores", "equipe"),
     ("/painel/locais", "locais"), ("/painel/totens", "locais"),
     ("/painel/relatorios", "ponto"), ("/painel/conformidade", "ponto"), ("/painel/importar-equipe", "equipe"), ("/painel/perguntas", "ponto"), ("/painel/cerca", "locais"),
-    ("/painel/gerentes", "dono"), ("/painel/config", "dono"),
+    ("/painel/gerentes", "dono"), ("/painel/config", "dono"), ("/painel/portaria671", "ponto"),
 )
 
 

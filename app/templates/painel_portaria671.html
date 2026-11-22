@@ -1,0 +1,52 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Portaria 671 (REP-P)') }}</h1>
+    <p class="suave" style="margin:0">{{ _('Registro eletrônico de ponto via programa: comprovantes do trabalhador e arquivos para a fiscalização do trabalho.') }}</p></div>
+</div>
+
+{% if plat671.completo %}
+<div class="aviso">{{ _('O {v1} está registrado no INPI como REP-P (nº {v2}) e assina os arquivos com certificado digital ICP-Brasil.', v1=app_nome, v2=plat671.config.inpi) }}</div>
+{% else %}
+<div class="alerta">{{ _('O registro do programa no INPI e a assinatura digital estão sendo concluídos. As marcações já são gravadas com NSR e código de verificação, e os arquivos podem ser gerados para conferência, mas só terão valor para a fiscalização quando esta mensagem sumir.') }}</div>
+{% endif %}
+
+<form method="post" action="/painel/portaria671" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Dados do empregador') }}</h2>
+  <p class="suave pequeno">{{ _('Vão no comprovante, no AFD e no AEJ. Toda mudança fica registrada no histórico oficial (ARP).') }}</p>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <div class="campo"><label for="doc">{{ _('CNPJ ou CPF da empresa') }}</label><input type="text" id="doc" name="cpf_cnpj" value="{{ e.cpf_cnpj }}" inputmode="numeric" maxlength="18" {{ 'disabled' if not u.dono }}></div>
+    <div class="campo"><label for="cno">{{ _('CNO ou CAEPF (se tiver)') }}</label><input type="text" id="cno" name="rep_cno" value="{{ e.rep_cno }}" inputmode="numeric" maxlength="18" {{ 'disabled' if not u.dono }}></div>
+    <div class="campo"><label for="resp">{{ _('CPF do responsável pelo cadastro') }}</label><input type="text" id="resp" name="rep_cpf_resp" value="{{ e.rep_cpf_resp }}" inputmode="numeric" maxlength="14" {{ 'disabled' if not u.dono }}><div class="ajuda">{{ _('Quem inclui e altera os funcionários.') }}</div></div>
+  </div>
+  <div class="campo"><label for="local">{{ _('Local da prestação do serviço') }}</label><input type="text" id="local" name="rep_local" value="{{ e.rep_local }}" maxlength="100" placeholder="{{ e.endereco }}" {{ 'disabled' if not u.dono }}><div class="ajuda">{{ _('Em branco = endereço da empresa.') }}</div></div>
+  {% if u.dono %}<button class="botao" type="submit">{{ _('Salvar') }}</button>{% endif %}
+  {% if not doc_ok %}<p class="aviso erro" style="margin-top:12px">{{ _('Informe o CNPJ ou CPF da empresa: sem ele o AFD e o AEJ ficam incompletos.') }}</p>{% endif %}
+</form>
+
+<div class="cartao">
+  <h2>{{ _('CPF dos trabalhadores') }}</h2>
+  {% if sem_cpf %}
+  <p>{{ _('{v1} pessoa(s) na escala sem CPF. O REP-P identifica o trabalhador pelo CPF: cadastre na ficha de cada um.', v1=sem_cpf|length) }}</p>
+  <ul>{% for p in sem_cpf %}<li><a href="/painel/equipe/{{ p.id }}/ficha#documentos">{{ p.nome }}</a></li>{% endfor %}</ul>
+  {% else %}<p class="suave">{{ _('Todos na escala têm CPF cadastrado.') }}</p>{% endif %}
+</div>
+
+<form method="get" class="cartao" id="arquivos">
+  <h2>{{ _('Arquivos para a fiscalização') }}</h2>
+  <p class="suave pequeno">{{ _('AFD: as marcações originais e os cadastros, com NSR e código hash. AEJ: a jornada tratada (marcações, inclusões com motivo, folgas, faltas e banco de horas). Cada arquivo vem num ZIP com a assinatura digital (.p7s).') }}</p>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));align-items:end">
+    <div class="campo"><label for="ini">{{ _('De') }}</label><input type="date" id="ini" name="ini" value="{{ ini.isoformat() }}"></div>
+    <div class="campo"><label for="fim">{{ _('Até') }}</label><input type="date" id="fim" name="fim" value="{{ fim.isoformat() }}"></div>
+    <div class="campo"><button class="botao" type="submit" formaction="/painel/portaria671/afd">{{ _('Baixar AFD') }}</button></div>
+    <div class="campo"><button class="botao claro" type="submit" formaction="/painel/portaria671/aej">{{ _('Baixar AEJ') }}</button></div>
+  </div>
+  <p class="pequeno"><a href="/painel/portaria671/atestado.pdf">{{ _('Baixar o Atestado Técnico e Termo de Responsabilidade (PDF)') }}</a> · <span class="suave">{{ _('{v1} registro(s) gravados no ARP da empresa.', v1=total) }}</span></p>
+</form>
+
+<div class="cartao">
+  <h2>{{ _('Comprovante do trabalhador') }}</h2>
+  <p class="suave">{{ _('Depois de cada batida, o trabalhador encontra o Comprovante de Registro de Ponto em PDF no app, em “Meus comprovantes”, sem precisar pedir. O espelho de ponto de cada mês continua em Fechamento.') }}</p>
+</div>
+{% endblock %}

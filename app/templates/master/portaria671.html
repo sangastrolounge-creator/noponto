@@ -1,0 +1,43 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Portaria 671 (REP-P)') }}</h1><p class="suave" style="margin:0">{{ _('Dados do desenvolvedor, número do registro no INPI e certificados ICP-Brasil A1 que assinam comprovantes, AFD, AEJ e o Atestado Técnico.') }} <a href="/portaria-671" target="_blank">{{ _('Página pública') }}</a></p></div></div>
+{% if s.completo %}
+<div class="aviso">{{ _('Tudo pronto: o sistema se apresenta como REP-P registrado no INPI.') }}</div>
+{% else %}
+<div class="alerta"><strong>{{ _('Falta:') }}</strong> {{ s.faltam|join(' · ') }}. {{ _('Enquanto faltar algo, a página pública e os Termos de Uso dizem que o registro está em andamento.') }}</div>
+{% endif %}
+<form method="post" action="/master/portaria671" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Programa e desenvolvedor') }}</h2>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <div class="campo"><label>{{ _('Nome do programa') }}</label><input type="text" name="programa" value="{{ s.config.programa }}" maxlength="150"></div>
+    <div class="campo"><label>{{ _('Versão') }}</label><input type="text" name="versao" value="{{ s.config.versao }}" maxlength="8"></div>
+    <div class="campo"><label>{{ _('Nº do registro no INPI') }}</label><input type="text" name="inpi" value="{{ s.config.inpi }}" maxlength="20" placeholder="BR512026000000"></div>
+    <div class="campo"><label>{{ _('CNPJ do desenvolvedor') }}</label><input type="text" name="dev_doc" value="{{ s.config.dev_doc }}" inputmode="numeric" maxlength="18"></div>
+    <div class="campo"><label>{{ _('Razão social') }}</label><input type="text" name="dev_razao" value="{{ s.config.dev_razao }}" maxlength="150"></div>
+    <div class="campo"><label>{{ _('E-mail do desenvolvedor') }}</label><input type="email" name="dev_email" value="{{ s.config.dev_email }}" maxlength="50"></div>
+  </div>
+  <div class="campo"><label>{{ _('Endereço do desenvolvedor') }}</label><input type="text" name="dev_endereco" value="{{ s.config.dev_endereco }}" maxlength="200"></div>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <div class="campo"><label>{{ _('Responsável legal') }}</label><input type="text" name="legal_nome" value="{{ s.config.legal_nome }}" maxlength="150"></div>
+    <div class="campo"><label>{{ _('CPF do responsável legal') }}</label><input type="text" name="legal_cpf" value="{{ s.config.legal_cpf }}" inputmode="numeric" maxlength="14"></div>
+    <div class="campo"><label>{{ _('Responsável técnico') }}</label><input type="text" name="tec_nome" value="{{ s.config.tec_nome }}" maxlength="150"></div>
+    <div class="campo"><label>{{ _('CPF do responsável técnico') }}</label><input type="text" name="tec_cpf" value="{{ s.config.tec_cpf }}" inputmode="numeric" maxlength="14"></div>
+  </div>
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+{% for tipo, rotulo in CERTS.items() %}{% set c = s.certs[tipo] %}
+<form method="post" action="/master/portaria671/certificado" class="cartao" enctype="multipart/form-data">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="tipo" value="{{ tipo }}">
+  <h2>{{ _(rotulo) }}</h2>
+  {% if c %}<p>{{ c.nome }} · {{ _('válido até {v1}', v1=c.valido_ate.strftime('%d/%m/%Y')) }}{% if c.vencido %} · <strong>{{ _('vencido') }}</strong>{% endif %}</p>{% else %}<p class="suave">{{ _('Nenhum certificado enviado.') }}</p>{% endif %}
+  {% if tipo == 'tecnico' %}<p class="suave pequeno">{{ _('Se a mesma pessoa for responsável legal e técnico, basta o certificado do responsável legal.') }}</p>{% endif %}
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:end">
+    <div class="campo"><label>{{ _('Arquivo A1 (.pfx ou .p12)') }}</label><input type="file" name="arquivo" accept=".pfx,.p12,application/x-pkcs12"></div>
+    <div class="campo"><label>{{ _('Senha do certificado') }}</label><input type="password" name="senha" autocomplete="new-password"></div>
+    <div class="campo"><button class="botao" type="submit">{{ _('Enviar certificado') }}</button></div>
+  </div>
+  {% if c %}<button class="botao link" type="submit" name="remover" value="1" formnovalidate>{{ _('Remover certificado') }}</button>{% endif %}
+</form>
+{% endfor %}
+{% endblock %}
