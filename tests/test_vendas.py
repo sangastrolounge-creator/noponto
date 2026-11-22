@@ -153,6 +153,28 @@ def main():
     assert "não é um arquivo aceito" in ed and "No ar, com alterações não publicadas" in ed, "erro salva rascunho mas não publica"
     assert not publicado()["solucao"]["video"]
     assert re.search(r'<video src="/midia/[a-f0-9]{24}\.mp4"', ed)
+    # --- vídeo grande em pedaços (o proxy corta envios longos de uma vez só)
+    grande = MP4 + bytes(range(256)) * 40000          # ~10 MB: 2 pedaços
+    PED = 8 * 1024 * 1024
+    partes = [grande[:PED], grande[PED:]]
+    url = "/master/midia/pedaco?envio=" + "ab" * 12
+    assert m.post(url + "&i=0&n=2", content=partes[0], headers={"content-type": "application/octet-stream"}).status_code == 403  # sem CSRF
+    h = {"X-CSRF": tm, "content-type": "application/octet-stream"}
+    assert m.post("/master/midia/pedaco?envio=" + "cd" * 12 + "&i=0&n=1", content=b"<html>nao sou video</html>" * 10, headers=h).status_code == 415
+    assert m.post("/master/midia/pedaco?envio=" + "ef" * 12 + "&i=1&n=2", content=partes[1], headers=h).status_code == 409
+    assert m.post("/master/midia/pedaco?envio=../x&i=0&n=1", content=partes[0], headers=h).status_code in (400, 422)
+    assert anon.post(url + "&i=0&n=2", content=partes[0], headers=h).status_code in (303, 403)
+    assert m.post(url + "&i=0&n=2", content=partes[0], headers=h).json() == {"ok": True}
+    fim = m.post(url + "&i=1&n=2", content=partes[1], headers=h).json()
+    assert re.fullmatch(r"/midia/[a-f0-9]{24}\.mp4", fim["url"]), fim
+    assert anon.get(fim["url"]).content == grande
+    c4 = publicado()
+    form4 = formulario(c4, tm, "salvar") + [("topo__video_enviado", fim["url"])]
+    enviar(m, form4)
+    assert fim["url"] in m.get("/master/pagina").text
+    form5 = formulario(c4, tm, "salvar") + [("topo__video_enviado", "/midia/" + "0" * 24 + ".mp4")]   # não existe
+    enviar(m, form5)
+    assert "0" * 24 not in m.get("/master/pagina").text
     c3 = publicado()
     c3["demo"]["video"] = "https://malicioso.example/v"
     enviar(m, formulario(c3, tm, "salvar"))

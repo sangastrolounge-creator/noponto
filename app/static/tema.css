@@ -629,3 +629,7 @@ a.botao-google:hover { border-color: color-mix(in srgb, var(--ent1) 40%, var(--b
 :root[data-lateral="recolhida"] .topo .marca .marca-icone { display: block; }
 @media (max-width: 1100px) { .topo .marca .logo-nome.na-lateral { --ln-altura: 28px; } }
 @media (max-width: 960px) { .ent-marca .logo-nome { --ln-altura: 32px; } }
+/* envio de vídeo em partes (Master → Página de vendas) */
+.envio-video { margin-top: 8px; }
+.envio-barra { height: 10px; border-radius: 99px; background: var(--cartao-2); overflow: hidden; border: 1px solid var(--borda); }
+.envio-barra i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--cor), #38bdf8); transition: width .3s; }

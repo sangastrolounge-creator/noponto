@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile
@@ -224,6 +224,48 @@ async def salvar_midia(up: UploadFile, tipos: tuple, limite: int) -> str:
     return f"/midia/{nome}"
 
 
+# ------------------------------------------------------------ envio em partes
+# Vídeos grandes vão em pedaços de até 8 MB, um pedido por pedaço: nenhum pedido passa do
+# tempo limite do proxy (Traefik corta envios longos) e a tela mostra o andamento.
+PARTES_DIR = MIDIA_DIR / "partes"
+PEDACO_MAX = 8 * 1024 * 1024
+RE_ENVIO = re.compile(r"^[a-f0-9]{24}$")
+
+
+@router.post("/master/midia/pedaco", dependencies=[Depends(exigir_csrf)])
+async def receber_pedaco(request: Request, envio: str, i: int, n: int, u: Usuario = Depends(admin_logado)):
+    if not RE_ENVIO.match(envio) or not (0 <= i < n <= LIMITE_VIDEO // (1024 * 1024) + 1):
+        return JSONResponse({"erro": "Envio inválido."}, 400)
+    PARTES_DIR.mkdir(parents=True, exist_ok=True)
+    parte = PARTES_DIR / f"{envio}.part"
+    if i == 0:
+        parte.unlink(missing_ok=True)
+    elif not parte.exists():
+        return JSONResponse({"erro": "O envio foi interrompido. Escolha o arquivo de novo."}, 409)
+    dados = bytearray()
+    async for bloco in request.stream():
+        dados += bloco
+        if len(dados) > PEDACO_MAX:
+            return JSONResponse({"erro": "Pedaço grande demais."}, 413)
+    if i == 0 and tipo_do_arquivo(bytes(dados[:16])) not in VIDEOS:
+        return JSONResponse({"erro": "O arquivo precisa ser um vídeo MP4 ou WEBM."}, 415)
+    with open(parte, "ab") as f:
+        f.write(dados)
+    if parte.stat().st_size > LIMITE_VIDEO:
+        parte.unlink(missing_ok=True)
+        return JSONResponse({"erro": f"O vídeo passa do limite de {LIMITE_VIDEO // (1024 * 1024)} MB."}, 413)
+    if i < n - 1:
+        return JSONResponse({"ok": True})
+    with open(parte, "rb") as f:
+        ext = tipo_do_arquivo(f.read(16))
+    nome = f"{secrets.token_hex(12)}.{ext}"
+    parte.replace(MIDIA_DIR / nome)
+    for velho in PARTES_DIR.iterdir():   # restos de envios abandonados
+        if velho.stat().st_mtime < time.time() - 6 * 3600:
+            velho.unlink(missing_ok=True)
+    return JSONResponse({"url": f"/midia/{nome}"})
+
+
 def video_info(v: str) -> dict | None:
     """Como exibir um vídeo: arquivo enviado, YouTube ou Vimeo. None se não for válido."""
     v = (v or "").strip()
@@ -247,6 +289,9 @@ async def _ler_midia(form, base: str, tipos: tuple, limite: int, erros: list) ->
             return await salvar_midia(up, tipos, limite)
         except ValueError as e:
             erros.append(str(e))
+    enviado = str(form.get(f"{base}_enviado") or "")
+    if enviado and RE_MIDIA.match(enviado) and enviado.rsplit(".", 1)[1] in tipos and (MIDIA_DIR / enviado[7:]).is_file():
+        return enviado
     if tipos is VIDEOS:
         link = str(form.get(f"{base}_link") or "").strip()
         if link:
