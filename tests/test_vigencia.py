@@ -62,6 +62,19 @@ def main():
                                                     "ponto_desde": "31/02/2026x"})
     assert "Data de vigência inválida" in r.text
 
+    # ---- em branco: libera na hora
+    r = g.post(f"/painel/equipe/{aid}/ficha", data={"csrf": t, "nome": "Ana Souza", "celular": "98999990001",
+                                                    "nivel": "funcionario", "classificacao": "clt",
+                                                    "ponto_desde": ""})
+    assert r.status_code == 303
+    with SessionLocal() as db:
+        assert db.get(Usuario, aid).ponto_desde is None
+
+    r = g.post(f"/painel/equipe/{aid}/ficha", data={"csrf": t, "nome": "Ana Souza", "celular": "98999990001",
+                                                    "nivel": "funcionario", "classificacao": "clt",
+                                                    "data_admissao": "2026-11-23", "ponto_desde": "2026-12-01"})
+    assert r.status_code == 303
+
     # ---- antes da vigência: não bate o ponto
     with SessionLocal() as db:
         try:
@@ -76,14 +89,6 @@ def main():
     with SessionLocal() as db:
         b, _ = regras.bater(db, db.get(Usuario, aid), None, None, None, aparelho="aparelho-ana-123", ua="teste")
         assert b.id and b.usuario_id == aid
-
-    # ---- em branco: libera na hora
-    r = g.post(f"/painel/equipe/{aid}/ficha", data={"csrf": t, "nome": "Ana Souza", "celular": "98999990001",
-                                                    "nivel": "funcionario", "classificacao": "clt",
-                                                    "ponto_desde": ""})
-    assert r.status_code == 303
-    with SessionLocal() as db:
-        assert db.get(Usuario, aid).ponto_desde is None
 
     # ---- importação por planilha aceita a coluna Vigência
     from app import importar
