@@ -63,6 +63,7 @@ def _ler(form, e) -> tuple[dict, str | None]:
     classe = str(form.get("classificacao", "clt"))
     inicio = data_iso(str(form.get("data_admissao", "")), None) if form.get("data_admissao") else None
     nasc = data_iso(str(form.get("nascimento", "")), None) if form.get("nascimento") else None
+    vigencia = data_iso(str(form.get("ponto_desde", "")), None) if form.get("ponto_desde") else None
     funcs = []
     for i in range(MAX_FUNCOES):
         fn = str(form.get(f"funcao_{i}", "")).strip()[:80]
@@ -83,7 +84,7 @@ def _ler(form, e) -> tuple[dict, str | None]:
     dependentes = inteiro("dependentes", 0, 0, 30)
     vt = ler_centavos(str(form.get("vt", "")).strip() or "0")
     d = {"nome": nome, "jornada_mensal": jornada, "dependentes": dependentes, "vt": vt, "email": email, "celular": cel, "nivel": nivel, "classificacao": classe,
-         "data_admissao": inicio, "nascimento": nasc, "funcoes": funcs, "gorjeta": bool(form.get("gorjeta")),
+         "data_admissao": inicio, "ponto_desde": vigencia, "nascimento": nasc, "funcoes": funcs, "gorjeta": bool(form.get("gorjeta")),
          "local_id": int(form["local_id"]) if str(form.get("local_id", "")).isdigit() else None,
          "setor_id": int(form["setor_id"]) if str(form.get("setor_id", "")).isdigit() else None,
          "na_escala": bool(form.get("na_escala")), "convidar": bool(form.get("convidar"))}
@@ -101,6 +102,8 @@ def _ler(form, e) -> tuple[dict, str | None]:
         return d, "Celular inválido: use o DDD (ex.: 98 99999-1234)."
     if form.get("data_admissao") and not inicio:
         return d, "Data de admissão inválida."
+    if form.get("ponto_desde") and not vigencia:
+        return d, "Data de vigência inválida."
     if jornada is None:
         return d, "Jornada mensal: use as horas por mês (220 para 44 h por semana, 180 para 36 h, 150 para 30 h)."
     if dependentes is None:
@@ -119,6 +122,7 @@ def _aplicar(db: Session, e, alvo: Usuario, d: dict) -> None:
     s = db.get(Setor, d["setor_id"]) if d.get("setor_id") else None
     alvo.setor_id = s.id if s and s.empresa_id == e.id else None
     alvo.nascimento = d["nascimento"]
+    alvo.ponto_desde = d.get("ponto_desde")
     alvo.jornada_mensal, alvo.dependentes, alvo.vt_centavos = d["jornada_mensal"], d["dependentes"], d["vt"]
     if not alvo.dono:
         if d["nivel"] == "funcionario":

@@ -36,6 +36,8 @@ COLUNAS = {
     "gorjeta": ("tips", "tipped", "receives tips", "gorjeta", "recebe gorjeta", "propinas"),
     "inicio": ("admissão", "admissao", "data de admissão", "data de admissao", "data de início", "data de inicio",
                "hire date", "start date", "fecha de ingreso"),
+    "vigencia": ("vigência", "vigencia", "vigência do ponto", "vigencia do ponto", "início do ponto", "inicio do ponto",
+                 "ponto a partir de"),
     "nascimento": ("birth date", "date of birth", "dob", "birthday", "data de nascimento", "nascimento", "fecha de nacimiento"),
     "classificacao": ("contrato", "tipo de contrato", "vínculo", "vinculo", "classificação", "classificacao", "tipo",
                       "classification", "employment type"),
@@ -136,12 +138,13 @@ def ler(conteudo: str, db: Session, empresa_id: int) -> tuple[list[dict], str | 
         if dep and not dep.isdigit():
             erros.append("dependentes inválido")
         datas = {}
-        for k in ("inicio", "nascimento"):
+        for k in ("inicio", "nascimento", "vigencia"):
             if col(k):
                 try:
                     datas[k] = _data(col(k))
                 except ValueError:
-                    erros.append("data de admissão inválida" if k == "inicio" else "data de nascimento inválida")
+                    erros.append({"inicio": "data de admissão inválida", "vigencia": "data de vigência inválida"}.get(
+                        k, "data de nascimento inválida"))
         classe = col("classificacao").lower().replace(" ", "").replace("-", "")
         if classe and classe not in CONTRATOS:
             erros.append("contrato não reconhecido (use CLT, Aprendiz, Intermitente, Estágio ou PJ)")
@@ -152,7 +155,7 @@ def ler(conteudo: str, db: Session, empresa_id: int) -> tuple[list[dict], str | 
         linhas.append({"linha": n, "erros": erros, "dados": {
             "nome": nome[:120], "celular": cel, "email": email, "cargo": col("cargo")[:80], "valor": valor,
             "tipo_valor": tipo_valor, "jornada": jornada, "dependentes": dependentes,
-            "gorjeta": col("gorjeta").lower() in SIM, "inicio": datas.get("inicio"),
+            "gorjeta": col("gorjeta").lower() in SIM, "inicio": datas.get("inicio"), "vigencia": datas.get("vigencia"),
             "nascimento": datas.get("nascimento"), "classificacao": classe}})
     if not linhas:
         return [], "Nenhuma pessoa encontrada na planilha."
@@ -213,7 +216,7 @@ def confirmar(request: Request, conteudo: str = Form(""), u: Usuario = Depends(g
                     cargo=d["cargo"], papel="funcionario", convite_token=secrets.token_urlsafe(18),
                     salario_centavos=d["valor"] * (d["jornada"] if d["tipo_valor"] == "hora" else 1),
                     jornada_mensal=d["jornada"], dependentes=d["dependentes"],
-                    gorjeta=d["gorjeta"], data_admissao=d["inicio"],
+                    gorjeta=d["gorjeta"], data_admissao=d["inicio"], ponto_desde=d.get("vigencia"),
                     nascimento=d["nascimento"], classificacao=d["classificacao"])
         db.add(p)
         db.flush()
