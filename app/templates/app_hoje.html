@@ -57,14 +57,16 @@
   </div>
   {% set pausa = e.intervalo_obrigatorio and turno and not turno.folga and turno.intervalo_min %}
   {% set n = batidas|length %}
-  {% set so_totem = not gps_liberado(e) %}
+  {% set antes_vigencia = u.ponto_desde and dia < u.ponto_desde %}
+  {% set so_totem = not gps_liberado(e) or antes_vigencia %}
+  {% if antes_vigencia %}<p class="alerta" style="margin-top:14px">{{ _('Seu registro de ponto começa em {v1}. Até lá você pode conhecer o app; o ponto ainda não é registrado.', v1=(u.ponto_desde.strftime('%d/%m/%Y'))) }}</p>{% else %}
   {% if so_totem %}<p class="alerta" style="margin-top:14px">{{ _('Na sua empresa o ponto é batido no totem (o tablet da empresa).') }} {{ _('Use o seu PIN nele ou digite abaixo o código que aparece na tela.') if tem_totem else _('Fale com o gestor para ativar o totem.') }}</p>{% endif %}
   <button type="button" id="bater" class="botao-ponto {{ 'saida' if aberta }}" {{ 'hidden' if so_totem }}>{{ (_('Sair para o intervalo') if pausa and n == 1 else _('Bater saída')) if aberta else (_('Voltar do intervalo') if pausa and n == 2 else _('Bater ponto')) }}</button>
   <div class="suave pequeno">{% if aberta %}{{ _('Você entrou às {v1}.', v1=(local(e, aberta.momento))) }}{% if pausa and n == 1 %} {{ _('Seu intervalo é de {v1} min: bata a saída ao parar e a entrada ao voltar.', v1=(turno.intervalo_min)) }}{% endif %}{% elif pausa and n == 2 %}{{ _('Você saiu para o intervalo às {v1}.', v1=(local(e, batidas[-1].momento))) }}{% elif not so_totem %}{{ _('Vamos conferir se você está na empresa.') }}{% endif %}</div>
   <div id="retorno" class="retorno" role="status" hidden></div>
   <p class="pequeno" style="margin:10px 0 0"><a href="/app/comprovantes">{{ _('Meus comprovantes de ponto') }}</a></p>
   {% if tem_totem %}
-  <details class="totem-app" {{ 'open' if codigo or so_totem }}>
+  <details class="totem-app" {{ 'open' if codigo or (so_totem and not antes_vigencia) }}>
     <summary>{{ _('Usar o código do totem') }}</summary>
     <p class="suave pequeno">{{ _('Digite os 6 números que aparecem no tablet da empresa. Não precisa de GPS.') }}</p>
     <div class="linha-codigo">

@@ -327,6 +327,8 @@ class Usuario(Base):
     # Ficha: tipo de contrato (clt | aprendiz | intermitente | estagio | pj), admissão e local principal.
     classificacao: Mapped[str] = mapped_column(String(12), default="clt")
     data_admissao: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Vigência: primeiro dia em que o ponto pode ser registrado no Data Worke (migração, treinamento).
+    ponto_desde: Mapped[date | None] = mapped_column(Date, nullable=True)
     # Desligamento: último dia de trabalho, tipo (desligamento.TIPOS), aviso prévio e observação.
     desligado_em: Mapped[date | None] = mapped_column(Date, nullable=True)
     desligamento_tipo: Mapped[str] = mapped_column(String(20), default="")
@@ -1223,6 +1225,7 @@ COLUNAS_NOVAS = [
     ("batidas", "conferida", "BOOLEAN NOT NULL DEFAULT 1"),
     ("usuarios", "classificacao", "VARCHAR(12) NOT NULL DEFAULT 'clt'"),
     ("usuarios", "data_admissao", "DATE"),
+    ("usuarios", "ponto_desde", "DATE"),
     ("usuarios", "desligado_em", "DATE"),
     ("usuarios", "desligamento_tipo", "VARCHAR(20) NOT NULL DEFAULT ''"),
     ("usuarios", "aviso_previo", "VARCHAR(16) NOT NULL DEFAULT ''"),

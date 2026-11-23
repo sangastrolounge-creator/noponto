@@ -359,6 +359,9 @@ def bater(db: Session, u: Usuario, lat: float | None, lng: float | None,
     e = u.empresa
     agora_u = banco.agora()
     agora_l = para_local(e, agora_u)
+    if u.ponto_desde and agora_l.date() < u.ponto_desde:
+        raise ErroPonto(f"Seu registro de ponto começa em {u.ponto_desde:%d/%m/%Y}. "
+                        "Até lá você pode conhecer o app, mas o ponto ainda não é registrado.")
     alertas: list[Alerta] = [] if no_totem else conferir_aparelho(db, u, aparelho, ua)
     from .core import exige_foto, foto_liberada, gps_liberado
     if not foto_liberada(e):
@@ -531,6 +534,8 @@ def verificar_turnos(db: Session) -> tuple[list[Alerta], list[tuple[int, str, st
             ini, fim = intervalo(t)
             if al > fim + timedelta(hours=6):
                 continue  # antigo demais para avisar
+            if t.usuario.ponto_desde and t.data < t.usuario.ponto_desde:
+                continue  # antes da vigência: o ponto ainda não é cobrado
             if db.scalar(select(Ausencia.id).where(
                     Ausencia.usuario_id == t.usuario_id, Ausencia.situacao == "aprovado",
                     Ausencia.inicio <= t.data, Ausencia.fim >= t.data).limit(1)):
