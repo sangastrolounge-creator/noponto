@@ -612,6 +612,8 @@ a.botao-google:hover { border-color: color-mix(in srgb, var(--ent1) 40%, var(--b
 /* Logo com o nome: versão clara/escura conforme o tema */
 .logo-nome { display: inline-flex; align-items: center; }
 .logo-nome img { display: block; height: var(--ln-altura, 38px); width: auto; max-width: 100%; }
+/* a logo com o nome nunca é espremida pelas regras do ícone quadrado (.marca img, .caixa .marca img) */
+.marca .logo-nome img, .caixa .marca .logo-nome img { width: auto; height: var(--ln-altura, 38px); max-width: 100%; border-radius: 0; object-fit: contain; }
 .logo-nome .ln-escuro { display: none; }
 :root[data-tema="escuro"] .logo-nome .ln-claro { display: none; }
 :root[data-tema="escuro"] .logo-nome .ln-escuro { display: block; }

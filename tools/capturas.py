@@ -11,7 +11,7 @@ from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8100"
 SAIDA = Path("capturas")
-PUBLICAS = [("inicio", "/"), ("entrar", "/entrar"), ("cadastro", "/cadastro"), ("portaria671", "/portaria-671")]
+PUBLICAS = [("inicio", "/"), ("entrar", "/entrar"), ("cadastro", "/cadastro"), ("esqueci", "/esqueci"), ("portaria671", "/portaria-671")]
 PAINEL = [("hoje", "/painel"), ("escala", "/painel/escala"), ("ponto", "/painel/ponto"),
           ("ajuste", "/painel/ponto/ajuste"), ("equipe", "/painel/equipe"), ("historico", "/painel/historico"), ("setores", "/painel/setores"), ("gerentes", "/painel/gerentes"), ("ficha", "/painel/equipe/5/ficha#documentos"),
           ("config", "/painel/config#logo"), ("relatorios", "/painel/relatorios"), ("folha", "/painel/folha?func=5"), ("fechamento", "/painel/fechamento"), ("horas", "/painel/fechamento/horas"), ("vendas", "/master/pagina/previa"),
