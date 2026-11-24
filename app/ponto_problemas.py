@@ -48,11 +48,11 @@ def problemas(db: Session, e) -> list[dict]:
             ent_l = regras.para_local(e, ultima.momento)
             fim_l = regras.intervalo(t)[1] if t else None
             # ainda trabalhando: turno não acabou, ou sem escala e entrada há menos de 12 h
-            if (fim_l and fim_l > agora_l) or (not fim_l and agora_l - ent_l < timedelta(hours=12)):
-                continue
-            sugestao = fim_l if fim_l and fim_l > ent_l else None
-            lista.append({"chave": f"s-{uid}-{dia.isoformat()}", "tipo": "sem_saida", "u": u,
-                          "dia": dia, "entrada": ent_l, "turno": t, "sugestao": sugestao})
+            trabalhando = (fim_l and fim_l > agora_l) or (not fim_l and agora_l - ent_l < timedelta(hours=12))
+            if not trabalhando:
+                sugestao = fim_l if fim_l and fim_l > ent_l else None
+                lista.append({"chave": f"s-{uid}-{dia.isoformat()}", "tipo": "sem_saida", "u": u,
+                              "dia": dia, "entrada": ent_l, "turno": t, "sugestao": sugestao})
         for b in bats:
             if b.tipo == "entrada" and not b.conferida and not b.manual and b.origem != "auto":
                 lista.append({"chave": f"e-{b.id}", "tipo": "antecipada", "u": u, "dia": dia,
