@@ -24,7 +24,7 @@ except Exception:  # biblioteca ausente
 CONTATO = os.environ.get("PUSH_CONTATO", "").strip() or "mailto:suporte@exemplo.com.br"
 TITULOS = {
     "fora_turno": "Fora da área durante o turno", "sem_confirmacao": "Turno não confirmado", "descanso": "Pausas não liberadas", "menor": "Menor de idade: limite de horário", "sem_ponto": "Ponto não batido", "atraso": "Atraso", "fora_area": "Fora da área",
-    "sem_saida": "Saída não registrada", "sem_intervalo": "Intervalo não batido", "saida_antecipada": "Saída antecipada",
+    "sem_saida": "Saída não registrada", "sem_intervalo": "Intervalo não batido", "saida_antecipada": "Saída antecipada", "antecipada": "Entrada antecipada",
     "sem_escala": "Ponto fora da escala", "aparelho": "Aparelho não autorizado",
     "ajuste": "Pedido de ajuste de ponto", "ausencia": "Atestado para conferir",
     "folha": "Folha de ponto contestada",

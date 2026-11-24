@@ -210,8 +210,9 @@ class Empresa(Base):
     trocas_aprovacao: Mapped[bool] = mapped_column(Boolean, default=True)
     # Funcionários podem publicar no mural (o gestor sempre pode).
     mural_equipe: Mapped[bool] = mapped_column(Boolean, default=True)
-    # Regras automáticas do ponto (0 = desligada): o ponto só abre X min antes do início da
-    # escala; X min depois do fim, quem esqueceu a saída ganha uma no horário do fim (para conferir).
+    # Regras do ponto (Portaria 671: nada de bloqueio de horário nem marcação automática):
+    # entrada feita mais de X min antes da escala fica sinalizada para o gestor decidir (0 = desligado);
+    # X min depois do fim, quem esqueceu a saída recebe lembrete e o gestor um alerta (0 = 60 min).
     entrada_antecipada_min: Mapped[int] = mapped_column(Integer, default=0)
     saida_auto_min: Mapped[int] = mapped_column(Integer, default=0)
     # Avisa o gestor quando faltam X min para a hora extra da semana (0 = desligado).
@@ -577,7 +578,7 @@ class Batida(Base):
     anulada_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     local_nome: Mapped[str] = mapped_column(String(80), default="")  # local extra ou totem
     origem: Mapped[str] = mapped_column(String(8), default="")  # "" celular+GPS | codigo | totem | auto
-    conferida: Mapped[bool] = mapped_column(Boolean, default=True)  # False = saída automática a conferir
+    conferida: Mapped[bool] = mapped_column(Boolean, default=True)  # False = para o gestor conferir (entrada antecipada; saída automática antiga)
     # Reconhecimento facial: "ok" (rosto conferiu), "diverge" (não conferiu), "sem" (não fez), "" (não usa)
     facial: Mapped[str] = mapped_column(String(10), default="")
     facial_dist: Mapped[float | None] = mapped_column(Float, nullable=True)

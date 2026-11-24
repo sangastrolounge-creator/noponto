@@ -2,9 +2,13 @@
 
 - Saída esquecida: o dia tem entrada sem saída. O horário sugerido é o fim da escala; o gestor
   confere, muda se precisar e lança vários de uma vez.
-- Saída automática (regra): X min depois do fim da escala, quem não bateu a saída ganha uma saída
-  no horário do fim da escala, marcada "para conferir" (`batidas.conferida = False`).
-- Entrada antecipada (regra): o ponto só abre X min antes do início da escala."""
+- Saída esquecida (regra): X min depois do fim da escala, quem não bateu a saída recebe um lembrete
+  e o gestor um alerta. O sistema não marca a saída sozinho (Portaria 671, art. 74, II): o gestor
+  lança, com o horário do fim da escala sugerido. Saídas automáticas antigas continuam na lista.
+- Entrada antecipada (regra): a entrada feita mais de X min antes do turno é registrada (a Portaria
+  proíbe restringir o horário, art. 74, I) e fica "para conferir" (`batidas.conferida = False`): o
+  gestor mantém o horário marcado ou considera a partir de outro, com a marcação original
+  desconsiderada e o motivo registrado."""
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request
@@ -50,6 +54,11 @@ def problemas(db: Session, e) -> list[dict]:
             lista.append({"chave": f"s-{uid}-{dia.isoformat()}", "tipo": "sem_saida", "u": u,
                           "dia": dia, "entrada": ent_l, "turno": t, "sugestao": sugestao})
         for b in bats:
+            if b.tipo == "entrada" and not b.conferida and not b.manual and b.origem != "auto":
+                lista.append({"chave": f"e-{b.id}", "tipo": "antecipada", "u": u, "dia": dia,
+                              "entrada": regras.para_local(e, b.momento), "turno": t,
+                              "sugestao": regras.para_local(e, b.momento), "batida": b,
+                              "inicio": regras.intervalo(t)[0] if t else None})
             if b.origem == "auto" and not b.conferida:
                 lista.append({"chave": f"a-{b.id}", "tipo": "auto", "u": u, "dia": dia,
                               "entrada": None, "turno": t, "sugestao": regras.para_local(e, b.momento),
@@ -86,7 +95,26 @@ async def resolver(request: Request, u: Usuario = Depends(gestor_logado), db: Se
         if not HORA_RE.match(hora):
             erros += 1
             continue
-        if p["tipo"] == "sem_saida":
+        if p["tipo"] == "antecipada":
+            b = p["batida"]
+            if hora == p["sugestao"].strftime("%H:%M"):
+                b.conferida = True
+                regras.registrar(db, e.id, u.nome, "entrada antecipada mantida",
+                                 f"{p['u'].nome}, {p['dia']:%d/%m}, entrada às {hora}.")
+            else:
+                quando = _hora_no_dia(p["sugestao"], hora, None)
+                if quando < p["sugestao"] or quando > agora_l or quando - p["sugestao"] > timedelta(hours=12):
+                    erros += 1
+                    continue
+                b.anulada, b.anulada_por, b.anulada_em = True, u.nome, banco.agora()
+                b.conferida = True
+                regras.lancar_manual(db, p["u"], "entrada", quando,
+                                     f"Entrada antecipada considerada a partir de {hora} por {u.nome} "
+                                     f"(marcada às {p['sugestao']:%H:%M})")
+                regras.registrar(db, e.id, u.nome, "entrada antecipada ajustada",
+                                 f"{p['u'].nome}, {p['dia']:%d/%m}: marcada às {p['sugestao']:%H:%M}, "
+                                 f"considerada a partir de {hora}.")
+        elif p["tipo"] == "sem_saida":
             quando = _hora_no_dia(p["entrada"], hora, p["entrada"])
             if quando > agora_l or quando - p["entrada"] > timedelta(hours=18):
                 erros += 1
@@ -138,26 +166,8 @@ def regras_ponto(request: Request, entrada_antecipada_min: str = Form("0"), said
         return ir("/painel/ponto/problemas#regras")
     e.entrada_antecipada_min, e.saida_auto_min, e.aviso_extra_min = map(int, vals)
     regras.registrar(db, e.id, u.nome, "regras automáticas do ponto",
-                     f"Entrada até {e.entrada_antecipada_min} min antes (0 = livre); "
-                     f"saída automática {e.saida_auto_min} min depois do fim (0 = desligada).")
+                     f"Sinalizar entrada mais de {e.entrada_antecipada_min} min antes (0 = desligado); "
+                     f"avisar saída esquecida {e.saida_auto_min} min depois do fim (0 = 60 min).")
     db.commit()
     avisar(request, "Regras do ponto salvas.")
     return ir("/painel/ponto/problemas#regras")
-
-
-# ------------------------------------------------------------------ saída automática (agendador)
-def saidas_automaticas(db: Session, e, t: Turno, bats: list[Batida], al: datetime) -> list[tuple]:
-    """Chamado pelo verificar_turnos a cada minuto. Devolve lembretes para o funcionário."""
-    if not e.saida_auto_min or not bats or bats[-1].tipo != "entrada":
-        return []
-    fim = regras.intervalo(t)[1]
-    if al < fim + timedelta(minutes=e.saida_auto_min) or regras.para_local(e, bats[-1].momento) >= fim:
-        return []
-    b = Batida(empresa_id=e.id, usuario_id=t.usuario_id, tipo="saida", momento=regras.para_utc(e, fim),
-               dia=t.data, turno_id=t.id, origem="auto", conferida=False,
-               obs="Saída automática: não bateu a saída")
-    db.add(b)
-    bats.append(b)
-    return [(t.usuario_id, "Saída registrada automaticamente",
-             f"Você não bateu a saída. Registramos {fim:%H:%M}, o fim da sua escala. "
-             "Se saiu em outro horário, peça um ajuste no app.", "/app/ajustes")]

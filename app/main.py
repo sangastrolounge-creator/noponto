@@ -1271,6 +1271,8 @@ async def app_ponto(request: Request, tarefas_bg: BackgroundTasks,
     msg = f"{'Entrada' if b.tipo == 'entrada' else 'Saída'} registrada às {hora}."
     if b.tipo == "entrada" and b.atraso_min > u.empresa.tolerancia_min:
         msg += f" Atraso de {b.atraso_min} min."
+    if b.tipo == "entrada" and not b.conferida:
+        msg += " Você bateu antes do horário do turno: o gestor vai conferir."
     nsr = db.scalar(select(rep.RegistroRep.nsr).where(rep.RegistroRep.batida_id == b.id))
     if nsr:
         msg += f" Comprovante nº {nsr} em Meus comprovantes."

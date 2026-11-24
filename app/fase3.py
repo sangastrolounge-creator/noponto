@@ -288,6 +288,8 @@ async def totem_ponto(request: Request, tarefas_bg: BackgroundTasks,
     tarefas_bg.add_task(push.avisar_alertas, [a.id for a in alertas])
     hora = regras.para_local(u.empresa, b.momento).strftime("%H:%M")
     msg = f"{'Entrada' if b.tipo == 'entrada' else 'Saída'} registrada às {hora}."
+    if b.tipo == "entrada" and not b.conferida:
+        msg += " Você bateu antes do horário do turno: o gestor vai conferir."
     nsr = db.scalar(select(rep.RegistroRep.nsr).where(rep.RegistroRep.batida_id == b.id))
     if nsr:
         msg += f" Comprovante nº {nsr} no aplicativo, em Meus comprovantes."
