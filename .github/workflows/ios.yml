@@ -1,0 +1,62 @@
+name: App iPhone
+# Gera o app do iPhone (Capacitor) numa máquina Mac do GitHub.
+# Sem os segredos da Apple: compila para o simulador (confere que o projeto está certo).
+# Com os segredos (APPLE_* abaixo), assina e envia ao TestFlight. Esses segredos vêm da conta Apple
+# Developer da empresa e são cadastrados pelo dono em Settings -> Secrets and variables -> Actions.
+on:
+  workflow_dispatch:
+    inputs:
+      versao:
+        description: "Número do build (cresce a cada envio)"
+        required: false
+      nome:
+        description: "Versão mostrada na loja (ex.: 1.0)"
+        required: false
+        default: "1.0"
+  push:
+    branches: [visual]
+    paths: ["ios-app/**", ".github/workflows/ios.yml"]
+permissions:
+  contents: read
+jobs:
+  ios:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ios-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Dependências
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+      - name: Criar o projeto iOS
+        run: |
+          npx cap add ios
+          npx cap sync ios
+          ./configurar.sh
+      - name: Versão
+        run: |
+          V="${{ github.event.inputs.versao }}"; [ -z "$V" ] && V="${{ github.run_number }}"
+          N="${{ github.event.inputs.nome }}"; [ -z "$N" ] && N="1.0"
+          cd ios/App
+          xcrun agvtool new-version -all "$V" >/dev/null
+          xcrun agvtool new-marketing-version "$N" >/dev/null
+          echo "### Versão $N ($V)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Compilar para o simulador
+        run: |
+          cd ios/App
+          if [ -d App.xcworkspace ]; then ALVO="-workspace App.xcworkspace"; else ALVO="-project App.xcodeproj"; fi
+          xcodebuild $ALVO -scheme App -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 30
+          APP=$(find build -name "App.app" -path "*iphonesimulator*" | head -1)
+          echo "Gerado: $APP"
+          ditto -c -k --keepParent "$APP" "$GITHUB_WORKSPACE/data-worke-simulador.zip"
+          echo "- Compilou para o simulador: $(du -h "$GITHUB_WORKSPACE/data-worke-simulador.zip" | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: data-worke-ios-simulador
+          path: data-worke-simulador.zip
+          if-no-files-found: error

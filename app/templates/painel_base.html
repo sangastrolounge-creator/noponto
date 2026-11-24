@@ -41,12 +41,12 @@
     {% if pode(u, 'equipe') or pode(u, 'locais') or pode(u, 'dono') %}<span class="menu-titulo">{{ _('Empresa') }}</span>{% endif %}
     {% if pode(u, 'equipe') %}{{ item('/painel/equipe', 'equipe', _('Equipe'), '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.5c2.1.8 3.5 2.8 3.5 5.5"/>', [('/painel/equipe', _('Pessoas')), ('/painel/equipe/novo', _('Adicionar pessoa')), ('/painel/importar-equipe', _('Importar planilha')), ('/painel/setores', _('Setores'))] + ([('/painel/gerentes', _('Gerentes e permissões'))] if u.dono else [])) }}{% endif %}
     {% if pode(u, 'locais') %}{{ item('/painel/locais', 'locais', _('Locais'), '<path d="M12 21s7-6.2 7-11.5a7 7 0 0 0-14 0C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>', [('/painel/locais', _('Locais de ponto')), ('/painel/locais#totens', _('Totens'))]) }}{% endif %}
-    {% if pode(u, 'dono') %}{{ item('/painel/config', 'config', _('Configurações'), '<path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="16" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/>', [('/painel/config', _('Empresa e regras')), ('/painel/comecar', _('Configuração guiada')), ('/painel/ponto/problemas#regras', _('Regras automáticas do ponto')), ('/painel/assinatura', _('Assinatura e plano'))]) }}{% endif %}
+    {% if pode(u, 'dono') %}{{ item('/painel/config', 'config', _('Configurações'), '<path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="16" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/>', [('/painel/config', _('Empresa e regras')), ('/painel/comecar', _('Configuração guiada')), ('/painel/ponto/problemas#regras', _('Regras automáticas do ponto'))] + ([] if app_ios else [('/painel/assinatura', _('Assinatura e plano'))])) }}{% endif %}
     {% if u.na_escala %}{{ item('/app', 'meu', _('Meu ponto'), '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/>') }}{% endif %}
   </nav>
   <div class="conta">
     {% set st = situacao(e) %}
-    {% if st == 'teste' %}
+    {% if st == 'teste' and not app_ios %}
       {% set total = (plat.dias_teste or 7) %}
       {% set resta = dias_restantes(e) or 0 %}
       {% set pct = [[(resta * 100 / total)|round|int, 4]|max, 100]|min %}
@@ -86,11 +86,11 @@
     <button class="botao mini" type="submit">{{ _('Voltar ao Master') }}</button>
   </form>
   {% elif aba != 'master' and fim_da_carencia(e) %}
-  <div class="alerta">{% if situacao(e) == 'teste' %}{{ _('Seu teste grátis terminou em {v1}. Você ainda pode usar o painel até {v2}: assine para não perder o acesso.', v1=(e.teste_ate|data('%d/%m/%Y')), v2=(fim_da_carencia(e)|data('%d/%m/%Y'))) }}{% else %}{{ _('Sua assinatura venceu em {v1}. O painel continua aberto até {v2}.', v1=(e.pago_ate|data('%d/%m/%Y')), v2=(fim_da_carencia(e)|data('%d/%m/%Y'))) }}{% endif %} {% if aba != 'assinatura' %}<a href="/painel/assinatura">{{ _('Regularizar') }}</a>{% endif %}</div>
+  <div class="alerta">{% if situacao(e) == 'teste' %}{{ _('Seu teste grátis terminou em {v1}. Você ainda pode usar o painel até {v2}: assine para não perder o acesso.', v1=(e.teste_ate|data('%d/%m/%Y')), v2=(fim_da_carencia(e)|data('%d/%m/%Y'))) }}{% else %}{{ _('Sua assinatura venceu em {v1}. O painel continua aberto até {v2}.', v1=(e.pago_ate|data('%d/%m/%Y')), v2=(fim_da_carencia(e)|data('%d/%m/%Y'))) }}{% endif %} {% if aba != 'assinatura' and not app_ios %}<a href="/painel/assinatura">{{ _('Regularizar') }}</a>{% endif %}</div>
   {% elif aba != 'master' and aba != 'assinatura' and situacao(e) == 'teste' and dias_restantes(e) is not none and dias_restantes(e) <= 3 %}
-  <div class="alerta">{{ _('Seu período de teste termina {v1}.', v1=('hoje' if dias_restantes(e) == 0 else 'em ' ~ dias_restantes(e) ~ ' dia(s)')) }} <a href="/painel/assinatura">{{ _('Ver planos e assinar') }}</a></div>
+  <div class="alerta">{{ _('Seu período de teste termina {v1}.', v1=('hoje' if dias_restantes(e) == 0 else 'em ' ~ dias_restantes(e) ~ ' dia(s)')) }} {% if not app_ios %}<a href="/painel/assinatura">{{ _('Ver planos e assinar') }}</a>{% endif %}</div>
   {% elif aba != 'master' and aba != 'assinatura' and situacao(e) == 'ativa' and validade(e) and dias_restantes(e) == 0 %}
-  <div class="alerta">{{ _('Sua assinatura venceu em {v1}.', v1=(validade(e)|data('%d/%m/%Y'))) }} <a href="/painel/assinatura">{{ _('Regularizar') }}</a></div>
+  <div class="alerta">{{ _('Sua assinatura venceu em {v1}.', v1=(validade(e)|data('%d/%m/%Y'))) }}{% if not app_ios %} <a href="/painel/assinatura">{{ _('Regularizar') }}</a>{% endif %}</div>
   {% endif %}
   {% if e.lat is none and gps_liberado(e) and pode(u, 'dono') and aba != 'config' and aba != 'master' and aba != 'assinatura' %}
   <div class="alerta">{{ _('O local da empresa ainda não foi definido, então o ponto está sendo aceito de qualquer lugar.') }} <a href="/painel/config">{{ _('Definir o local') }}</a></div>

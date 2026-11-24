@@ -1,0 +1,15 @@
+{
+  "name": "dataworke-ios",
+  "private": true,
+  "description": "App do Data Worke para iPhone (Capacitor): abre o site com recursos nativos.",
+  "dependencies": {
+    "@capacitor/core": "latest",
+    "@capacitor/ios": "latest",
+    "@capacitor/haptics": "latest",
+    "@capacitor/splash-screen": "latest",
+    "@capgo/capacitor-native-biometric": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "latest"
+  }
+}
