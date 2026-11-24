@@ -51,7 +51,69 @@ def main():
         # sem pessoa (chamadas antigas): continua como antes
         e.ponto_na_lotacao = True
         assert nomes(regras.lugares(db, e, None)) == ["", "Filial Centro", "Filial Praia"]
+    escala_pela_tela()
     print("ok: ponto no local de cada pessoa")
+
+
+def escala_pela_tela():
+    """Na escala: a matriz aparece no campo Local; outro local vale só no dia, salvo se o gestor
+    marcar "usar este local também nas próximas semanas"."""
+    import re
+    from datetime import timedelta
+    from fastapi.testclient import TestClient
+    from sqlalchemy import select
+    from app.db import EscalaFixa
+    from app.main import app
+    g = TestClient(app, follow_redirects=False)
+
+    def tok(c):
+        return re.search(r'name="csrf" value="([^"]+)"', c.get(c_url).text).group(1)
+    c_url = "/cadastro"
+    g.post("/cadastro", data={"csrf": tok(g), "aceito": "1", "empresa": "Rede Lua", "nome": "Gil",
+                              "email": "gil@lua.com", "senha": "segredo1"})
+    c_url = "/painel/escala"
+    with SessionLocal() as db:
+        gil = db.scalar(select(Usuario).where(Usuario.email == "gil@lua.com"))
+        e = gil.empresa
+        e.lat, e.lng = -2.5, -44.3
+        fil = Local(empresa_id=e.id, nome="Filial Norte", lat=-2.4, lng=-44.2, raio_m=150)
+        db.add(fil)
+        db.flush()
+        caio = Usuario(empresa_id=e.id, nome="Caio Filial", celular="98999990009", local_id=fil.id)
+        db.add(caio)
+        db.commit()
+        cid, fid, hoje = caio.id, fil.id, regras.hoje(e)
+    tela = g.get("/painel/escala").text
+    assert 'value="principal"' in tela and "Rede Lua (endereço principal)" in tela
+    dia = hoje + timedelta(days=3)
+
+    def salvar(**extra):
+        dados = {"csrf": tok(g), "usuario_id": str(cid), "data": dia.isoformat(), "modo": "trabalho",
+                 "inicio": "08:00", "fim": "16:00", "intervalo": "60", "repetir": "dia", "fixar": "1"}
+        dados.update(extra)
+        assert g.post("/painel/escala/turno", data=dados).status_code == 303
+
+    salvar(local_id="")                                     # escala fixa no local dele
+    salvar(local_id="principal")                            # neste dia, na matriz (só neste dia)
+    with SessionLocal() as db:
+        t = db.scalar(select(Turno).where(Turno.usuario_id == cid, Turno.data == dia))
+        r = db.scalar(select(EscalaFixa).where(EscalaFixa.usuario_id == cid, EscalaFixa.dia_semana == dia.weekday()))
+        prox = db.scalar(select(Turno).where(Turno.usuario_id == cid, Turno.data == dia + timedelta(days=7)))
+        assert t.so_principal and not t.local_id
+        assert not r.so_principal and not r.local_id            # a escala fixa não pegou a matriz
+        assert prox and not prox.so_principal and prox.inicio == "08:00"
+        assert nomes(regras.lugares(db, t.usuario.empresa, t, t.usuario)) == [""]
+    salvar(local_id="principal", local_sempre="1")          # agora decidido: toda semana na matriz
+    with SessionLocal() as db:
+        r = db.scalar(select(EscalaFixa).where(EscalaFixa.usuario_id == cid, EscalaFixa.dia_semana == dia.weekday()))
+        prox = db.scalar(select(Turno).where(Turno.usuario_id == cid, Turno.data == dia + timedelta(days=7)))
+        assert r.so_principal and prox.so_principal
+    salvar(local_id=str(fid))                               # filial num dia: a fixa continua na matriz
+    with SessionLocal() as db:
+        r = db.scalar(select(EscalaFixa).where(EscalaFixa.usuario_id == cid, EscalaFixa.dia_semana == dia.weekday()))
+        t = db.scalar(select(Turno).where(Turno.usuario_id == cid, Turno.data == dia))
+        assert r.so_principal and t.local_id == fid and not t.so_principal
+    assert "Principal" in g.get(f"/painel/escala?semana={(dia + timedelta(days=7) - timedelta(days=dia.weekday())).isoformat()}").text
 
 
 if __name__ == "__main__":

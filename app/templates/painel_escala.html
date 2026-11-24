@@ -166,9 +166,9 @@
             data-uid="{{ f.id }}" data-nome="{{ f.nome }}" data-data="{{ d.isoformat() }}"
             data-rotulo="{{ DIAS[loop.index0] }} {{ d.strftime('%d/%m') }}"
             data-modo="{{ 'folga' if t and t.folga else 'trabalho' }}" data-tem="{{ '1' if t }}"
-            data-local="{{ t.local_id if t and t.local_id else '' }}" data-fixa="{{ '1' if (f.id, loop.index0) in fixas }}" data-inicio="{{ t.inicio if t }}" data-fim="{{ t.fim if t }}" data-obs="{{ t.obs if t }}"
+            data-local="{{ t.local_id if t and t.local_id else 'principal' if t and t.so_principal else '' }}" data-localfixo="{{ '1' if t and t.fixa and (t.local_id or t.so_principal) }}" data-fixa="{{ '1' if (f.id, loop.index0) in fixas }}" data-inicio="{{ t.inicio if t }}" data-fim="{{ t.fim if t }}" data-obs="{{ t.obs if t }}"
             aria-label="{{ f.nome }}, {{ DIAS[loop.index0] }} {{ d.strftime('%d/%m') }}: {{ 'folga' if t and t.folga else (t.inicio ~ ' a ' ~ t.fim) if t else _('sem escala') }}">
-        {%- if aus %}{{ TIPOS_AUSENCIA.get(aus.tipo, _('Ausência')).split(' ')[0] }}{% if t and not t.folga %}<br><s>{{ t.inicio }}–{{ t.fim }}</s>{% endif %}{% elif t and t.folga %}{{ _('Folga') }}{% elif t %}{{ t.inicio }}<br>{{ t.fim }}{% if t.local %}<br><small>{{ t.local.nome }}</small>{% endif %}{% else %}+{% endif -%}
+        {%- if aus %}{{ TIPOS_AUSENCIA.get(aus.tipo, _('Ausência')).split(' ')[0] }}{% if t and not t.folga %}<br><s>{{ t.inicio }}–{{ t.fim }}</s>{% endif %}{% elif t and t.folga %}{{ _('Folga') }}{% elif t %}{{ t.inicio }}<br>{{ t.fim }}{% if t.local %}<br><small>{{ t.local.nome }}</small>{% elif t.so_principal %}<br><small>{{ _('Principal') }}</small>{% endif %}{% else %}+{% endif -%}
         {%- if t and not t.folga and t.intervalo_inicio and not aus %}<br><small class="int-hora">{{ _('intervalo {v1}', v1=(t.intervalo_inicio)) }}</small>{% endif -%}
         {%- if t and not t.fixa and (f.id, loop.index0) in fixas %}<br><small class="so-semana">{{ _('só nesta semana') }}</small>{% endif -%}
         {%- if e.confirmar_turno and publicada and t and not t.folga and d >= hoje %}<br><small class="{{ 'conf-sim' if t.confirmado_em else 'conf-nao' }}">{{ _('✓ confirmado') if t.confirmado_em else _('não confirmado') }}</small>{% endif -%}
@@ -218,6 +218,7 @@
         <div class="ajuda">{{ _('Tempo de almoço ou descanso, que não conta como hora trabalhada.') }}</div></div>
       {% if locais %}<div class="campo"><label for="d-local">{{ _('Local') }}</label><select name="local_id" id="d-local">
         <option value="">{{ _('O local da ficha da pessoa') if e.ponto_na_lotacao else _('Qualquer endereço da empresa (principal ou filiais)') }}</option>
+        <option value="principal">{{ _('{v1} (endereço principal)', v1=e.nome) }}</option>
         {% for l in locais %}<option value="{{ l.id }}">{{ l.nome }}</option>{% endfor %}</select>
         <div class="ajuda">{{ _('Escolhendo um local, o ponto desse dia só vale lá.') }}</div></div>{% endif %}
       <div class="campo"><label for="d-obs">{{ _('Observação (opcional)') }}</label><input type="text" name="obs" id="d-obs" maxlength="200"></div>
@@ -233,6 +234,8 @@
       <label class="marcar" style="margin-top:6px"><input type="checkbox" name="a_pedido" value="1" id="d-pedido"><span>{{ _('Mudança a pedido do funcionário (por escrito): sem adicional') }}</span></label></div>{% endif %}
     <label class="marcar campo"><input type="checkbox" name="fixar" value="1" id="d-fixar" checked>
       <span>{{ _('Repetir toda semana (escala fixa)') }}<br><span class="ajuda" id="d-fixar-ajuda"></span></span></label>
+    {% if locais %}<label class="marcar campo" id="d-local-sempre-linha" hidden><input type="checkbox" name="local_sempre" value="1" id="d-local-sempre">
+      <span>{{ _('Usar este local também nas próximas semanas') }}<br><span class="ajuda">{{ _('Desmarcado, o local escolhido vale só para este dia; nas outras semanas a pessoa volta ao local dela.') }}</span></span></label>{% endif %}
     <div class="acoes" style="justify-content:flex-end">
       <button class="botao claro" type="button" id="d-fechar">{{ _('Cancelar') }}</button>
       <button class="botao" type="submit">{{ _('Salvar') }}</button>
@@ -252,12 +255,18 @@
       : (m === "limpar" ? t("Apaga só esta data. Se o dia tem escala fixa, ele volta ao horário fixo.")
                         : t("Vale só nesta semana. Nas outras semanas continua a escala fixa."));
   }
-  g("d-fixar").addEventListener("change", explicar);
+  function localSempre() {
+    var linha = g("d-local-sempre-linha"); if (!linha) return;
+    linha.hidden = !(g("d-fixar").checked && modo() === "trabalho" && g("d-local") && g("d-local").value);
+  }
+  g("d-fixar").addEventListener("change", function () { explicar(); localSempre(); });
+  if (g("d-local")) g("d-local").addEventListener("change", localSempre);
   function ajustar() {
     explicar();
     var trab = modo() === "trabalho";
     horas.hidden = !trab;
     g("d-inicio").required = g("d-fim").required = trab;
+    localSempre();
   }
   document.querySelectorAll(".celula").forEach(function (c) {
     c.addEventListener("click", function () {
@@ -268,6 +277,7 @@
       g("d-fim").value = d.fim || localStorage.getItem("turno_fim") || "17:00";
       g("d-obs").value = d.obs || ""; g("d-repetir").value = "dia"; g("d-intervalo").value = d.intervalo; g("d-saidaint").value = d.saidaint || "";
       if (g("d-local")) g("d-local").value = d.local || "";
+      if (g("d-local-sempre")) g("d-local-sempre").checked = d.localfixo === "1";
       g("d-fixar").checked = true;
       if (g("d-janela")) { g("d-janela").hidden = d.janela !== "1"; g("d-pedido").checked = false; }
       dlg.querySelector("input[value=" + d.modo + "]").checked = true;
