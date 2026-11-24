@@ -24,10 +24,10 @@
 
 <section class="cartao">
   <h2>{{ _('Etapa') }}</h2>
-  <form method="post" action="/master/crm/{{ ld.id }}/etapa" class="crm-filtros" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
+  <form method="post" action="/master/crm/{{ ld.id }}/etapa" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <div class="campo"><select name="etapa" aria-label="{{ _('Etapa') }}">{% for k, v in ETAPAS %}<option value="{{ k }}" {{ 'selected' if ld.etapa == k }}>{{ _(v) }}</option>{% endfor %}</select></div>
-    <div class="campo"><input type="text" name="motivo" maxlength="120" placeholder="{{ _('Motivo, se não fechou') }}" value="{{ ld.motivo_perda }}"></div>
+    <select name="etapa" aria-label="{{ _('Etapa') }}" style="width:auto;min-width:160px">{% for k, v in ETAPAS %}<option value="{{ k }}" {{ 'selected' if ld.etapa == k }}>{{ _(v) }}</option>{% endfor %}</select>
+    <input type="text" name="motivo" maxlength="120" placeholder="{{ _('Motivo, se não fechou') }}" value="{{ ld.motivo_perda }}" style="width:260px;max-width:100%">
     <button class="botao" type="submit">{{ _('Mudar etapa') }}</button>
   </form>
 </section>
@@ -38,7 +38,7 @@
     <h2>{{ _('Registrar contato') }}</h2>
     <form method="post" action="/master/crm/{{ ld.id }}/atividade">
       <input type="hidden" name="csrf" value="{{ csrf }}">
-      <div class="linha-form" style="grid-template-columns:170px 1fr">
+      <div class="linha-form" style="grid-template-columns:170px 1fr;align-items:start">
         <div class="campo"><select name="tipo" aria-label="{{ _('Tipo') }}">{% for k in ['ligacao', 'whatsapp', 'email', 'nota'] %}<option value="{{ k }}">{{ _(TIPOS[k]) }}</option>{% endfor %}</select></div>
         <div class="campo"><textarea name="texto" rows="2" maxlength="4000" required placeholder="{{ _('O que foi conversado, objeções, próximo passo…') }}"></textarea></div>
       </div>
