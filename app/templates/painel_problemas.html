@@ -45,8 +45,8 @@
       <div class="ajuda">{{ _('O ponto nunca é bloqueado (a Portaria 671 proíbe restringir o horário). A entrada aparece aqui para você decidir se o tempo antes do turno conta. 0 = desligado.') }}</div></div>
     <div class="campo"><label for="sa">{{ _('Saída esquecida: avisar quantos minutos depois do fim do turno') }}</label><input id="sa" type="number" name="saida_auto_min" min="0" max="720" value="{{ e.saida_auto_min }}">
       <div class="ajuda">{{ _('O funcionário recebe um lembrete, você recebe um alerta e a saída aparece aqui com o fim da escala sugerido. O sistema não marca a saída sozinho (Portaria 671). 0 = avisar 60 min depois.') }}</div></div>
-    <div class="campo"><label for="ae">{{ _('Avisar quantos minutos antes da hora extra da semana') }}</label><input id="ae" type="number" name="aviso_extra_min" min="0" max="720" value="{{ e.aviso_extra_min }}">
-      <div class="ajuda">{{ _('Você recebe um aviso quando alguém está chegando nas 40 h da semana, e outro quando entra em hora extra. 0 = desligado.') }}</div></div>
+    <div class="campo"><label for="ae">{{ _('Avisar quantos minutos antes de acabar a jornada do dia') }}</label><input id="ae" type="number" name="aviso_extra_min" min="0" max="720" value="{{ e.aviso_extra_min }}">
+      <div class="ajuda">{{ _('Compara o que a pessoa já trabalhou hoje com a jornada do dia na escala. Você recebe um aviso quando falta esse tempo para acabar a jornada; os avisos de quem entrou em hora extra e de quem passou das 2 horas extras do dia (CLT, art. 59) vêm sempre. 0 = sem o aviso antecipado.') }}</div></div>
   </div>
   <button class="botao claro" type="submit">{{ _('Salvar regras') }}</button>
 </form>
