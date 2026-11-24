@@ -368,6 +368,15 @@ def marca_atual() -> dict | None:
 templates.env.globals["marca_atual"] = marca_atual
 
 
+APP_IOS = "DataWorkeIOS"
+
+
+def app_ios(request: Request) -> bool:
+    """O app do iPhone se identifica no User-Agent. Nele não há login do Google, cadastro de empresa
+    nem assinatura (regras 3.1.1 e 4.8 da App Store): a empresa contrata pelo site."""
+    return APP_IOS in request.headers.get("user-agent", "")
+
+
 def render(request: Request, nome: str, status_code: int = 200, **ctx):
     from . import parceiros
     plat = plataforma()
@@ -382,15 +391,21 @@ def render(request: Request, nome: str, status_code: int = 200, **ctx):
             "cadastro_aberto": plat["cadastro_aberto"],
             "google_ok": google_ligado() and not marca, "marca": marca,
             "ent_imagens": [n for n in (plat.get("entrada_imagens") or "").split(",") if n],
-            "suporte": bool(request.session.get("master_uid"))}
+            "suporte": bool(request.session.get("master_uid")),
+            "app_ios": app_ios(request)}
+    if base["app_ios"]:
+        base["google_ok"] = base["cadastro_aberto"] = False
     if nome == "cadastro.html":   # cupom e parceiro que vieram pelo link
         with SessionLocal() as db:
             par = parceiros.parceiro_da_visita(request, db)
             base["cad_parceiro"] = (par.escritorio or par.nome) if par else ""
         base["cad_cupom"] = request.session.get("cupom", "")
     tudo = {**base, **ctx}
-    if marca:
+    if marca or base["app_ios"]:
         tudo["google_ok"] = False
+    if base["app_ios"]:
+        tudo["cadastro_aberto"] = False
+    if marca:
         if marca["cor"]:
             tudo["ent_cor1"] = tudo["ent_cor2"] = marca["cor"]
     return templates.TemplateResponse(request, nome, tudo, status_code=status_code)

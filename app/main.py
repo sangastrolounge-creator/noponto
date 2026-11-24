@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta
 from urllib.parse import quote
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Form, Query, Request
-from fastapi.responses import (FileResponse, JSONResponse, RedirectResponse,
+from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, RedirectResponse,
                                Response)
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
@@ -28,7 +28,7 @@ from . import (apuracao, asaas, cobranca, conta, desligamento, lojas, facial, lo
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
                ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
-                   SECRET_KEY, Redirecionar, avisar, base_url, celular_limpo,
+                   SECRET_KEY, Redirecionar, app_ios, avisar, base_url, celular_limpo,
                    da_empresa, data_iso, ir,
                    celular_valido, conferir_senha, dentro_do_limite,
                    email_valido, exigir_csrf, gerar_hash, gestor_logado, ip,
@@ -153,6 +153,18 @@ HOSTS_REDIRECIONAR = {h.strip().lower() for h in
                       os.environ.get("HOSTS_REDIRECIONAR", "").split(",") if h.strip()}
 
 
+# App do iPhone: contratação e login do Google só pelo site (App Store 3.1.1 e 4.8), sem link para fora.
+IOS_BLOQUEADOS = {"/cadastro", "/entrar/google", "/painel/assinatura", "/parceiros", "/planos"}
+IOS_BLOQUEADOS_PREFIXO = ("/painel/assinatura/", "/i/", "/p/", "/parceiro/", "/entrar/google/")
+IOS_PAGINA_SITE = """<!doctype html><html lang="pt-BR"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Data Worke</title>
+<body style="font-family:-apple-system,system-ui,sans-serif;max-width:420px;margin:18vh auto;padding:0 24px;
+text-align:center;color:#1d2140"><h1 style="font-size:1.3rem">Disponível pelo site</h1>
+<p style="color:#5b607a;line-height:1.5">A contratação e a gestão do plano da empresa são feitas pelo site do
+Data Worke, num computador ou no navegador. No aplicativo você entra e usa o ponto, a escala e os relatórios.</p>
+<p><a href="javascript:history.back()" style="color:#4f6bf5">Voltar</a></p></body></html>"""
+
+
 @app.middleware("http")
 async def _cabecalhos(request: Request, call_next):
     caminho = request.url.path + (f"?{request.url.query}" if request.url.query else "")
@@ -166,6 +178,12 @@ async def _cabecalhos(request: Request, call_next):
         if request.url.query:
             destino += "?" + request.url.query
         return RedirectResponse(destino, status_code=301)
+    if app_ios(request):
+        p = request.url.path
+        if p == "/":
+            return RedirectResponse("/entrar", status_code=303)
+        if p in IOS_BLOQUEADOS or any(p.startswith(x) for x in IOS_BLOQUEADOS_PREFIXO):
+            return HTMLResponse(IOS_PAGINA_SITE, status_code=200)
     resp = await call_next(request)
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("X-Frame-Options", "DENY")

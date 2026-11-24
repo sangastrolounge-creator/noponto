@@ -1,0 +1,18 @@
+{
+  "appId": "br.com.dataworke.app",
+  "appName": "Data Worke",
+  "webDir": "www",
+  "appendUserAgent": "DataWorkeIOS",
+  "server": {
+    "url": "https://dataworke.com.br/entrar",
+    "errorPath": "erro.html"
+  },
+  "ios": {
+    "appendUserAgent": "DataWorkeIOS",
+    "contentInset": "never",
+    "scheme": "Data Worke"
+  },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 600, "backgroundColor": "#5b7cfa", "showSpinner": false }
+  }
+}
