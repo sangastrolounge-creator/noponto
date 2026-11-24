@@ -215,7 +215,7 @@ class Empresa(Base):
     # X min depois do fim, quem esqueceu a saída recebe lembrete e o gestor um alerta (0 = 60 min).
     entrada_antecipada_min: Mapped[int] = mapped_column(Integer, default=0)
     saida_auto_min: Mapped[int] = mapped_column(Integer, default=0)
-    # Avisa o gestor quando faltam X min para a hora extra da semana (0 = desligado).
+    # Avisa o gestor quando faltam X min para acabar a jornada do dia (hora extra no Brasil é diária; 0 = desligado).
     aviso_extra_min: Mapped[int] = mapped_column(Integer, default=30)
     # Pergunta ao funcionário "como foi o turno?" (1 a 5) quando ele bate a saída.
     avaliar_turno: Mapped[bool] = mapped_column(Boolean, default=True)
