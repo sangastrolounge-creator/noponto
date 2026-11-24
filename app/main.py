@@ -497,12 +497,18 @@ def equipe_da_escala(db: Session, e: Empresa) -> list[Usuario]:
 
 
 @app.get("/painel/escala")
-def escala(request: Request, semana: str = "", dia: str = "", setor: str | None = None,
+def escala(request: Request, semana: str = "", dia: str = "", setor: str | None = None, local: str | None = None,
            u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     e = u.empresa
     # O setor escolhido fica guardado: depois de salvar um turno a escala volta no mesmo setor.
     sid = setores_mod.ler_filtro(db, e.id, setor if setor is not None else request.session.get("setor_escala", 0))
     request.session["setor_escala"] = sid
+    # Filtro por local: "" = todos, "principal" = endereço principal, ou o id de uma filial (fica guardado).
+    lista_locais = fase3.locais_da(db, e.id)
+    loc = local if local is not None else request.session.get("local_escala", "")
+    if loc not in ("", "principal") and not (loc.isdigit() and any(l.id == int(loc) for l in lista_locais)):
+        loc = ""
+    request.session["local_escala"] = loc
     hoje = regras.hoje(e)
     base = data_iso(semana, hoje)
     seg = base - timedelta(days=base.weekday())
@@ -526,13 +532,19 @@ def escala(request: Request, semana: str = "", dia: str = "", setor: str | None 
     lista_setores = setores_mod.setores_da(db, e.id)
     nomes_setor = setores_mod.nomes(db, e.id)
     visiveis = [f for f in equipe if setores_mod.no_setor(f, sid)]
+    if loc:
+        # quem é do local (ficha) e quem foi escalado lá em algum dia desta semana
+        lid = int(loc) if loc.isdigit() else None
+        escalados = {uid for (uid, _), t in turnos.items()
+                     if not t.folga and ((lid and t.local_id == lid) or (not lid and t.so_principal))}
+        visiveis = [f for f in visiveis if f.local_id == lid or f.id in escalados]
     if lista_setores and not sid:   # agrupa por setor; quem não tem setor vai por último
         visiveis.sort(key=lambda f: (f.setor_id not in nomes_setor, nomes_setor.get(f.setor_id, "").lower(), f.nome.lower()))
     return render(request, "painel_escala.html", u=u, e=e, aba="escala", dias=dias,
                   setores=lista_setores, setor=sid, nomes_setor=nomes_setor,
                   agrupar=bool(lista_setores and not sid), equipe_toda=len(equipe),
                   destaque=data_iso(dia, None),
-                  locais=fase3.locais_da(db, e.id), zaps=zaps, fixas=fixas,
+                  locais=lista_locais, local_filtro=loc, zaps=zaps, fixas=fixas,
                   hoje=hoje, equipe=visiveis, turnos=turnos, horas=horas, seg=seg,
                   ant=seg - timedelta(days=7), prox=seg + timedelta(days=7),
                   feriados=feriados, fechado=apuracao.fechado_ate(db, e),

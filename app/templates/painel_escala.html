@@ -10,7 +10,14 @@
     <a class="botao claro" href="/painel/escala?semana={{ ant.isoformat() }}" aria-label="{{ _('Semana anterior') }}">‹</a>
     <a class="botao claro" href="/painel/escala">{{ _('Esta semana') }}</a>
     <a class="botao claro" href="/painel/escala?semana={{ prox.isoformat() }}" aria-label="{{ _('Próxima semana') }}">›</a>
-    {{ filtro_setor(setores, setor, form=True, extras={'semana': seg.isoformat()}) }}
+    {{ filtro_setor(setores, setor, form=True, extras={'semana': seg.isoformat(), 'local': local_filtro}) }}
+    {% if locais %}<form method="get" class="filtro-setor"><input type="hidden" name="semana" value="{{ seg.isoformat() }}">
+      <label class="filtro-setor-campo"><span class="pequeno">{{ _('Local') }}</span>
+      <select name="local" onchange="this.form.submit()" aria-label="{{ _('Filtrar colaboradores por local') }}">
+        <option value="">{{ _('Todos os locais') }}</option>
+        <option value="principal" {{ 'selected' if local_filtro == 'principal' }}>{{ _('{v1} (endereço principal)', v1=e.nome) }}</option>
+        {% for l in locais %}<option value="{{ l.id }}" {{ 'selected' if local_filtro == l.id|string }}>{{ l.nome }}</option>{% endfor %}
+      </select></label><noscript><button class="botao claro" type="submit">{{ _('Filtrar') }}</button></noscript></form>{% endif %}
     <form method="post" action="/painel/escala/copiar" class="inline">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <input type="hidden" name="semana" value="{{ seg.isoformat() }}">
@@ -138,7 +145,7 @@
 </div>
 
 <div class="cartao">
-  {% if setor and not equipe and equipe_toda %}<div class="vazio">{{ _('Ninguém deste setor está na escala.') }} <a href="/painel/escala?setor=0&semana={{ seg.isoformat() }}">{{ _('Ver todos') }}</a></div>{% endif %}
+  {% if (setor or local_filtro) and not equipe and equipe_toda %}<div class="vazio">{{ _('Ninguém deste setor está na escala.') if setor and not local_filtro else _('Ninguém deste filtro está na escala.') }} <a href="/painel/escala?setor=0&local=&semana={{ seg.isoformat() }}">{{ _('Ver todos') }}</a></div>{% endif %}
   {% if equipe %}
   <div class="rolagem"><table class="tabela-escala">
     <thead><tr>

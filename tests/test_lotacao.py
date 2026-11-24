@@ -114,6 +114,21 @@ def escala_pela_tela():
         t = db.scalar(select(Turno).where(Turno.usuario_id == cid, Turno.data == dia))
         assert r.so_principal and t.local_id == fid and not t.so_principal
     assert "Principal" in g.get(f"/painel/escala?semana={(dia + timedelta(days=7) - timedelta(days=dia.weekday())).isoformat()}").text
+    # filtro "Local" ao lado do setor: quem é do local e quem foi escalado lá na semana
+    with SessionLocal() as db:
+        db.add(Usuario(empresa_id=db.get(Usuario, cid).empresa_id, nome="Duda Matriz", celular="98999990010"))
+        db.commit()
+    sem = (dia - timedelta(days=dia.weekday())).isoformat()
+    prox = (dia + timedelta(days=7) - timedelta(days=dia.weekday())).isoformat()
+    tela = g.get(f"/painel/escala?semana={sem}&local=principal").text
+    assert "Duda Matriz" in tela and "Caio Filial" not in tela and 'aria-label="Filtrar colaboradores por local"' in tela
+    tela = g.get(f"/painel/escala?semana={sem}&local={fid}").text
+    assert "Caio Filial" in tela and "Duda Matriz" not in tela
+    assert "Caio Filial" in g.get(f"/painel/escala?semana={prox}&local=principal").text   # escalado na matriz
+    g.get(f"/painel/escala?semana={sem}&local={fid}")
+    assert "Duda Matriz" not in g.get(f"/painel/escala?semana={sem}").text      # o filtro fica guardado
+    tela = g.get(f"/painel/escala?semana={sem}&local=").text
+    assert "Caio Filial" in tela and "Duda Matriz" in tela
 
 
 if __name__ == "__main__":
