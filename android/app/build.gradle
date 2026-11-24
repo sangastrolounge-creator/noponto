@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId pacote
-        minSdk 23
+        minSdk 24
         targetSdk 36
         versionCode Integer.parseInt((project.findProperty('dwVersao') ?: '1').toString())
         versionName (project.findProperty('dwNome') ?: '1.0').toString()
