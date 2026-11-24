@@ -207,6 +207,143 @@
       { a: "form[action='/painel/assinatura/pagar']", t: t("Assinar ou renovar"), x: t("Escolha o plano e pague por Pix, boleto ou cartão. A liberação é automática. No cartão, a cobrança se repete sozinha todo mês.") },
       { a: "h2:" + t("Tem um cupom?"), t: t("Cupom"), x: t("Tem um código de desconto? Aplique aqui antes de pagar.") },
       { a: "#indique", t: t("Indique e ganhe"), x: t("Envie o seu link para outra empresa. Quando ela assinar, você ganha 1 mês grátis.") }
+    ],
+    // ------------------------------------------------------------ Master (dono da plataforma e equipe)
+    m_geral: [
+      { t: t("Painel Master"), x: t("O centro de controle da plataforma: todas as empresas clientes, a situação de cada uma e, para quem tem a área Financeiro, a receita. O menu de cima mostra só as áreas que você pode usar.") },
+      { a: ".subabas", t: t("As áreas do Master"), x: t("CRM, Chat ao vivo, Tarefas, Conversas e E-mail cuidam das vendas. Empresas e Avisos são o suporte. Cupons e Parceiros, o financeiro. O resto são as configurações da plataforma. Cada pessoa da equipe vê só as áreas liberadas em Equipe do Master.") },
+      { a: ".grade", t: t("Os números"), x: t("Receita mensal (soma dos planos das empresas ativas), o que entrou nos últimos 30 dias e quantas empresas estão ativas, em teste e vencidas. Vencida é quem passou da validade e da carência sem pagar.") },
+      { a: "form[action='/master']", t: t("Buscar e filtrar"), x: t("Procure uma empresa pelo nome ou pelo e-mail do responsável e filtre pela situação. O número ao lado de cada situação mostra quantas há.") },
+      { a: ".pagina table", t: t("A lista de empresas"), x: t("Plano, validade, quantos funcionários (e o limite do plano) e as batidas dos últimos 30 dias, que mostram se a empresa está usando de verdade. Uma etiqueta vermelha avisa quando o dono pediu a exclusão da conta. Toque no nome para abrir a empresa.") },
+      { a: "a[href='/master/empresas/nova']", t: t("Nova empresa"), x: t("Cadastra uma empresa por você, por exemplo um cliente que fechou pelo telefone. O sistema gera uma senha provisória para enviar ao responsável.") }
+    ],
+    m_empresa: [
+      { t: t("A empresa"), x: t("Tudo sobre um cliente: situação, plano, validade, uso e pagamentos. Daqui você dá suporte e resolve a cobrança.") },
+      { a: "form[action$='/entrar']", t: t("Entrar no painel dela"), x: t("Abre o painel da empresa como se fosse o responsável, para ver o que ele vê e ajudar. Para voltar ao Master, use o aviso no topo da tela. Tudo o que você fizer lá fica no histórico da empresa.") },
+      { a: "h2:" + t("Registrar pagamento"), t: t("Registrar pagamento"), x: t("Para pagamentos fora do sistema (Pix direto, dinheiro). Informe o valor, a forma e por quantos dias liberar; os dias contam a partir do vencimento atual, ou de hoje se já venceu.") },
+      { a: "h2:" + t("Plano e anotações"), t: t("Plano e anotações"), x: t("Troque o plano, marque como cortesia (não vence e não tem limite) e guarde anotações internas que só a equipe do Master vê.") },
+      { a: "h2:" + t("Outras ações"), t: t("Outras ações"), x: t("Estender o teste, gerar uma senha provisória para o responsável, cancelar a assinatura e bloquear a empresa. Quando o dono pede a exclusão, cancele a cobrança, bloqueie e apague os dados em até 15 dias.") },
+      { a: "h2:" + t("Pagamentos"), t: t("Pagamentos"), x: t("O histórico de pagamentos da empresa, automáticos (Asaas) e registrados à mão.") }
+    ],
+    m_crm: [
+      { t: t("CRM"), x: t("O funil de vendas da plataforma. Quem deixa o WhatsApp no chat do site, quem cria conta de teste e quem escreve para o e-mail de contato pode virar lead. Quando a empresa assina, o lead vai sozinho para Cliente.") },
+      { a: "form[action='/master/crm/pegar']", t: t("A fila"), x: t("Leads sem dono ficam na fila. Toque em “Pegar o próximo da fila” para assumir o mais antigo: ele passa a ser seu e some da fila dos colegas.") },
+      { a: "#crm-novo, button[onclick*='crm-novo']", t: t("Novo lead"), x: t("Cadastre à mão quem chegou por indicação, telefone ou WhatsApp. O sistema avisa se o telefone ou o e-mail já existem.") },
+      { a: "form.crm-filtros", t: t("Filtros"), x: t("Veja só os seus, a fila ou, para quem tem Supervisão, todos e os de cada pessoa. A busca acha por nome, empresa, telefone ou e-mail. A previsão soma a mensalidade esperada dos leads abertos.") },
+      { a: "#crm-quadro", t: t("O quadro"), x: t("Uma coluna por etapa: Novo, Em contato, Proposta, Em teste, Cliente e Perdido. Arraste o cartão para mudar a etapa; em Perdido, o sistema pede o motivo. “Retorno atrasado” em vermelho é uma tarefa vencida.") },
+      { a: ".crm-card", t: t("O cartão"), x: t("Toque para abrir a ficha do lead: contatos, histórico, tarefas e a conversa do chat.") }
+    ],
+    m_lead: [
+      { t: t("Ficha do lead"), x: t("Tudo sobre um possível cliente: de onde veio, quem cuida dele, cada contato feito, as tarefas e as mensagens.") },
+      { a: ".cabecalho .acoes", t: t("Falar com o lead"), x: t("WhatsApp abre a conversa com uma saudação pronta, Ligar abre o discador e Enviar e-mail escreve pela caixa de contato, que guarda o e-mail no histórico. Se ele já criou a conta, “Ver a conta” abre a empresa.") },
+      { a: "h2:" + t("Etapa"), t: t("Etapa"), x: t("Mude a etapa do funil. Ao marcar Perdido, anote o motivo: isso ajuda a entender por que as vendas não fecham.") },
+      { a: "h2:" + t("Registrar contato"), t: t("Registrar contato"), x: t("Depois de cada ligação, WhatsApp ou e-mail, anote o que foi conversado e o próximo passo. O primeiro contato registrado leva o lead de Novo para Em contato.") },
+      { a: ".crm-hist", t: t("Histórico"), x: t("Tudo em ordem, do mais novo para o mais antigo: contatos, mudanças de etapa, e-mails recebidos e enviados e avisos do sistema, com quem fez.") },
+      { a: "h2:" + t("Tarefas"), t: t("Tarefas"), x: t("Marque o retorno com data e hora, como “ligar para apresentar a proposta”. Ela aparece em Tarefas e fica vermelha quando atrasa.") },
+      { a: "h2:" + t("Dados"), t: t("Dados"), x: t("Nome, empresa, telefone, e-mail, número de funcionários e a mensalidade prevista. Quem tem Supervisão também muda o responsável ou devolve o lead para a fila.") }
+    ],
+    m_aovivo: [
+      { t: t("Chat ao vivo"), x: t("As conversas do chat do site dos últimos 30 minutos, atualizadas sozinhas a cada 3 segundos. Você lê o que o assistente está respondendo e pode assumir a qualquer momento.") },
+      { a: "#av-equipe-cartao", t: t("Equipe agora"), x: t("Para quem tem Supervisão: quantos chats cada atendente assumiu, quantos registros fez hoje, os leads abertos, as tarefas atrasadas e o último registro. Também mostra quantos leads esperam na fila.") },
+      { a: "#av-lista", t: t("As conversas"), x: t("Cada conversa mostra o visitante, a última mensagem e quem está respondendo: o assistente ou um atendente. Toque para abrir.") },
+      { a: "#av-assumir", t: t("Assumir"), x: t("O assistente para de responder e o visitante passa a falar com você, no mesmo chat do site. Se o lead estava na fila, ele passa a ser seu.") },
+      { a: "#av-form", t: t("Responder"), x: t("Escreva e tecle Enter. A resposta aparece no chat do visitante com o seu primeiro nome em poucos segundos.") },
+      { a: "#av-devolver", t: t("Devolver ao assistente"), x: t("Quando terminar, devolva: o assistente volta a responder as próximas perguntas.") }
+    ],
+    m_tarefas: [
+      { t: t("Tarefas de retorno"), x: t("As ligações e retornos marcados nos leads, em ordem de data. As atrasadas aparecem em vermelho.") },
+      { a: ".pagina table", t: t("Marcar como feita"), x: t("Feita a ligação, toque em Feita: a tarefa sai da lista e entra no histórico do lead. Toque no nome para abrir a ficha.") },
+      { a: ".cabecalho .acoes", t: t("Da equipe"), x: t("Quem tem Supervisão vê as tarefas de toda a equipe, com o responsável de cada uma.") }
+    ],
+    m_conversas: [
+      { t: t("Conversas do assistente"), x: t("Tudo o que os visitantes perguntaram no chat do site. Use para entender as dúvidas e melhorar a página de vendas. Conversas paradas há 180 dias são apagadas.") },
+      { a: "#contatos", t: t("Contatos para retornar"), x: t("Quem deixou o WhatsApp, pelo formulário (com autorização) ou escrevendo o número no chat. O botão abre o WhatsApp com uma mensagem pronta. Esses contatos também entram no CRM.") },
+      { a: "details.cartao", t: t("As conversas"), x: t("Abra uma conversa para ler as perguntas e as respostas do assistente, e as do atendente quando alguém assumiu.") }
+    ],
+    m_caixa: [
+      { t: t("E-mail"), x: t("A caixa de contato da plataforma, lida aqui dentro. Os e-mails chegam sozinhos a cada minuto, e quem cuida da caixa recebe um aviso no celular.") },
+      { a: ".cabecalho .acoes", t: t("Escrever e atualizar"), x: t("Escrever abre um e-mail novo. Atualizar busca os e-mails na hora. Configurar (só o dono) liga ou troca a caixa.") },
+      { a: ".cx-barra", t: t("Pastas e filtros"), x: t("Caixa de entrada ou Enviados, só os não lidos ou só os de leads do CRM, e a busca no assunto, no remetente e no texto.") },
+      { a: ".cx-lista", t: t("A lista"), x: t("Os não lidos ficam em negrito, com uma bolinha azul. A etiqueta Lead mostra que o remetente está no CRM, e o clipe mostra que há anexo.") }
+    ],
+    m_caixa_ler: [
+      { t: t("Ler o e-mail"), x: t("Ao abrir, o e-mail é marcado como lido aqui e no webmail. O conteúdo aparece protegido: nenhum script do e-mail roda na plataforma.") },
+      { a: ".cabecalho .acoes", t: t("Responder e encaminhar"), x: t("Responder já cita a mensagem original e mantém a conversa junta no e-mail do cliente. Encaminhar pode levar os anexos originais. Marcar como não lido devolve o e-mail para a lista de pendentes.") },
+      { a: ".cx-anexos", t: t("Anexos"), x: t("Toque para baixar. O arquivo vem direto do servidor de e-mail na hora.") },
+      { a: "form[action$='/lead'], .etiqueta.ok", t: t("Ligação com o CRM"), x: t("Se o remetente é um lead, o e-mail já entrou no histórico dele. Se não é, “Criar lead no CRM” cadastra a pessoa e liga todos os e-mails dela ao lead.") }
+    ],
+    m_caixa_novo: [
+      { t: t("Escrever e-mail"), x: t("O e-mail sai do endereço de contato da plataforma, com a sua assinatura no fim, e fica guardado em Enviados aqui e no webmail.") },
+      { a: "#para", t: t("Destinatários"), x: t("Um ou vários endereços separados por vírgula. Use Cópia para incluir mais alguém.") },
+      { a: "#anexos", t: t("Anexos"), x: t("Anexe propostas, contratos ou prints, até 20 MB no total.") },
+      { a: "#cx-enviar", t: t("Enviar"), x: t("Se o destinatário for um lead, o e-mail entra no histórico dele no CRM.") }
+    ],
+    m_caixa_config: [
+      { t: t("Ligar a caixa de e-mail"), x: t("Informe o e-mail e a senha da caixa de contato. Na Hostinger os servidores já vêm preenchidos. A plataforma testa a entrada antes de salvar.") },
+      { a: "#senha", t: t("A senha"), x: t("Cole a senha só aqui. Ela nunca aparece de novo nesta tela, e não deve ser enviada por mensagem para ninguém.") }
+    ],
+    m_equipe: [
+      { t: t("Equipe do Master"), x: t("As pessoas do suporte, do atendimento e do call center. Cada uma entra pela tela de login normal e só vê as áreas que você marcar.") },
+      { a: "h2:" + t("Adicionar pessoa"), t: t("Adicionar pessoa"), x: t("Nome, e-mail de login e as áreas: CRM, Supervisão do CRM, Suporte, Financeiro, Configurações e E-mail. Ao salvar, o sistema gera um link para a pessoa criar a senha; copie e envie para ela.") },
+      { t: t("As áreas"), x: t("CRM: leads, funil, chat ao vivo e conversas. Supervisão: vê os leads de todos, distribui e acompanha a equipe. Suporte: empresas e avisos. Financeiro: receita, cupons e parceiros. Configurações: tudo da plataforma. E-mail: a caixa de contato.") },
+      { a: ".pagina form[action^='/master/equipe/']", t: t("Mudar ou tirar o acesso"), x: t("Marque ou desmarque as áreas de cada pessoa e salve. “Tirar o acesso” fecha o Master para ela, e os leads abertos dela voltam para a fila.") }
+    ],
+    m_cupons: [
+      { t: t("Cupons e plano anual"), x: t("Descontos para campanhas e o preço do plano anual.") },
+      { a: "h2:" + t("Plano anual"), t: t("Plano anual"), x: t("Quantas mensalidades são cobradas por 12 meses. 10 quer dizer 2 meses grátis para quem paga o ano.") },
+      { a: "h2:" + t("Novo cupom"), t: t("Novo cupom"), x: t("Código, porcentagem de desconto, por quantos meses, limite de usos e validade. O cliente usa no cadastro, na tela Assinatura ou pelo link /cupom/CÓDIGO.") }
+    ],
+    m_parceiros: [
+      { t: t("Parceiros"), x: t("Contadores e revendas que indicam clientes. O nível sobe sozinho com os clientes pagantes, e cada parceiro tem a sua comissão.") },
+      { a: ".pagina .cartao", t: t("Comissões"), x: t("Veja as empresas e os pagantes de cada parceiro, pague as comissões por Pix e marque como pagas. Divulgue a página de cadastro de parceiros para contadores da sua cidade.") }
+    ],
+    m_planos: [
+      { t: t("Planos"), x: t("Os planos à venda, com preço, limite de funcionários e o que cada um libera.") },
+      { a: "h2:" + t("Pacote recomendado"), t: t("Pacote recomendado"), x: t("Cria de uma vez um conjunto de planos pronto, para começar rápido.") },
+      { a: "h2:" + t("Novo plano"), t: t("Novo plano"), x: t("Preço fixo ou base mais um valor por pessoa, limite e tolerância de pessoas, faixas por volume e os benefícios que aparecem na página de vendas. Desmarque “À venda” para tirar o plano da página sem afetar quem já usa.") }
+    ],
+    m_p671: [
+      { t: t("Portaria 671"), x: t("Os dados que fazem o sistema funcionar como REP-P: o desenvolvedor, o registro no INPI e os certificados ICP-Brasil A1 que assinam os comprovantes, o AFD, o AEJ e o Atestado Técnico.") },
+      { a: "h2:" + t("Programa e desenvolvedor"), t: t("Programa e desenvolvedor"), x: t("Razão social, CNPJ e responsáveis. Enquanto faltar algo, a página pública e os Termos de Uso dizem que o registro está em andamento.") },
+      { t: t("Os certificados"), x: t("Envie os arquivos .pfx e as senhas só por esta tela. Se a mesma pessoa for responsável legal e técnico, basta o certificado do responsável legal.") }
+    ],
+    m_lojas: [
+      { t: t("Lojas de apps"), x: t("O que o Google Play e a App Store precisam para o aplicativo funcionar e ser publicado.") },
+      { a: "h2:" + t("Google Play"), t: t("Google Play"), x: t("O nome do pacote e as impressões digitais SHA-256 que o site publica para o Android confiar no app. Copie do Play Console, em Integridade do app.") },
+      { a: "h2:" + t("Links para as lojas"), t: t("Links para as lojas"), x: t("Os endereços que as lojas pedem na ficha do app: privacidade, termos, exclusão de conta e suporte.") }
+    ],
+    m_pagina: [
+      { t: t("Página de vendas"), x: t("A página que o visitante vê ao abrir o site. Edite os textos de cada seção, troque imagens e vídeos, veja a prévia e publique.") },
+      { a: ".ed-secao", t: t("As seções"), x: t("Cada bloco da página tem título, texto, imagem ou vídeo (YouTube, Vimeo ou arquivo). Se a seção tiver os dois, aparece o vídeo.") }
+    ],
+    m_plataforma: [
+      { t: t("Plataforma"), x: t("A marca e as regras gerais: nome, página inicial, cadastro, teste grátis, pagamento, suporte e os documentos legais.") },
+      { a: "h2:" + t("Marca e página inicial"), t: t("Marca"), x: t("O nome da plataforma, o nome curto que aparece embaixo do ícone no celular e os textos de destaque da página inicial.") },
+      { a: "h2:" + t("Cadastro e teste"), t: t("Cadastro e teste"), x: t("Se o cadastro está aberto e quantos dias de teste grátis cada empresa nova ganha.") },
+      { a: "h2:" + t("Pagamento e suporte"), t: t("Pagamento e suporte"), x: t("A ligação com o Asaas, que cobra por Pix, boleto ou cartão e libera sozinho, e o WhatsApp do suporte, que aparece na página inicial, na tela Assinatura e no chat do site.") },
+      { a: "h2:" + t("Termos de Uso e Privacidade"), t: t("Documentos legais"), x: t("Os dados da empresa que aparecem nos Termos de Uso e na Política de Privacidade.") }
+    ],
+    m_banners: [
+      { t: t("Banners"), x: t("Avisos e promoções no topo da tela Hoje de todas as empresas. Com mais de um no ar, eles se revezam a cada 7 segundos.") },
+      { a: "h2:" + t("Novo banner"), t: t("Novo banner"), x: t("Título curto, uma frase, o link do botão e a cor ou uma imagem larga de fundo. Cada gestor pode fechar o banner; ele volta se você mudar o texto.") }
+    ],
+    m_entrada: [
+      { t: t("Tela de entrada"), x: t("A aparência da tela de login: cores, textos e as imagens que se revezam ao lado.") },
+      { a: "h2:" + t("Cores e textos"), t: t("Cores e textos"), x: t("Duas cores para o degradê, o título e o texto. A prévia mostra como fica.") },
+      { a: "h2:" + t("Entrar com o Google"), t: t("Entrar com o Google"), x: t("Liga o botão “Continuar com o Google” no login e no cadastro, com o ID e a chave criados no Google Cloud.") }
+    ],
+    m_folha: [
+      { t: t("Folha de pagamento e Claude"), x: t("As tabelas de INSS e IRRF usadas por todas as empresas e a revisão das folhas pelo Claude.") },
+      { a: "h2:" + t("Revisão pelo Claude"), t: t("Revisão pelo Claude"), x: t("Cole a chave da API da Anthropic para ligar a revisão das folhas e o assistente de vendas do site. O uso é cobrado na sua conta da Anthropic, e a chave nunca aparece de novo.") },
+      { a: "h2:" + t("Tabelas"), t: t("Tabelas"), x: t("As faixas de INSS e IRRF com a data de vigência. Atualize quando o governo publicar tabelas novas.") }
+    ],
+    m_email: [
+      { t: t("Envio de e-mails"), x: t("A caixa que envia os e-mails automáticos da plataforma, como o “Esqueci a senha” e os avisos para o Master. É diferente da aba E-mail, que é a caixa de contato para ler e responder.") },
+      { a: "h2:" + t("Caixa de e-mail"), t: t("Servidor de envio"), x: t("Na Hostinger: smtp.hostinger.com, porta 465, com o e-mail e a senha da caixa. Salve e use “Enviar e-mail de teste”.") }
+    ],
+    m_avisos: [
+      { t: t("Avisos para você"), x: t("O que a plataforma avisa para as contas Master, por e-mail e no celular: empresa nova cadastrada, pagamento confirmado, cobrança vencida, assinatura cancelada e o resumo diário dos testes grátis terminando.") },
+      { a: "h2:" + t("Me avise quando"), t: t("Me avise quando"), x: t("Desmarque o que não quer receber e salve. Use “Enviar um aviso de teste” para conferir. Para receber no celular, entre no painel pelo celular e toque em “Receber avisos neste aparelho” na tela Hoje.") }
     ]
   };
 
@@ -226,7 +363,23 @@
     if (c === "/painel/mural") return "mural";
     if (c.indexOf("/painel/cerca/") === 0) return "cerca";
     if (/^\/painel\/pagamento\/\d+$/.test(c)) return "pagamento_folha";
+    if (c.indexOf("/master") === 0) return chaveMaster(c);
     return CFG.aba;
+  }
+
+  // Telas do Master: uma chave por endereço.
+  function chaveMaster(c) {
+    var M = [[/^\/master\/?$/, "m_geral"], [/^\/master\/empresas\/\d+/, "m_empresa"],
+      [/^\/master\/crm\/?$/, "m_crm"], [/^\/master\/crm\/ao-vivo/, "m_aovivo"], [/^\/master\/crm\/tarefas/, "m_tarefas"],
+      [/^\/master\/crm\/\d+/, "m_lead"], [/^\/master\/conversas/, "m_conversas"],
+      [/^\/master\/caixa\/?$/, "m_caixa"], [/^\/master\/caixa\/novo/, "m_caixa_novo"], [/^\/master\/caixa\/config/, "m_caixa_config"],
+      [/^\/master\/caixa\/\d+/, "m_caixa_ler"], [/^\/master\/equipe/, "m_equipe"], [/^\/master\/cupons/, "m_cupons"],
+      [/^\/master\/parceiros/, "m_parceiros"], [/^\/master\/planos/, "m_planos"], [/^\/master\/portaria671/, "m_p671"],
+      [/^\/master\/lojas/, "m_lojas"], [/^\/master\/pagina/, "m_pagina"], [/^\/master\/plataforma/, "m_plataforma"],
+      [/^\/master\/banners/, "m_banners"], [/^\/master\/entrada/, "m_entrada"], [/^\/master\/folha/, "m_folha"],
+      [/^\/master\/email/, "m_email"], [/^\/master\/avisos/, "m_avisos"]];
+    for (var k = 0; k < M.length; k++) if (M[k][0].test(c)) return M[k][1];
+    return "";
   }
 
   // ---------------------------------------------------------------- alvos
