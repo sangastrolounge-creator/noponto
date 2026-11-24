@@ -1,0 +1,106 @@
+{# Assistente de vendas: botão flutuante com chat no site e passagem para o WhatsApp do time. #}
+{% set zap = plat.whatsapp %}
+{% set chat = vendedor_ligado() %}
+{% if zap or chat %}
+<style>
+  .vd-botao{position:fixed;right:20px;bottom:20px;z-index:60;width:62px;height:62px;border-radius:50%;border:0;cursor:pointer;
+    background:#25d366;color:#fff;box-shadow:0 10px 28px rgb(0 0 0 / .22);display:grid;place-items:center;transition:transform .15s}
+  .vd-botao:hover{transform:scale(1.06)}
+  .vd-botao svg{width:32px;height:32px}
+  .vd-bolha{position:fixed;right:92px;bottom:32px;z-index:60;background:#fff;color:#1d2140;padding:10px 14px;border-radius:14px;
+    box-shadow:0 8px 24px rgb(0 0 0 / .15);font:500 14px/1.35 system-ui,sans-serif;max-width:230px;cursor:pointer}
+  .vd-bolha[hidden]{display:none}
+  .vd-janela{position:fixed;right:20px;bottom:96px;z-index:61;width:min(380px,calc(100vw - 24px));height:min(560px,calc(100dvh - 120px));
+    background:#fff;color:#1d2140;border-radius:20px;box-shadow:0 20px 50px rgb(0 0 0 / .25);display:flex;flex-direction:column;overflow:hidden;
+    font:15px/1.45 system-ui,-apple-system,sans-serif}
+  .vd-janela[hidden]{display:none}
+  .vd-topo{background:linear-gradient(135deg,#5b7cfa,#7c6cf5);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px}
+  .vd-topo strong{display:block;font-size:15px}.vd-topo span{font-size:12px;opacity:.9}
+  .vd-topo button{margin-left:auto;background:none;border:0;color:#fff;font-size:22px;cursor:pointer;line-height:1}
+  .vd-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:#f5f6fb}
+  .vd-m{max-width:85%;padding:9px 12px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word}
+  .vd-m.eu{align-self:flex-end;background:#4f6bf5;color:#fff;border-bottom-right-radius:4px}
+  .vd-m.ele{align-self:flex-start;background:#fff;border:1px solid #e3e6f2;border-bottom-left-radius:4px}
+  .vd-m.digitando{opacity:.7;font-style:italic}
+  .vd-sugestoes{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px;background:#f5f6fb}
+  .vd-sugestoes button{border:1px solid #cdd3f5;background:#fff;color:#3d55db;border-radius:99px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+  .vd-form{display:flex;gap:8px;padding:10px;border-top:1px solid #e3e6f2}
+  .vd-form input{flex:1;border:1px solid #d6dae8;border-radius:12px;padding:10px 12px;font:inherit;min-width:0}
+  .vd-form button{border:0;border-radius:12px;background:#4f6bf5;color:#fff;padding:0 14px;font-weight:700;cursor:pointer}
+  .vd-zap{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 10px 10px;padding:10px;border-radius:12px;
+    background:#25d366;color:#fff;font-weight:700;text-decoration:none}
+  .vd-aviso{font-size:11px;color:#7a7f98;text-align:center;padding:0 12px 8px}
+  .vd-aviso a{color:inherit}
+  @media (prefers-reduced-motion:reduce){.vd-botao{transition:none}}
+</style>
+<div class="vd-bolha" id="vd-bolha" hidden>{{ _('Oi! Quer ajuda para escolher o plano? Fale comigo.') }}</div>
+<button class="vd-botao" id="vd-botao" type="button" aria-label="{{ _('Tirar dúvidas e falar no WhatsApp') }}" aria-expanded="false">
+  <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 3C8.8 3 3 8.6 3 15.5c0 2.5.8 4.9 2.2 6.9L3.6 28.4l6.3-1.6c1.8 1 3.9 1.5 6.1 1.5 7.2 0 13-5.6 13-12.5S23.2 3 16 3zm0 22.8c-1.9 0-3.8-.5-5.4-1.5l-.4-.2-3.7 1 1-3.6-.3-.4c-1.2-1.7-1.8-3.6-1.8-5.6C5.4 9.9 10.2 5.3 16 5.3s10.6 4.6 10.6 10.2S21.8 25.8 16 25.8zm5.8-7.6c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a8.7 8.7 0 0 1-4.3-3.7c-.3-.6.3-.5.9-1.6.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.6 3.6 0 0 0-1.1 2.7 6.3 6.3 0 0 0 1.3 3.3 14.3 14.3 0 0 0 5.5 4.8c2 .9 2.8.9 3.8.8a3.2 3.2 0 0 0 2.1-1.5 2.6 2.6 0 0 0 .2-1.5c-.1-.1-.3-.2-.6-.3z"/></svg>
+</button>
+<div class="vd-janela" id="vd-janela" role="dialog" aria-label="{{ _('Assistente do {v1}', v1=app_nome) }}" hidden>
+  <div class="vd-topo">
+    <div><strong>{{ app_nome }}</strong><span>{{ _('Assistente de vendas · responde na hora') if chat else _('Fale com a gente') }}</span></div>
+    <button type="button" id="vd-fechar" aria-label="{{ _('Fechar') }}">×</button>
+  </div>
+  {% if chat %}
+  <div class="vd-msgs" id="vd-msgs" aria-live="polite"></div>
+  <div class="vd-sugestoes" id="vd-sug">
+    <button type="button">{{ _('Quanto custa?') }}</button>
+    <button type="button">{{ _('Funciona para restaurante?') }}</button>
+    <button type="button">{{ _('Atende a Portaria 671?') }}</button>
+  </div>
+  <form class="vd-form" id="vd-form" autocomplete="off">
+    <input id="vd-texto" maxlength="600" placeholder="{{ _('Escreva sua dúvida…') }}" aria-label="{{ _('Sua mensagem') }}">
+    <button type="submit">{{ _('Enviar') }}</button>
+  </form>
+  {% else %}
+  <div class="vd-msgs"><div class="vd-m ele">{{ _('Oi! Toque no botão abaixo para falar com a gente pelo WhatsApp.') }}</div></div>
+  {% endif %}
+  {% if zap %}<a class="vd-zap" id="vd-zap" href="https://wa.me/55{{ zap }}" target="_blank" rel="noopener">{{ _('Falar no WhatsApp') }}</a>{% endif %}
+  {% if chat %}<div class="vd-aviso">{{ _('Respostas automáticas. A conversa é guardada para atendimento.') }} <a href="/privacy">{{ _('Privacidade') }}</a></div>{% endif %}
+</div>
+<script>
+(function () {
+  function g(i) { return document.getElementById(i); }
+  var jan = g("vd-janela"), bot = g("vd-botao"), bolha = g("vd-bolha");
+  var CHAT = {{ 'true' if chat else 'false' }}, ZAP = "{{ zap }}";
+  var conversa = "", perguntas = [], ocupado = false;
+  function abrir() { jan.hidden = false; bolha.hidden = true; bot.setAttribute("aria-expanded", "true");
+    if (CHAT && !g("vd-msgs").children.length) add("ele", {{ _('Oi! Sou o assistente do {v1}. Me conta: qual é o ramo da sua empresa e quantos funcionários vocês têm?', v1=app_nome)|tojson }});
+    var t = g("vd-texto"); if (t) t.focus(); }
+  function fechar() { jan.hidden = true; bot.setAttribute("aria-expanded", "false"); }
+  bot.addEventListener("click", function () { jan.hidden ? abrir() : fechar(); });
+  bolha.addEventListener("click", abrir);
+  g("vd-fechar").addEventListener("click", fechar);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !jan.hidden) fechar(); });
+  try { if (!sessionStorage.getItem("vd-bolha")) setTimeout(function () { if (jan.hidden) bolha.hidden = false; sessionStorage.setItem("vd-bolha", "1"); }, 9000); } catch (e) {}
+  function add(quem, txt, cls) {
+    var d = document.createElement("div"); d.className = "vd-m " + quem + (cls ? " " + cls : ""); d.textContent = txt;
+    g("vd-msgs").appendChild(d); g("vd-msgs").scrollTop = 1e6; return d;
+  }
+  function linkZap() {
+    var z = g("vd-zap"); if (!z) return;
+    var t = {{ _('Olá! Vim pelo site do {v1}.', v1=app_nome)|tojson }};
+    if (perguntas.length) t += " " + {{ _('Conversei com o assistente sobre:')|tojson }} + " " + perguntas.slice(-3).join(" / ");
+    z.href = "https://wa.me/55" + ZAP + "?text=" + encodeURIComponent(t.slice(0, 900));
+  }
+  var z = g("vd-zap");
+  if (z) z.addEventListener("click", function () {
+    if (conversa) fetch("/vendedor/whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ conversa: conversa }) }).catch(function () {});
+  });
+  if (!CHAT) return;
+  function enviar(texto) {
+    texto = (texto || "").trim(); if (!texto || ocupado) return;
+    ocupado = true; g("vd-sug").hidden = true; add("eu", texto); perguntas.push(texto.slice(0, 160)); linkZap();
+    var d = add("ele", {{ _('digitando…')|tojson }}, "digitando");
+    fetch("/vendedor/mensagem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto: texto, conversa: conversa }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j.conversa) conversa = j.conversa; d.className = "vd-m ele"; d.textContent = j.resposta || j.erro || "…"; })
+      .catch(function () { d.className = "vd-m ele"; d.textContent = {{ _('Sem conexão agora. Toque em “Falar no WhatsApp”.')|tojson }}; })
+      .then(function () { ocupado = false; g("vd-msgs").scrollTop = 1e6; });
+  }
+  g("vd-form").addEventListener("submit", function (e) { e.preventDefault(); var t = g("vd-texto"); enviar(t.value); t.value = ""; });
+  g("vd-sug").addEventListener("click", function (e) { if (e.target.tagName === "BUTTON") enviar(e.target.textContent); });
+})();
+</script>
+{% endif %}

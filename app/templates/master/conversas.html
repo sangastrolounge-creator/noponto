@@ -1,0 +1,19 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Conversas do assistente de vendas') }}</h1>
+<p class="suave" style="margin:0">{{ _('O que os visitantes perguntaram no chat da página inicial. Use para entender as dúvidas e melhorar a página. Conversas paradas há 180 dias são apagadas.') }}</p></div></div>
+{% if not ligado %}<p class="alerta">{{ _('O assistente está desligado: falta a chave da API do Claude (a mesma da revisão da folha, em Pagamento). Enquanto isso, o botão abre só o WhatsApp.') }}</p>{% endif %}
+{% if not plat.whatsapp %}<p class="alerta">{{ _('Sem número de WhatsApp em Master → Plataforma: o chat não oferece a passagem para o WhatsApp.') }}</p>{% endif %}
+{% for x in itens %}
+<details class="cartao">
+  <summary><strong>{{ local(u.empresa, x.c.atualizado_em, '%d/%m %H:%M') }}</strong> · {{ x.msgs|selectattr('papel', 'equalto', 'pessoa')|list|length }} {{ _('pergunta(s)') }}
+    {% if x.c.foi_whatsapp %}<span class="etiqueta ok">{{ _('foi para o WhatsApp') }}</span>{% endif %}
+    <br><span class="suave pequeno">{{ (x.msgs[0].texto if x.msgs else '')|truncate(120) }}</span></summary>
+  <div style="margin-top:10px">
+  {% for m in x.msgs %}<p style="margin:6px 0"><strong>{{ _('Visitante') if m.papel == 'pessoa' else _('Assistente') }}:</strong> {{ m.texto }}</p>{% endfor %}
+  </div>
+</details>
+{% else %}
+<p class="suave">{{ _('Nenhuma conversa ainda.') }}</p>
+{% endfor %}
+{% endblock %}
