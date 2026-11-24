@@ -26,7 +26,7 @@ pedidos = []
 class _Msgs:
     def create(self, **kw):
         pedidos.append(kw)
-        return types.SimpleNamespace(content=[types.SimpleNamespace(type="text", text="Temos plano para 10 pessoas.")])
+        return types.SimpleNamespace(content=[types.SimpleNamespace(type="text", text=pedidos and "Comece por aqui: https://dataworke.com.br/cadastro" or "Temos plano para 10 pessoas.")])
 
 
 class _Cliente:
@@ -65,6 +65,8 @@ def main():
     assert r1["resposta"] == "Temos plano para 10 pessoas." and r1["conversa"]
     r2 = v.post("/vendedor/mensagem", json={"texto": "E o preço?", "conversa": r1["conversa"]}).json()
     assert r2["conversa"] == r1["conversa"]
+    assert r2["teste"] and "/cadastro" not in r2["resposta"] and r2["resposta"].startswith("Comece por aqui")
+    assert not r1["teste"]
     ult = pedidos[-1]
     assert [x["role"] for x in ult["messages"]] == ["user", "assistant", "user"]
     assert "Planos e preços" in ult["system"] and "Portaria" in ult["system"]

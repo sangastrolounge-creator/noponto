@@ -36,6 +36,8 @@
   .vd-lead button{border:0;border-radius:10px;background:#25d366;color:#fff;font-weight:700;padding:10px;cursor:pointer}
   .vd-lead .vd-erro{color:#c0392b;font-size:12px}
   .vd-quero{display:block;margin:0 10px 8px;border:1px dashed #4f6bf5;background:#fff;color:#3d55db;border-radius:12px;padding:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;width:calc(100% - 20px)}
+  .vd-teste{align-self:flex-start;display:inline-block;background:linear-gradient(135deg,#5b7cfa,#7c6cf5);color:#fff;
+    font-weight:700;text-decoration:none;padding:10px 16px;border-radius:12px;box-shadow:0 6px 16px rgb(79 107 245 / .3)}
   .vd-aviso{font-size:11px;color:#7a7f98;text-align:center;padding:0 12px 8px}
   .vd-aviso a{color:inherit}
   @media (prefers-reduced-motion:reduce){.vd-botao{transition:none}}
@@ -126,6 +128,8 @@
     fetch("/vendedor/mensagem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto: texto, conversa: conversa }) })
       .then(function (r) { return r.json(); })
       .then(function (j) { if (j.conversa) conversa = j.conversa; d.className = "vd-m ele"; d.textContent = j.resposta || j.erro || "…";
+        if (j.teste) { var a = document.createElement("a"); a.className = "vd-teste"; a.href = "/cadastro";
+          a.textContent = {{ _('Testar {v1} dias grátis', v1=(plat.dias_teste or 7))|tojson }}; g("vd-msgs").appendChild(a); }
         if (j.contato) { temContato = true; g("vd-quero").hidden = true; }
         respostas += 1; if (respostas === 3 && !temContato) formContato(); })
       .catch(function () { d.className = "vd-m ele"; d.textContent = {{ _('Sem conexão agora. Toque em “Falar no WhatsApp”.')|tojson }}; })

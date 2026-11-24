@@ -30,7 +30,7 @@ padarias). Você conversa no chat do site com quem está conhecendo o produto.
 
 Seu objetivo: entender a empresa da pessoa (ramo, quantos funcionários, como controla o ponto hoje), \
 mostrar como o {marca} resolve o problema dela e levar ao próximo passo: começar o teste grátis de \
-{dias_teste} dias em {site}/cadastro, ou falar com uma pessoa do time pelo WhatsApp.
+{dias_teste} dias (botão no chat), ou falar com uma pessoa do time pelo WhatsApp.
 
 Como responder:
 - Escreva no idioma da pessoa. Frases curtas, tom simpático e direto, como um bom vendedor de loja. \
@@ -40,6 +40,8 @@ No máximo 4 frases ou uma lista curta por resposta. Nada de markdown pesado: no
 Nunca invente preço, prazo, desconto, integração ou recurso.
 - Não dê conselho jurídico. Em dúvidas de lei trabalhista, explique o que o sistema faz e sugira \
 confirmar com o contador.
+- Quando for a hora de começar o teste grátis, escreva [TESTE] sozinho no fim da mensagem: ele vira \
+um botão "Testar {dias_teste} dias grátis". Não escreva o endereço do cadastro.
 - Se a pessoa pedir para falar com alguém, pedir desconto especial, plano sob medida, ou estiver \
 pronta para fechar, diga que ela pode tocar em "Falar no WhatsApp" logo abaixo do chat.
 - Não peça CPF, senha, dados de cartão ou documentos. Nome, empresa e número de funcionários bastam.
@@ -160,13 +162,20 @@ async def mensagem(request: Request, tarefas_bg: BackgroundTasks, db: Session = 
             resposta = ""
         if not resposta:
             resposta = "Tive um problema para responder agora. Toque em \"Falar no WhatsApp\" que a gente continua por lá."
+    # o endereço do cadastro vira o botão "Testar N dias grátis" no chat
+    resposta = re.sub(r"\(?\s*(?:https?://)?[\w.-]*(?:\.[a-z]{2,})?/cadastro\S*\s*\)?", " [TESTE] ", resposta)
+    resposta = re.sub(r"\s+(?:em|no|na|pelo|pela|neste link|no link|acesse)\s*:?\s*\[TESTE\]", " [TESTE]",
+                      resposta, flags=re.I)
+    teste = "[TESTE]" in resposta and bool(plataforma()["cadastro_aberto"])
+    resposta = re.sub(r"[ \t]*\[TESTE\][ \t]*", " ", resposta).strip()
+    resposta = re.sub(r"\s+([.,;:!?])", r"\1", resposta).rstrip(":").strip()
     msgs.append({"papel": "assistente", "texto": resposta[:3000]})
     conv.mensagens = json.dumps(msgs, ensure_ascii=False)
     conv.atualizado_em = banco.agora()
     db.commit()
     if novo_contato:
         tarefas_bg.add_task(avisar_time, conv.id)
-    return {"conversa": conv.chave, "resposta": resposta, "contato": bool(conv.telefone)}
+    return {"conversa": conv.chave, "resposta": resposta, "contato": bool(conv.telefone), "teste": teste}
 
 
 def avisar_time(conv_id: int) -> None:
