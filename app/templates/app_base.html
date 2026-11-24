@@ -6,6 +6,7 @@
   <div class="app-topo">
     <div><div class="ola">{% block saudacao %}{% endblock %}</div><div class="suave pequeno">{{ e.nome }}</div></div>
     {{ seletor() }}
+    <a class="botao link" href="/conta">{{ _('Conta') }}</a>
     <form method="post" action="/sair" data-confirma="{{ _('Sair do aplicativo neste aparelho?') }}">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <button class="botao link" type="submit">{{ _('Sair') }}</button>

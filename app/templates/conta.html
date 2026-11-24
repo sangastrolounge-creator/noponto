@@ -1,0 +1,37 @@
+{% extends "painel_base.html" if u.gestor else "app_base.html" %}
+{% block saudacao %}{{ _('Minha conta') }}{% endblock %}
+{% block conteudo %}
+{% if u.gestor %}<div class="cabecalho"><div><h1>{{ _('Minha conta') }}</h1></div></div>{% endif %}
+<section class="cartao">
+  <h2>{{ _('Seus dados de acesso') }}</h2>
+  <p style="margin:0 0 4px"><strong>{{ u.nome }}</strong></p>
+  <p class="suave" style="margin:0">{% if u.email %}{{ u.email }}{% endif %}{% if u.email and u.celular %} · {% endif %}{% if u.celular %}{{ u.celular }}{% endif %}</p>
+  <p class="suave pequeno" style="margin:10px 0 0">{{ e.nome }}</p>
+  <p class="pequeno" style="margin:12px 0 0"><a href="/privacy">{{ _('Política de Privacidade') }}</a> · <a href="/terms">{{ _('Termos de Uso') }}</a></p>
+</section>
+
+<section class="cartao" id="excluir">
+  <h2>{{ _('Excluir minha conta') }}</h2>
+  {% if u.dono %}
+    {% if e.exclusao_pedida_em %}
+    <p class="alerta">{{ _('Pedido de exclusão registrado em {v1}. A conta da empresa é encerrada e os dados são apagados em até {v2} dias, com confirmação por e-mail.', v1=local(e, e.exclusao_pedida_em, '%d/%m/%Y'), v2=prazo) }}</p>
+    {% else %}
+    <p>{{ _('Você é o dono da conta de {v1}. Excluir a sua conta encerra a conta da empresa inteira: a assinatura é cancelada e os dados da empresa e de toda a equipe são apagados.', v1=e.nome) }}</p>
+    <p class="suave">{{ _('As marcações de ponto e os documentos trabalhistas que a lei manda guardar podem ser baixados antes, em Relatórios e na Portaria 671 (AFD e AEJ). A equipe da plataforma conclui o pedido em até {v1} dias e confirma por e-mail.', v1=prazo) }}</p>
+    {% endif %}
+  {% else %}
+    <p>{{ _('A sua conta de acesso é apagada na hora: senha, PIN do totem, cadastro do rosto, aparelhos autorizados e avisos. Você sai do aplicativo em todos os aparelhos.') }}</p>
+    <p class="suave">{{ _('As marcações de ponto, ausências e folhas já registradas ficam guardadas com a {v1} pelo prazo que a lei trabalhista exige (LGPD, art. 16, I). Se não houver nenhum registro, o seu cadastro inteiro é apagado. Para voltar a usar, peça um convite novo ao seu gestor.', v1=e.nome) }}</p>
+  {% endif %}
+  {% if not (u.dono and e.exclusao_pedida_em) %}
+  <form method="post" action="/conta/excluir" data-confirma="{{ _('Excluir a sua conta? Isso não pode ser desfeito.') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="campo"><label for="ex-senha">{{ _('Digite a sua senha para confirmar') }}</label>
+      <input id="ex-senha" type="password" name="senha" autocomplete="current-password" required></div>
+    <label class="marcar campo"><input type="checkbox" name="confirmo" value="1" required> {{ _('Entendi o que acontece e quero excluir a minha conta.') }}</label>
+    <button class="botao perigo" type="submit" style="margin-top:12px">{{ _('Pedir o encerramento da conta da empresa') if u.dono else _('Excluir minha conta') }}</button>
+  </form>
+  {% if not u.senha_hash %}<p class="ajuda">{{ _('Você entra com o Google e não tem senha. Crie uma em “Esqueci a senha” na tela de entrada, ou escreva para o suporte.') }}</p>{% endif %}
+  {% endif %}
+</section>
+{% endblock %}

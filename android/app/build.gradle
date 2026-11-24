@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Valores que o workflow "App Android" passa com -P (veja .github/workflows/android.yml).
+def host = (project.findProperty('dwHost') ?: 'dataworke.com.br').toString()
+def pacote = (project.findProperty('dwPacote') ?: 'br.com.dataworke.app').toString()
+def chave = System.getenv('DW_KEYSTORE')
+
+android {
+    namespace 'br.com.dataworke.app'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId pacote
+        minSdk 23
+        targetSdk 36
+        versionCode Integer.parseInt((project.findProperty('dwVersao') ?: '1').toString())
+        versionName (project.findProperty('dwNome') ?: '1.0').toString()
+
+        manifestPlaceholders = [hostName: host]
+        resValue 'string', 'launchUrl', 'https://' + host + '/app'
+        resValue 'string', 'providerAuthority', pacote + '.fileprovider'
+        resValue 'string', 'assetStatements',
+            '[{\\"relation\\": [\\"delegate_permission/common.handle_all_urls\\"], ' +
+            '\\"target\\": {\\"namespace\\": \\"web\\", \\"site\\": \\"https://' + host + '\\"}}]'
+    }
+
+    signingConfigs {
+        if (chave) {
+            release {
+                storeFile file(chave)
+                storePassword System.getenv('DW_KEY_SENHA')
+                keyAlias 'upload'
+                keyPassword System.getenv('DW_KEY_SENHA')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (chave) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
+}

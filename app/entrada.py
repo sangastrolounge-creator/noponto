@@ -226,7 +226,7 @@ def google_volta(request: Request, code: str = "", state: str = "", error: str =
     u = db.scalar(select(Usuario).where(Usuario.google_sub == sub)) or \
         db.scalar(select(Usuario).where(Usuario.email == email))
     if u:
-        if not u.ativo:
+        if not u.ativo or u.conta_excluida_em:
             avisar(request, "Este acesso está desativado. Fale com o seu gestor.", "erro")
             return ir("/entrar")
         if not u.empresa.ativo:

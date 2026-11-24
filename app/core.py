@@ -399,7 +399,7 @@ def render(request: Request, nome: str, status_code: int = 200, **ctx):
 def usuario_logado(request: Request, db: Session = Depends(get_db)) -> Usuario:
     uid = request.session.get("uid")
     u = db.get(Usuario, uid) if uid else None
-    if not u or not u.ativo:
+    if not u or not u.ativo or u.conta_excluida_em:
         request.session.pop("uid", None)
         raise Redirecionar("/entrar")
     if not u.empresa.ativo:  # empresa bloqueada pelo master: ninguém entra

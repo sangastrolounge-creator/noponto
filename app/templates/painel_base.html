@@ -67,6 +67,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></a>{% endif %}
       <button class="icone-conta" type="button" id="abrir-guia" title="{{ _('Ver o guia desta tela') }}" aria-label="{{ _('Guia') }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.8 1c0 1.7-2.3 2.2-2.3 3.8"/><path d="M12 17.2h.01"/></svg></button>
+      <a href="/conta" class="icone-conta {{ 'ativa' if aba == 'conta' }}" title="{{ _('Minha conta') }}" aria-label="{{ _('Minha conta') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></a>
       <form method="post" action="/sair" class="inline">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <button class="icone-conta" type="submit" title="{{ _('Sair') }}" aria-label="{{ _('Sair') }}">

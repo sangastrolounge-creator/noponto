@@ -1,0 +1,26 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Lojas de apps') }}</h1><p class="suave" style="margin:0">{{ _('O app Android abre o próprio site em tela cheia. Para o Android confiar nele, o site publica o nome do pacote e a impressão digital da chave que assina o app.') }} <a href="/.well-known/assetlinks.json" target="_blank">assetlinks.json</a></p></div></div>
+<form method="post" action="/master/lojas" class="cartao">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Google Play') }}</h2>
+  <div class="campo"><label for="lj-pacote">{{ _('Nome do pacote (ID do app)') }}</label>
+    <input id="lj-pacote" type="text" name="android_pacote" value="{{ d.android_pacote }}" maxlength="100">
+    <div class="ajuda">{{ _('Depois de publicado, não muda mais. O padrão é br.com.dataworke.app.') }}</div></div>
+  <div class="campo"><label for="lj-sha">{{ _('Impressões digitais SHA-256 (uma por linha)') }}</label>
+    <textarea id="lj-sha" name="android_sha256" rows="3" spellcheck="false" placeholder="AB:CD:EF:…">{{ d.android_sha256|join('\n') }}</textarea>
+    <div class="ajuda">{{ _('No Play Console: Teste e lançamento → Configuração → Integridade do app → Assinatura de apps. Copie o “Certificado SHA-256” da chave de assinatura do app e, se quiser testar o pacote antes de enviar, o da chave de upload. Sem isso, o app abre com a barra de endereço do navegador.') }}</div></div>
+  <div class="campo"><label for="lj-play">{{ _('Link do app no Google Play (quando publicado)') }}</label>
+    <input id="lj-play" type="url" name="play_url" value="{{ d.play_url }}" placeholder="https://play.google.com/store/apps/details?id={{ d.android_pacote }}"></div>
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+<div class="cartao">
+  <h2>{{ _('Links para as lojas') }}</h2>
+  <p class="suave">{{ _('As lojas pedem estes endereços na ficha do app:') }}</p>
+  <ul>
+    <li>{{ _('Política de Privacidade') }}: <a href="/privacy" target="_blank">{{ request.base_url }}privacy</a></li>
+    <li>{{ _('Exclusão de conta e dados') }}: <a href="/excluir-conta" target="_blank">{{ request.base_url }}excluir-conta</a></li>
+    <li>{{ _('Termos de Uso') }}: <a href="/terms" target="_blank">{{ request.base_url }}terms</a></li>
+  </ul>
+</div>
+{% endblock %}

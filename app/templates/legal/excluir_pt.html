@@ -1,0 +1,22 @@
+{% extends "legal/_base.html" %}
+{% block nome_doc %}{{ _('Excluir conta') }}{% endblock %}
+{% block texto %}
+<h1>{{ _('Como excluir a sua conta do {v1}', v1=L.marca) }}</h1>
+<p>{{ _('Você pode excluir a sua conta a qualquer momento, pelo próprio aplicativo ou pelo site, sem custo.') }}</p>
+
+<h2>{{ _('Funcionário ou gerente') }}</h2>
+<ol>
+  <li>{{ _('Entre no aplicativo ou em {v1} com o seu celular ou e-mail e a sua senha.', v1=request.base_url.hostname) }}</li>
+  <li>{{ _('Toque em “Conta”, no topo da tela (no painel, no ícone de pessoa ao lado de “Sair”).') }}</li>
+  <li>{{ _('Em “Excluir minha conta”, digite a sua senha, marque a confirmação e toque em “Excluir minha conta”.') }}</li>
+</ol>
+<p>{{ _('O que é apagado na hora: senha, PIN do totem, cadastro do rosto, aparelhos autorizados e avisos. Se você não tiver nenhum registro de ponto, o cadastro inteiro é apagado.') }}</p>
+<p>{{ _('O que fica guardado: as marcações de ponto, ausências e folhas já registradas ficam com a empresa empregadora pelo prazo que a legislação trabalhista exige (LGPD, art. 16, I). Depois desse prazo, são apagadas.') }}</p>
+
+<h2>{{ _('Dono da conta da empresa') }}</h2>
+<p>{{ _('No painel, abra “Conta” e peça o encerramento. A assinatura é cancelada e os dados da empresa e da equipe são apagados em até {v1} dias, com confirmação por e-mail. Antes, você pode baixar os relatórios e os arquivos da Portaria 671 (AFD e AEJ).', v1=prazo) }}</p>
+
+<h2>{{ _('Sem acesso ao aplicativo?') }}</h2>
+<p>{{ _('Escreva para o contato abaixo, com o seu nome, a empresa e o celular ou e-mail cadastrado. Respondemos em até {v1} dias.', v1=prazo) }}</p>
+{% include "legal/_contato.html" %}
+{% endblock %}
