@@ -15,7 +15,7 @@ from . import i18n, push, regras
 from .core import (COOKIE_SECURE, avisar, base_url, conferir_senha, da_empresa,
                    dentro_do_limite, exigir_csrf, gerar_hash, gestor_logado, ir, limite_locais, render,
                    usuario_logado)
-from .db import Local, Totem, Turno, Usuario, get_db
+from .db import Alerta, Local, Totem, Turno, Usuario, get_db
 
 try:
     import qrcode
@@ -209,14 +209,18 @@ def _estado(t: Totem) -> dict:
 def totem(request: Request, db: Session = Depends(get_db)):
     t = totem_atual(request, db)
     if not t:
-        return render(request, "totem.html", t=None, e=None, pessoas=[], estado=None)
+        return render(request, "totem.html", t=None, e=None, pessoas=[], estado=None, facial_ligado=False,
+                      com_rosto=set())
     t.visto_em = banco.agora()
     db.commit()
     pessoas = list(db.scalars(select(Usuario).where(
         Usuario.empresa_id == t.empresa_id, Usuario.ativo.is_(True), Usuario.na_escala.is_(True))
         .order_by(Usuario.nome)))
+    from . import facial
+    ligado = facial.ligado(t.empresa)
     return render(request, "totem.html", t=t, e=t.empresa, pessoas=pessoas, estado=_estado(t),
-                  tem_qr=qrcode is not None)
+                  tem_qr=qrcode is not None, facial_ligado=ligado,
+                  com_rosto={p.id for p in pessoas if ligado and facial.usa(p)})
 
 
 @rota.get("/totem/estado")
@@ -273,11 +277,24 @@ async def totem_ponto(request: Request, tarefas_bg: BackgroundTasks,
     except regras.ErroPonto as ex:
         db.commit()
         return i18n.resposta_erro({"erro": str(ex)}, 400)
+    from . import facial, rep
+    if facial.usa(u):
+        # o tablet conferiu o rosto (com prova de vida): como no celular, não bloqueia, só avisa o gestor
+        facial.conferir_batida(db, u, b, d.get("facial"))
+        db.commit()
+        if b.facial == "diverge":
+            alertas += list(db.scalars(select(Alerta).where(Alerta.usuario_id == u.id, Alerta.tipo == "facial")
+                                       .order_by(Alerta.id.desc()).limit(1)))
     tarefas_bg.add_task(push.avisar_alertas, [a.id for a in alertas])
     hora = regras.para_local(u.empresa, b.momento).strftime("%H:%M")
-    return {"ok": True, "tipo": b.tipo,
-            "mensagem": f"{u.primeiro_nome}, {'entrada' if b.tipo == 'entrada' else 'saída'} "
-                        f"registrada às {hora}."}
+    msg = f"{'Entrada' if b.tipo == 'entrada' else 'Saída'} registrada às {hora}."
+    nsr = db.scalar(select(rep.RegistroRep.nsr).where(rep.RegistroRep.batida_id == b.id))
+    if nsr:
+        msg += f" Comprovante nº {nsr} no aplicativo, em Meus comprovantes."
+    if b.facial == "diverge":
+        msg += " O rosto não conferiu: o gestor vai conferir esta marcação."
+    return {"ok": True, "tipo": b.tipo, "hora": hora, "nsr": nsr, "facial": b.facial or "",
+            "titulo": u.primeiro_nome, "mensagem": msg}
 
 
 # ============================================================ funcionário: PIN do totem

@@ -20,7 +20,7 @@
   <div class="facial-selo{{ ' ok' if u.facial_descritor }}" aria-hidden="true">🙂</div>
   {% if u.facial_descritor %}
   <h2>{{ _('Rosto cadastrado') }}</h2>
-  <p class="suave">{{ _('Nas próximas batidas, o app pede que você olhe para a câmera e pisque. A foto não sai do seu celular.') }}</p>
+  <p class="suave">{{ _('Nas próximas batidas, o app (e o tablet de ponto, se você usar o PIN) pede que você olhe para a câmera e pisque. A foto não sai do aparelho.') }}</p>
   {% else %}
   <h2>{{ _('Cadastre o seu rosto') }}</h2>
   <p class="suave">{{ _('Fique num lugar claro, sem boné nem óculos escuros, segure o celular na altura do rosto e pisque quando o app pedir.') }}</p>
@@ -37,7 +37,7 @@
     <button class="botao link" type="submit">{{ _('Revogar o consentimento e apagar meu rosto') }}</button>
   </form>
 </section>
-<script src="/static/facial.js?v=3"></script>
+<script src="/static/facial.js?v=4"></script>
 <script>
 (function () {
   var b = document.getElementById("facial-cadastrar"), ret = document.getElementById("facial-retorno");
