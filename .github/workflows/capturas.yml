@@ -30,6 +30,7 @@ jobs:
           python tools/demo_completa.py
           python -c "import sqlite3; c=sqlite3.connect('dados/visualizar.db'); c.execute('update usuarios set guia_visto=1'); c.commit()"
           python tools/demo_setores.py
+          python tools/demo_crm.py
       - name: Ligar o servidor
         run: |
           nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8100 > servidor.log 2>&1 &
