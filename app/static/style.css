@@ -523,13 +523,13 @@ tr.inativo td { opacity: .55; }
 .totem-tempo span { display: block; height: 100%; background: var(--degrade); transition: width 1s linear; }
 .totem-codigo img { display: block; margin: 16px auto 6px; background: #fff; border-radius: 14px; padding: 8px; }
 /* PIN com teclado na tela */
-dialog.totem-pin { width: min(380px, calc(100vw - 24px)); padding: 22px 20px 16px; border-radius: 26px; text-align: center; }
+dialog.totem-pin { width: min(380px, calc(100vw - 24px)); padding: 22px 20px 16px; border-radius: 26px; text-align: center;
+  overflow-x: hidden; box-sizing: border-box; }
 .totem-pin-topo h2 { margin: 0 0 2px; font-size: 1.35rem; }
 .totem-pin-topo p { margin: 0 0 14px; }
 .totem-pontos { display: flex; justify-content: center; gap: 12px; margin-bottom: 14px; }
 .totem-pontos i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--campo-borda); transition: background var(--rapido), border-color var(--rapido); }
 .totem-pontos i.cheio { background: var(--cor); border-color: var(--cor); }
-.totem-pin-campo { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 .totem-teclado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
 .totem-teclado button { height: 64px; border-radius: 18px; border: 1px solid var(--borda); background: var(--cartao-2); color: var(--texto);
   font-family: var(--fonte-titulo); font-size: 1.6rem; font-weight: 700; cursor: pointer; transition: transform var(--rapido), background var(--rapido); }

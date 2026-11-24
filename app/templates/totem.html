@@ -63,7 +63,7 @@
     <p class="suave" id="pin-dica">{{ _('Digite o seu PIN.') }}</p>
   </div>
   <div class="totem-pontos" id="pontos" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-  <input type="password" id="pin" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="{{ _('PIN') }}" class="totem-pin-campo">
+  <input type="hidden" id="pin" value="">
   <div class="totem-teclado">
     {% for n in ['1','2','3','4','5','6','7','8','9'] %}<button type="button" data-n="{{ n }}">{{ n }}</button>{% endfor %}
     <button type="button" id="pin-apagar" class="tecla-acao" aria-label="{{ _('Apagar') }}">⌫</button>
@@ -164,13 +164,10 @@
     b.addEventListener("click", function () { if (campo.value.length < 6) { campo.value += b.dataset.n; pintar(); } });
   });
   g("pin-apagar").addEventListener("click", function () { campo.value = campo.value.slice(0, -1); pintar(); });
-  campo.addEventListener("input", function () { campo.value = campo.value.replace(/\D/g, "").slice(0, 6); pintar(); });
-  campo.addEventListener("keydown", function (ev) { if (ev.key === "Enter") confirmar(); });
   dlg.addEventListener("keydown", function (ev) {
-    if (ev.target === campo) return;
     if (/^\d$/.test(ev.key) && campo.value.length < 6) { campo.value += ev.key; pintar(); }
     else if (ev.key === "Backspace") { campo.value = campo.value.slice(0, -1); pintar(); }
-    else if (ev.key === "Enter") confirmar();
+    else if (ev.key === "Enter") { ev.preventDefault(); confirmar(); }
   });
   g("pin-cancelar").addEventListener("click", function () { dlg.close(); });
   g("pin-ok").addEventListener("click", confirmar);
