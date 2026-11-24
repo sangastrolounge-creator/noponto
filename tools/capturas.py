@@ -16,7 +16,8 @@ PAINEL = [("hoje", "/painel"), ("escala", "/painel/escala"), ("ponto", "/painel/
           ("ajuste", "/painel/ponto/ajuste"), ("equipe", "/painel/equipe"), ("historico", "/painel/historico"), ("setores", "/painel/setores"), ("gerentes", "/painel/gerentes"), ("ficha", "/painel/equipe/5/ficha#documentos"),
           ("config", "/painel/config#logo"), ("relatorios", "/painel/relatorios"), ("folha", "/painel/folha?func=5"), ("fechamento", "/painel/fechamento"), ("horas", "/painel/fechamento/horas"), ("vendas", "/master/pagina/previa"),
           ("master", "/master"), ("app", "/app"), ("p671-painel", "/painel/portaria671"),
-          ("p671-master", "/master/portaria671"), ("comprovantes", "/app/comprovantes")]
+          ("p671-master", "/master/portaria671"), ("comprovantes", "/app/comprovantes"),
+          ("conta", "/conta"), ("lojas", "/master/lojas")]
 TELAS = {"pc": dict(viewport={"width": 1440, "height": 1000}),
          "cel": dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
                      device_scale_factor=2)}
