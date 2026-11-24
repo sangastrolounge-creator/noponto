@@ -1,0 +1,52 @@
+{% extends "master/base.html" %}
+{% block master %}
+<style>
+  .cx-cab{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:14px;margin:8px 0 14px}
+  .cx-cab dt{color:var(--suave,#6b7080)}.cx-cab dd{margin:0;word-break:break-word}
+  .cx-corpo{white-space:pre-wrap;word-wrap:break-word;font-size:15px;line-height:1.5}
+  .cx-html{width:100%;border:0;min-height:300px;background:#fff;border-radius:8px}
+  .cx-anexos{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+</style>
+<p><a href="/master/caixa{{ '?pasta=enviados' if m.pasta == 'enviados' }}">← {{ _('Voltar à caixa') }}</a></p>
+<section class="cartao">
+  <div class="cabecalho" style="margin-bottom:0"><div><h1 style="font-size:1.4rem">{{ m.assunto }}</h1></div>
+  <div class="acoes">
+    <a class="botao" href="/master/caixa/novo?responder={{ m.id }}">{{ _('Responder') }}</a>
+    {% if m.cc or (m.para and ',' in m.para) %}<a class="botao claro" href="/master/caixa/novo?responder={{ m.id }}&todos=1">{{ _('Responder a todos') }}</a>{% endif %}
+    <a class="botao claro" href="/master/caixa/novo?encaminhar={{ m.id }}">{{ _('Encaminhar') }}</a>
+    {% if m.pasta == 'entrada' %}<form method="post" action="/master/caixa/{{ m.id }}/nao-lido" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao claro" type="submit">{{ _('Marcar como não lido') }}</button></form>{% endif %}
+  </div></div>
+  <dl class="cx-cab">
+    <dt>{{ _('De') }}</dt><dd>{{ m.de_nome }} &lt;{{ m.de_email }}&gt;{% if autor %} · {{ _('enviado por {v1}', v1=autor.nome) }}{% endif %}</dd>
+    <dt>{{ _('Para') }}</dt><dd>{{ m.para }}</dd>
+    {% if m.cc %}<dt>{{ _('Cópia') }}</dt><dd>{{ m.cc }}</dd>{% endif %}
+    <dt>{{ _('Data') }}</dt><dd>{{ local(u.empresa, m.data, '%d/%m/%Y %H:%M') }}</dd>
+  </dl>
+  <div style="margin-bottom:14px">
+  {% if ld %}<span class="etiqueta ok">{{ _('Lead do CRM') }}</span> {% if 'crm' in u.areas_master %}<a href="/master/crm/{{ ld.id }}">{{ ld.nome or ld.email }}</a>{% else %}{{ ld.nome or ld.email }}{% endif %}
+  {% elif outro %}<form method="post" action="/master/caixa/{{ m.id }}/lead" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao mini" type="submit">{{ _('Criar lead no CRM') }}</button></form>{% endif %}
+  </div>
+  {% if m.html %}
+    <iframe class="cx-html" src="/master/caixa/{{ m.id }}/html" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin" title="{{ _('Conteúdo do e-mail') }}" onload="try{this.style.height=(this.contentDocument.body.scrollHeight+30)+'px'}catch(e){}"></iframe>
+  {% else %}
+    <div class="cx-corpo">{{ m.texto }}</div>
+  {% endif %}
+  {% if anexos %}
+  <div class="cx-anexos">
+    {% for a in anexos %}
+      {% if m.uid %}<a class="botao claro mini" href="/master/caixa/{{ m.id }}/anexo/{{ a.n }}">📎 {{ a.nome }} <span class="suave">({{ (a.tam / 1024)|round|int }} KB)</span></a>
+      {% else %}<span class="etiqueta">📎 {{ a.nome }}</span>{% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% if conversa %}
+<section class="cartao">
+  <h2>{{ _('Outros e-mails com {v1}', v1=outro) }}</h2>
+  {% for x in conversa %}
+  <p style="margin:6px 0"><a href="/master/caixa/{{ x.id }}">{{ x.assunto }}</a><br>
+  <span class="suave pequeno">{{ _('Recebido') if x.pasta == 'entrada' else _('Enviado') }} · {{ local(u.empresa, x.data, '%d/%m/%Y %H:%M') }}</span></p>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

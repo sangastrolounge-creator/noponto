@@ -6,6 +6,7 @@
   <a href="/master/crm/ao-vivo" class="{{ 'ativa' if sub == 'aovivo' }}">{{ _('Chat ao vivo') }}</a>
   <a href="/master/crm/tarefas" class="{{ 'ativa' if sub == 'tarefas' }}">{{ _('Tarefas') }}</a>
   <a href="/master/conversas" class="{{ 'ativa' if sub == 'conversas' }}">{{ _('Conversas') }}</a>{% endif %}
+  {% if 'email' in ar %}{% set nl = caixa_nao_lidos() %}<a href="/master/caixa" class="{{ 'ativa' if sub == 'caixa' }}">{{ _('E-mail') }}{% if nl %} <span class="etiqueta" style="background:#4f6bf5;color:#fff">{{ nl }}</span>{% endif %}</a>{% endif %}
   {% if 'suporte' in ar %}<a href="/master" class="{{ 'ativa' if sub == 'geral' }}">{{ _('Empresas') }}</a>{% endif %}
   {% if 'financeiro' in ar %}<a href="/master/cupons" class="{{ 'ativa' if sub == 'cupons' }}">{{ _('Cupons') }}</a>
   <a href="/master/parceiros" class="{{ 'ativa' if sub == 'parceiros' }}">{{ _('Parceiros') }}</a>{% endif %}
@@ -18,7 +19,7 @@
   <a href="/master/banners" class="{{ 'ativa' if sub == 'banners' }}">{{ _('Banners') }}</a>
   <a href="/master/entrada" class="{{ 'ativa' if sub == 'entrada' }}">{{ _('Tela de entrada') }}</a>
   <a href="/master/folha" class="{{ 'ativa' if sub == 'folha' }}">{{ _('Claude') }}</a>
-  <a href="/master/email" class="{{ 'ativa' if sub == 'email' }}">{{ _('E-mail') }}</a>
+  <a href="/master/email" class="{{ 'ativa' if sub == 'email' }}">{{ _('Envio de e-mails') }}</a>
   {% endif %}
   {% if 'suporte' in ar %}<a href="/master/avisos" class="{{ 'ativa' if sub == 'avisos' }}">{{ _('Avisos') }}</a>{% endif %}
   {% if not u.is_admin and u.na_escala %}<a href="/app">{{ _('Meu ponto') }}</a>{% endif %}

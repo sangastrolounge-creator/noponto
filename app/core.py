@@ -559,17 +559,19 @@ MASTER_AREAS = {
     "suporte": "Suporte às empresas clientes",
     "financeiro": "Financeiro: cobranças, cupons e parceiros",
     "config": "Configurações da plataforma e equipe do Master",
+    "email": "E-mail: caixa de contato da plataforma (ler, responder e anexos)",
 }
 # Caminho do Master -> área exigida (o mais específico primeiro). O que não estiver aqui é "config".
 _AREA_CAMINHO = [
     (re.compile(r"^/master/empresas/\d+/(pagamento|cancelar-assinatura)"), "financeiro"),
     (re.compile(r"^/master/(crm|conversas)(/|$)"), "crm"),
+    (re.compile(r"^/master/caixa(/|$)"), "email"),
     (re.compile(r"^/master/(cupons|parceiros)(/|$)"), "financeiro"),
     (re.compile(r"^/master/(empresas|avisos|voltar)(/|$)"), "suporte"),
     (re.compile(r"^/master/?$"), "suporte"),
 ]
 _AREA_INICIO = {"crm": "/master/crm", "suporte": "/master", "financeiro": "/master/cupons",
-                "config": "/master/planos", "supervisao": "/master/crm"}
+                "config": "/master/planos", "supervisao": "/master/crm", "email": "/master/caixa"}
 
 
 def area_do_caminho(caminho: str) -> str:
@@ -580,7 +582,7 @@ def area_do_caminho(caminho: str) -> str:
 
 
 def inicio_master(u: Usuario) -> str:
-    for a in ("suporte", "crm", "financeiro", "config"):
+    for a in ("suporte", "crm", "email", "financeiro", "config"):
         if a in u.areas_master:
             return _AREA_INICIO[a]
     return "/painel" if u.gestor else "/app"

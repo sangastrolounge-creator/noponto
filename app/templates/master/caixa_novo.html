@@ -1,0 +1,33 @@
+{% extends "master/base.html" %}
+{% block master %}
+<p><a href="{{ '/master/caixa/' ~ orig.id if orig else '/master/caixa' }}">← {{ _('Voltar') }}</a></p>
+<div class="cabecalho"><div><h1>{{ _('Responder') if responder else _('Encaminhar') if encaminhar else _('Novo e-mail') }}</h1>
+{% if lead %}<p class="suave" style="margin:0">{{ _('Para o lead {v1}. O e-mail entra no histórico dele no CRM.', v1=(lead.nome or lead.email)) }}</p>{% endif %}</div></div>
+<form method="post" action="/master/caixa/enviar" enctype="multipart/form-data" class="cartao" id="cx-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="responder" value="{{ responder or 0 }}">
+  <input type="hidden" name="encaminhar" value="{{ encaminhar or 0 }}">
+  <div class="campo"><label for="para">{{ _('Para') }}</label><input id="para" type="text" name="para" value="{{ para }}" required placeholder="nome@empresa.com.br" autocomplete="off"><div class="ajuda">{{ _('Vários endereços separados por vírgula.') }}</div></div>
+  <div class="campo"><label for="cc">{{ _('Cópia (opcional)') }}</label><input id="cc" type="text" name="cc" value="{{ cc }}" autocomplete="off"></div>
+  <div class="campo"><label for="assunto">{{ _('Assunto') }}</label><input id="assunto" type="text" name="assunto" value="{{ assunto }}" maxlength="500" required></div>
+  <div class="campo"><label for="texto">{{ _('Mensagem') }}</label><textarea id="texto" name="texto" rows="14" required>{{ corpo }}</textarea>
+    <div class="ajuda">{{ _('Sua assinatura ({v1} e o nome da plataforma) entra no final.', v1=u.nome) }}</div></div>
+  {% if anexos_orig %}
+  <label class="marcar"><input type="checkbox" name="manter_anexos" value="1" checked><span>{{ _('Encaminhar os anexos originais') }} ({{ anexos_orig|map(attribute='nome')|join(', ') }})</span></label>
+  {% endif %}
+  <div class="campo"><label for="anexos">{{ _('Anexos (até 20 MB no total)') }}</label><input id="anexos" type="file" name="anexos" multiple></div>
+  <div class="acoes" style="margin-top:12px"><button class="botao" type="submit" id="cx-enviar">{{ _('Enviar') }}</button></div>
+</form>
+<script>
+(function () {
+  var f = document.getElementById("cx-form"), t = document.getElementById("texto");
+  {% if responder %}t.focus(); t.setSelectionRange(0, 0);{% endif %}
+  f.addEventListener("submit", function (e) {
+    var total = 0, a = document.getElementById("anexos").files;
+    for (var i = 0; i < a.length; i++) total += a[i].size;
+    if (total > 20 * 1024 * 1024) { e.preventDefault(); alert({{ _('Os anexos passam de 20 MB.')|tojson }}); return; }
+    var b = document.getElementById("cx-enviar"); b.disabled = true; b.textContent = {{ _('Enviando…')|tojson }};
+  });
+})();
+</script>
+{% endblock %}
