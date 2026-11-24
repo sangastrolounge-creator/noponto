@@ -173,6 +173,8 @@ class Empresa(Base):
     endereco: Mapped[str] = mapped_column(String(300), default="")
     logo: Mapped[str] = mapped_column(String(60), default="")  # arquivo em dados/logos (impressos)
     facial_ativo: Mapped[bool] = mapped_column(Boolean, default=False)  # reconhecimento facial no ponto
+    # O dono pediu o encerramento da conta e a exclusão dos dados (a plataforma conclui).
+    exclusao_pedida_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # Local onde o ponto é válido. Sem lat/lng o ponto é aceito sem conferência.
     lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     lng: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -330,6 +332,8 @@ class Usuario(Base):
     data_admissao: Mapped[date | None] = mapped_column(Date, nullable=True)
     # Vigência: primeiro dia em que o ponto pode ser registrado no Data Worke (migração, treinamento).
     ponto_desde: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # A própria pessoa excluiu a conta de acesso (registros trabalhistas ficam guardados).
+    conta_excluida_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # Desligamento: último dia de trabalho, tipo (desligamento.TIPOS), aviso prévio e observação.
     desligado_em: Mapped[date | None] = mapped_column(Date, nullable=True)
     desligamento_tipo: Mapped[str] = mapped_column(String(20), default="")
@@ -1227,6 +1231,8 @@ COLUNAS_NOVAS = [
     ("usuarios", "classificacao", "VARCHAR(12) NOT NULL DEFAULT 'clt'"),
     ("usuarios", "data_admissao", "DATE"),
     ("usuarios", "ponto_desde", "DATE"),
+    ("usuarios", "conta_excluida_em", "DATETIME"),
+    ("empresas", "exclusao_pedida_em", "DATETIME"),
     ("usuarios", "desligado_em", "DATE"),
     ("usuarios", "desligamento_tipo", "VARCHAR(20) NOT NULL DEFAULT ''"),
     ("usuarios", "aviso_previo", "VARCHAR(16) NOT NULL DEFAULT ''"),

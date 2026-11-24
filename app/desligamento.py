@@ -147,6 +147,20 @@ def desfazer(request: Request, fid: int, u: Usuario = Depends(gestor_logado),
     return ir(f"/painel/equipe#p{f.id}")
 
 
+def apagar_cadastro(db: Session, f: Usuario) -> None:
+    """Apaga o cadastro e tudo o que é só dele. Use só para quem não tem registros a guardar."""
+    for m in (Turno, EscalaFixa, TarefaFeita, Alerta, Aparelho, PushSub, FuncaoUsuario,
+              Disponibilidade, AvaliacaoTurno, LeituraMensagem, RespostaTurno, DadosRH):
+        db.execute(delete(m).where(m.usuario_id == f.id))
+    db.execute(update(Tarefa).where(Tarefa.usuario_id == f.id).values(usuario_id=None))
+    db.execute(update(Oferta).where(Oferta.de_id == f.id).values(de_id=None))
+    db.execute(update(Oferta).where(Oferta.candidato_id == f.id).values(candidato_id=None))
+    for msg in db.scalars(select(Mensagem).where(Mensagem.autor_id == f.id)):
+        db.execute(delete(LeituraMensagem).where(LeituraMensagem.mensagem_id == msg.id))
+        db.delete(msg)
+    db.delete(f)
+
+
 @rota.post("/painel/equipe/{fid}/excluir", dependencies=CSRF)
 def excluir(request: Request, fid: int, confirmar: str = Form(""), u: Usuario = Depends(gestor_logado),
             db: Session = Depends(get_db)):
@@ -161,17 +175,8 @@ def excluir(request: Request, fid: int, confirmar: str = Form(""), u: Usuario = 
     if " ".join(confirmar.split()).casefold() != " ".join(f.nome.split()).casefold():
         avisar(request, "Para excluir, digite o nome completo exatamente como está no cadastro.", "erro")
         return ir(f"/painel/equipe#p{f.id}")
-    for m in (Turno, EscalaFixa, TarefaFeita, Alerta, Aparelho, PushSub, FuncaoUsuario,
-              Disponibilidade, AvaliacaoTurno, LeituraMensagem, RespostaTurno, DadosRH):
-        db.execute(delete(m).where(m.usuario_id == f.id))
-    db.execute(update(Tarefa).where(Tarefa.usuario_id == f.id).values(usuario_id=None))
-    db.execute(update(Oferta).where(Oferta.de_id == f.id).values(de_id=None))
-    db.execute(update(Oferta).where(Oferta.candidato_id == f.id).values(candidato_id=None))
-    for msg in db.scalars(select(Mensagem).where(Mensagem.autor_id == f.id)):
-        db.execute(delete(LeituraMensagem).where(LeituraMensagem.mensagem_id == msg.id))
-        db.delete(msg)
     nome = f.nome
-    db.delete(f)
+    apagar_cadastro(db, f)
     regras.registrar(db, u.empresa_id, u.nome, "cadastro excluído",
                      f"{nome}: cadastro apagado (não tinha registros de ponto).")
     db.commit()

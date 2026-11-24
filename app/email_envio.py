@@ -114,7 +114,7 @@ def _pelo_token(db: Session, token: str) -> Usuario | None:
     if len(token) < 20:
         return None
     u = db.scalar(select(Usuario).where(Usuario.redefinir_hash == _hash(token)))
-    if not u or not u.redefinir_ate or u.redefinir_ate < banco.agora() or not u.ativo:
+    if not u or not u.redefinir_ate or u.redefinir_ate < banco.agora() or not u.ativo or u.conta_excluida_em:
         return None
     return u
 

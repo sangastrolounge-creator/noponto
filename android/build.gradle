@@ -1,0 +1,4 @@
+// App Android do Data Worke: abre o site em tela cheia pelo Chrome (Trusted Web Activity).
+plugins {
+    id 'com.android.application' version '8.11.1' apply false
+}

@@ -24,7 +24,7 @@ from . import core
 from . import db as banco
 from . import crescimento, entrada, parceiros, rep
 from . import setores as setores_mod
-from . import (apuracao, asaas, cobranca, desligamento, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
+from . import (apuracao, asaas, cobranca, conta, desligamento, lojas, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
                ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
@@ -129,6 +129,8 @@ app.include_router(entrada.rota)
 app.include_router(crescimento.rota)
 app.include_router(parceiros.rota)
 app.include_router(rep.rota)
+app.include_router(conta.rota)
+app.include_router(lojas.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 
 templates.env.globals.update(
@@ -189,9 +191,10 @@ def manifest():
     return JSONResponse({
         "name": master.plataforma()["nome"],
         "short_name": master.plataforma().get("nome_curto") or master.plataforma()["nome"],
-        "start_url": "/", "scope": "/",
-        "display": "standalone", "background_color": "#ffffff", "theme_color": "#0f766e",
+        "id": "/", "start_url": "/", "scope": "/",
+        "display": "standalone", "background_color": "#ffffff", "theme_color": "#4f6bf5",
         "lang": "pt-BR", "description": "Escala, ponto e tarefas da equipe.",
+        "categories": ["business", "productivity"],
         "icons": [
             {"src": "/static/icone-192.png?v=4", "sizes": "192x192", "type": "image/png"},
             {"src": "/static/icone-512.png?v=4", "sizes": "512x512", "type": "image/png"},
@@ -325,6 +328,7 @@ def convite(request: Request, token: str, senha: str = Form(""), consentimento: 
     # LGPD: a localização e a foto do ponto têm como base a execução do contrato e a obrigação
     # legal de controlar a jornada (art. 7º, II e V); a tela pede a ciência e guarda quando foi dada.
     u.senha_hash, u.convite_token = gerar_hash(senha), None
+    u.conta_excluida_em = None      # convite novo depois de a pessoa ter excluído a conta
     if consentimento:
         u.consentimento_em = banco.agora()
     legal.registrar_aceite(u)

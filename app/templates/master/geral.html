@@ -28,7 +28,7 @@
     <tbody>
     {% for x in empresas %}
     <tr>
-      <td><a href="/master/empresas/{{ x.id }}"><strong>{{ x.nome }}</strong></a>{% if donos.get(x.id) %}<br><span class="suave pequeno">{{ donos[x.id].email }}</span>{% endif %}</td>
+      <td><a href="/master/empresas/{{ x.id }}"><strong>{{ x.nome }}</strong></a>{% if x.exclusao_pedida_em %} <span class="etiqueta erro">{{ _('Pediu exclusão em {v1}', v1=x.exclusao_pedida_em|data('%d/%m')) }}</span>{% endif %}{% if donos.get(x.id) %}<br><span class="suave pequeno">{{ donos[x.id].email }}</span>{% endif %}</td>
       <td>{{ etiqueta(x) }}</td>
       <td>{{ x.plano.nome if x.plano else '—' }}</td>
       <td class="pequeno">{{ validade(x)|data('%d/%m/%Y') or '—' }}</td>

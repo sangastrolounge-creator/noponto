@@ -15,6 +15,10 @@
   {% endif %}
 </div>
 
+{% if alvo.exclusao_pedida_em %}
+<div class="alerta"><strong>{{ _('O dono pediu o encerramento da conta e a exclusão dos dados em {v1}.', v1=alvo.exclusao_pedida_em|data('%d/%m/%Y')) }}</strong>
+  {{ _('Cancele a cobrança, bloqueie a empresa e apague os dados em até 15 dias; depois confirme por e-mail ao dono.') }}</div>
+{% endif %}
 {% if senha_temp %}
 <div class="alerta">
   <strong>{{ _('Senha provisória (aparece só agora):') }}</strong>
