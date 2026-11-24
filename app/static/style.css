@@ -142,8 +142,9 @@ p { margin: 0 0 12px; text-wrap: pretty; }
   .conta a:hover, .conta .botao.link:hover { color: #fff; }
   .conta a.ativa { color: var(--lateral-ativa); }
   .conta .idiomas { align-self: flex-start; background: rgb(255 255 255 / .06); border-color: rgb(255 255 255 / .12); }
-  .conta .idiomas a { color: var(--lateral-texto); padding: 4px 8px; }
-  .conta .idiomas a.ativa { background: var(--lateral-ativa); color: #061230; }
+  .conta .idiomas a { color: var(--lateral-texto); padding: 4px 7px; width: auto; justify-content: center; }
+  .conta .idiomas a.ativa { background: rgb(255 255 255 / .16); color: #fff; }
+  .conta .idiomas a.ativa .bandeira { box-shadow: 0 0 0 1.5px var(--lateral-ativa); }
   .conta .tema-botao { border-color: rgb(255 255 255 / .14); color: var(--lateral-texto); }
   .pagina { padding: 30px clamp(24px, 3vw, 44px) 72px; }
 }
@@ -631,6 +632,13 @@ dialog.totem-pin > .botao { width: 100%; }
   color: var(--suave); text-decoration: none; min-width: 34px; text-align: center; transition: all var(--rapido); }
 .idiomas a:hover { color: var(--texto); }
 .idiomas a.ativa { background: var(--cor); color: var(--cor-texto); }
+/* bandeiras no lugar das siglas: a ativa fica nítida e com contorno; as outras, um pouco apagadas */
+.idiomas a { display: inline-flex; align-items: center; justify-content: center; min-width: 0; padding: 4px 6px; line-height: 0; }
+.idiomas .bandeira { width: 22px; height: 16px; display: block; border-radius: 2px; box-shadow: 0 0 0 1px rgb(0 0 0 / .12);
+  opacity: .55; filter: saturate(.7); transition: opacity var(--rapido), filter var(--rapido), transform var(--rapido); }
+.idiomas a:hover .bandeira { opacity: .9; filter: none; }
+.idiomas a.ativa { background: color-mix(in srgb, var(--cor) 18%, transparent); }
+.idiomas a.ativa .bandeira { opacity: 1; filter: none; transform: scale(1.08); box-shadow: 0 0 0 1.5px var(--cor); }
 .idiomas-e-tema.caixa-idiomas, .caixa-idiomas { display: flex; width: max-content; margin: 0 auto 16px; }
 .conta .idiomas-e-tema { align-self: flex-start; }
 

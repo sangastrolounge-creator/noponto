@@ -1,5 +1,16 @@
 {# Seletor de idioma: PT · EN · ES, com o botão discreto de tema claro/escuro ao lado.
    Fica no topo de todas as páginas. #}
+{# Bandeiras em SVG (as bandeiras em emoji não aparecem no Windows). Português = Brasil,
+   English = Estados Unidos, Español = Espanha. #}
+{% macro bandeira(cod) -%}
+{%- if cod == 'pt' -%}
+<svg class="bandeira" viewBox="0 0 28 20" aria-hidden="true"><rect width="28" height="20" rx="2" fill="#229e45"/><path d="M14 2.6 25.4 10 14 17.4 2.6 10z" fill="#f8e509"/><circle cx="14" cy="10" r="4.6" fill="#2b49a3"/><path d="M9.6 9.1a8.6 8.6 0 0 1 8.8 2.1" stroke="#fff" stroke-width=".9" fill="none"/></svg>
+{%- elif cod == 'en' -%}
+<svg class="bandeira" viewBox="0 0 28 20" aria-hidden="true"><clipPath id="bd-us"><rect width="28" height="20" rx="2"/></clipPath><g clip-path="url(#bd-us)"><rect width="28" height="20" fill="#fff"/><path d="M0 0h28v1.54H0zm0 3.08h28v1.54H0zm0 3.08h28v1.54H0zm0 3.08h28v1.54H0zm0 3.08h28v1.54H0zm0 3.08h28v1.54H0zm0 3.08h28V20H0z" fill="#b22234"/><rect width="12.4" height="10.8" fill="#3c3b6e"/><g fill="#fff"><circle cx="2.2" cy="2" r=".55"/><circle cx="5" cy="2" r=".55"/><circle cx="7.8" cy="2" r=".55"/><circle cx="10.4" cy="2" r=".55"/><circle cx="3.6" cy="4" r=".55"/><circle cx="6.4" cy="4" r=".55"/><circle cx="9.1" cy="4" r=".55"/><circle cx="2.2" cy="6" r=".55"/><circle cx="5" cy="6" r=".55"/><circle cx="7.8" cy="6" r=".55"/><circle cx="10.4" cy="6" r=".55"/><circle cx="3.6" cy="8" r=".55"/><circle cx="6.4" cy="8" r=".55"/><circle cx="9.1" cy="8" r=".55"/></g></g></svg>
+{%- elif cod == 'es' -%}
+<svg class="bandeira" viewBox="0 0 28 20" aria-hidden="true"><rect width="28" height="20" rx="2" fill="#c60b1e"/><rect y="5" width="28" height="10" fill="#ffc400"/></svg>
+{%- else -%}{{ cod|upper }}{%- endif -%}
+{%- endmacro %}
 {% macro seletor(classe='') -%}
 <div class="idiomas-e-tema {{ classe }}">
 <button type="button" class="tema-botao" onclick="trocarTema()" title="{{ _('Tema claro ou escuro') }}" aria-label="{{ _('Tema claro ou escuro') }}">
@@ -8,7 +19,7 @@
 </button>
 <nav class="idiomas" aria-label="{{ _('Idioma · Language · Idioma') }}">
   {%- for cod, d in IDIOMAS.items() -%}
-  <a href="/idioma/{{ cod }}?volta={{ caminho_atual()|urlencode }}" lang="{{ d[2] }}" hreflang="{{ d[2] }}" title="{{ d[0] }}" class="{{ 'ativa' if cod == idioma() }}"{% if cod == idioma() %} aria-current="true"{% endif %}>{{ d[1] }}</a>
+  <a href="/idioma/{{ cod }}?volta={{ caminho_atual()|urlencode }}" lang="{{ d[2] }}" hreflang="{{ d[2] }}" title="{{ d[0] }}" aria-label="{{ d[0] }}" class="{{ 'ativa' if cod == idioma() }}"{% if cod == idioma() %} aria-current="true"{% endif %}>{{ bandeira(cod) }}</a>
   {%- endfor -%}
 </nav>
 </div>
