@@ -26,7 +26,7 @@ pedidos = []
 class _Msgs:
     def create(self, **kw):
         pedidos.append(kw)
-        return types.SimpleNamespace(content=[types.SimpleNamespace(type="text", text=pedidos and "Comece por aqui: https://dataworke.com.br/cadastro" or "Temos plano para 10 pessoas.")])
+        return types.SimpleNamespace(content=[types.SimpleNamespace(type="text", text=len(pedidos) > 1 and "Comece por aqui: https://dataworke.com.br/cadastro" or "Temos plano para 10 pessoas.")])
 
 
 class _Cliente:
