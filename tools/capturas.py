@@ -159,6 +159,55 @@ def crescimento(p):
     nav.close()
 
 
+def totem(p):
+    """Tela do totem num tablet deitado (claro e escuro): nomes, teclado do PIN e resultado."""
+    nav = p.chromium.launch()
+    ctx = nav.new_context(locale="pt-BR", viewport={"width": 1440, "height": 1000})
+    pag = ctx.new_page()
+    pag.goto(BASE + "/entrar")
+    pag.fill("input[name=login], input[type=email], input[type=text]", "demo@noponto.test")
+    pag.fill("input[type=password]", "demo1234")
+    pag.click("form button[type=submit]")
+    pag.wait_for_load_state("networkidle")
+    pag.goto(BASE + "/painel/locais", wait_until="networkidle")
+    if pag.query_selector("form[action='/painel/totens']"):
+        pag.fill("form[action='/painel/totens'] input[name=nome]", "Tablet da entrada")
+        pag.click("form[action='/painel/totens'] button[type=submit]")
+    else:   # já tem totem: gera um endereço novo para ativar este navegador
+        pag.once("dialog", lambda d: d.accept())
+        pag.click("form[action^='/painel/totens/'] button[value=novo_link]")
+    pag.wait_for_load_state("networkidle")
+    link = pag.eval_on_selector("input[value*='/totem/ativar/']", "e => e.value")
+    ctx.close()
+    for tema in ("light", "dark"):
+        suf = "claro" if tema == "light" else "escuro"
+        ctx = nav.new_context(color_scheme=tema, locale="pt-BR", viewport={"width": 1280, "height": 800},
+                              has_touch=True)
+        pag = ctx.new_page()
+        pag.goto(BASE + link[link.index("/totem/ativar/"):], wait_until="networkidle")
+        pag.goto(BASE + "/totem", wait_until="networkidle")
+        pag.wait_for_timeout(600)
+        pag.screenshot(path=str(SAIDA / f"totem-{suf}.png"))
+        pag.click(".totem-pessoa")
+        for n in "48":
+            pag.click(f".totem-teclado [data-n='{n}']")
+        pag.wait_for_timeout(300)
+        pag.screenshot(path=str(SAIDA / f"totem-pin-{suf}.png"))
+        for n in "21":
+            pag.click(f".totem-teclado [data-n='{n}']")
+        pag.click("#pin-ok")
+        pag.wait_for_timeout(1500)
+        pag.screenshot(path=str(SAIDA / f"totem-resultado-{suf}.png"))
+        ctx.close()
+    cel = nav.new_context(locale="pt-BR", viewport={"width": 820, "height": 1180}, has_touch=True)
+    pag = cel.new_page()
+    pag.goto(BASE + link[link.index("/totem/ativar/"):], wait_until="networkidle")
+    pag.goto(BASE + "/totem", wait_until="networkidle")
+    pag.wait_for_timeout(600)
+    pag.screenshot(path=str(SAIDA / "totem-em-pe.png"))
+    nav.close()
+
+
 def main():
     SAIDA.mkdir(exist_ok=True)
     with sync_playwright() as p:
@@ -224,6 +273,8 @@ def main():
             datas_iphone(p)
         if not so or "crescimento" in so:
             crescimento(p)
+        if not so or "totem" in so:
+            totem(p)
         if not so or "teste" in so:
             teste_gratis(p)  # por último: muda a empresa de demonstração
     print("capturas:", len(list(SAIDA.glob("*.png"))))
