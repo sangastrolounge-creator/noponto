@@ -196,7 +196,8 @@ def main():
     assert no_totem(ids["Ana"], "0000").json()["erro"] == "PIN incorreto."
     as_("08:10", QUA)
     r = no_totem(ids["Ana"], "4821")
-    assert r.status_code == 200 and "Ana, entrada registrada às 08:10" in r.json()["mensagem"], r.text
+    assert r.status_code == 200 and "Entrada registrada às 08:10" in r.json()["mensagem"], r.text
+    assert r.json()["titulo"] == "Ana" and r.json()["facial"] == ""
     b = ultima("Ana")
     assert (b.origem, b.dentro, b.local_nome) == ("totem", True, "Filial Centro")
     assert "Seu ponto já foi registrado" in no_totem(ids["Ana"], "4821").json()["erro"]

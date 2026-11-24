@@ -141,6 +141,40 @@ def main():
     aj = g.get(f"/painel/ponto/ajuste?de={SEG}&ate={SEG}").text
     assert "O rosto não conferiu nesta batida" in aj and "facial-diverge" in aj
 
+    # ---- totem: depois do PIN, o tablet confere o rosto de quem cadastrou (Bia recusou: só PIN)
+    posta(g, "/painel/totens", tg, nome="Tablet da entrada")
+    link = re.search(r'value="(http[^"]+/totem/ativar/[^"]+)"', g.get("/painel/locais").text).group(1)
+    tablet = novo()
+    tablet.get(link.split("testserver")[-1])
+    pag = tablet.get("/totem").text
+    assert "/static/facial.js" in pag and "Toque no seu nome" in pag
+    assert re.search(r'data-uid="%d"[^>]*data-facial="1"' % ids["Ana"][0], pag)
+    assert re.search(r'data-uid="%d"[^>]*data-facial=""' % ids["Bia"][0], pag)
+    posta(ana, "/app/pin", ta, senha="senha123", pin="4821")
+    posta(bia, "/app/pin", tb, senha="senha123", pin="5937")
+    tt = re.search(r'"X-CSRF": "([^"]+)"', pag).group(1)
+    def no_totem(uid, pin, **extra):
+        return tablet.post("/totem/ponto", json={"uid": uid, "pin": pin, **extra}, headers={"X-CSRF": tt})
+    TER = SEG + timedelta(days=1)
+    as_("09:00", TER)
+    r = no_totem(ids["Ana"][0], "4821", facial=rosto(1, 0.05))
+    assert r.status_code == 200 and r.json()["facial"] == "ok" and r.json()["titulo"] == "Ana", r.text
+    as_("12:00", TER)
+    r = no_totem(ids["Ana"][0], "4821", facial=rosto(7))
+    assert r.json()["facial"] == "diverge" and "não conferiu" in r.json()["mensagem"], r.text
+    as_("13:00", TER)
+    assert no_totem(ids["Ana"][0], "4821").json()["facial"] == "sem"   # tablet sem suporte
+    assert no_totem(ids["Bia"][0], "5937").json()["facial"] == ""
+    with SessionLocal() as db:
+        assert db.scalar(select(Alerta.id).where(Alerta.tipo == "facial", Alerta.texto.contains("12:00")))
+    with SessionLocal() as db:   # empresa desliga: o totem volta a pedir só o PIN
+        db.get(Empresa, 1).facial_ativo = False
+        db.commit()
+    assert "/static/facial.js" not in tablet.get("/totem").text
+    with SessionLocal() as db:
+        db.get(Empresa, 1).facial_ativo = True
+        db.commit()
+
     # ---- gestor vê a situação e manda refazer; revogar apaga; desligar apaga
     eq = g.get("/painel/equipe").text
     assert "Rosto cadastrado" in eq and "Recusou o reconhecimento facial" in eq

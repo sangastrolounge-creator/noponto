@@ -10,45 +10,95 @@
 {% else %}
 <main class="totem">
   <header class="totem-topo">
-    <div><strong>{{ e.nome }}</strong><br><span class="suave">{{ t.local.nome if t.local else t.nome }}</span></div>
-    <div style="display:flex;gap:14px;align-items:center">{{ seletor() }}<div class="relogio" id="relogio">{{ estado.hora }}</div></div>
+    <div class="totem-empresa">
+      <strong>{{ e.nome }}</strong>
+      <span class="suave">{{ t.local.nome if t.local else t.nome }}</span>
+    </div>
+    <div class="totem-hora">
+      <div class="relogio" id="relogio">{{ estado.hora }}</div>
+      <div class="totem-data suave" id="data"></div>
+    </div>
+    <div class="totem-idioma">{{ seletor() }}</div>
   </header>
+
   <div class="totem-grade">
+    <section class="cartao totem-pessoas">
+      <div class="totem-titulo">
+        <h2>{{ _('Toque no seu nome') }}</h2>
+        <p class="suave">{{ _('Depois digite o seu PIN.') }}{% if facial_ligado %} {{ _('Quem cadastrou o rosto confere pela câmera do tablet.') }}{% endif %}</p>
+      </div>
+      {% if pessoas|length > 8 %}
+      <input type="search" id="busca" class="totem-busca" placeholder="{{ _('Procurar nome') }}" aria-label="{{ _('Procurar nome') }}" autocomplete="off">
+      {% endif %}
+      <div class="totem-nomes" id="nomes">
+        {% for p in pessoas %}{% set partes = p.nome.split() %}
+        <button type="button" class="totem-pessoa" data-uid="{{ p.id }}" data-nome="{{ p.nome }}" data-facial="{{ '1' if p.id in com_rosto else '' }}">
+          <span class="totem-ini" aria-hidden="true">{{ (partes[0][:1] ~ (partes[-1][:1] if partes|length > 1 else ''))|upper }}</span>
+          <span class="totem-nome">{{ p.nome }}</span>
+          {% if p.id in com_rosto %}<span class="totem-rosto" title="{{ _('Confere pelo rosto') }}" aria-label="{{ _('Confere pelo rosto') }}">🙂</span>{% endif %}
+        </button>
+        {% else %}
+        <p class="suave">{{ _('Ninguém da equipe está liberado para o totem.') }}</p>
+        {% endfor %}
+      </div>
+      <p class="suave pequeno" id="nada" hidden>{{ _('Nenhum nome encontrado.') }}</p>
+    </section>
+
     <section class="cartao totem-codigo">
       <h2>{{ _('Pelo celular') }}</h2>
       <p class="suave">{{ _('Abra o aplicativo, toque em “Usar o código do totem” e digite:') }}</p>
       <div class="codigo" id="codigo" aria-live="polite">{{ estado.codigo[:3] }} {{ estado.codigo[3:] }}</div>
+      <div class="totem-tempo" aria-hidden="true"><span id="barra" style="width:{{ (estado.resta / 60 * 100)|round }}%"></span></div>
       <div class="suave pequeno">{{ _('Muda em') }} <span id="resta">{{ estado.resta }}</span> {{ _('s') }}</div>
-      {% if tem_qr %}<img id="qr" src="/totem/qr.svg?c={{ estado.codigo }}" alt="{{ _('QR code para abrir o aplicativo com o código') }}" width="220" height="220">
+      {% if tem_qr %}<img id="qr" src="/totem/qr.svg?c={{ estado.codigo }}" alt="{{ _('QR code para abrir o aplicativo com o código') }}" width="200" height="200">
       <div class="suave pequeno">{{ _('Ou aponte a câmera do celular para o QR code.') }}</div>{% endif %}
-    </section>
-    <section class="cartao">
-      <h2>{{ _('Sem celular') }}</h2>
-      <p class="suave">{{ _('Toque no seu nome e digite o seu PIN.') }}</p>
-      <div class="totem-nomes">
-        {% for p in pessoas %}<button type="button" class="botao claro" data-uid="{{ p.id }}" data-nome="{{ p.nome }}">{{ p.nome }}</button>{% endfor %}
-      </div>
-      <div id="retorno" class="retorno" role="status" hidden></div>
     </section>
   </div>
 </main>
-<dialog id="dlg-pin">
-  <h2 id="pin-nome" style="margin-bottom:4px"></h2>
-  <p class="suave pequeno">{{ _('Digite o seu PIN.') }}</p>
-  <input type="password" id="pin" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="{{ _('PIN') }}">
-  <div class="acoes" style="justify-content:flex-end;margin-top:12px">
-    <button class="botao claro" type="button" id="pin-cancelar">{{ _('Cancelar') }}</button>
-    <button class="botao" type="button" id="pin-ok">{{ _('Bater ponto') }}</button>
+
+<dialog id="dlg-pin" class="totem-pin">
+  <div class="totem-pin-topo">
+    <span class="totem-ini grande" id="pin-ini" aria-hidden="true"></span>
+    <h2 id="pin-nome"></h2>
+    <p class="suave" id="pin-dica">{{ _('Digite o seu PIN.') }}</p>
   </div>
+  <div class="totem-pontos" id="pontos" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <input type="password" id="pin" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="{{ _('PIN') }}" class="totem-pin-campo">
+  <div class="totem-teclado">
+    {% for n in ['1','2','3','4','5','6','7','8','9'] %}<button type="button" data-n="{{ n }}">{{ n }}</button>{% endfor %}
+    <button type="button" id="pin-apagar" class="tecla-acao" aria-label="{{ _('Apagar') }}">⌫</button>
+    <button type="button" data-n="0">0</button>
+    <button type="button" id="pin-ok" class="tecla-ok" aria-label="{{ _('Bater ponto') }}">✓</button>
+  </div>
+  <button class="botao claro" type="button" id="pin-cancelar">{{ _('Cancelar') }}</button>
 </dialog>
+
+<div class="totem-resultado" id="resultado" hidden role="status" aria-live="assertive">
+  <div class="totem-resultado-caixa">
+    <div class="totem-resultado-ic" id="res-ic"></div>
+    <h2 id="res-titulo"></h2>
+    <p id="res-texto"></p>
+    <p class="suave pequeno">{{ _('Toque para fechar') }}</p>
+  </div>
+</div>
+{% if facial_ligado %}<script src="/static/facial.js?v=4"></script>{% endif %}
 <script>
 (function () {
   function g(id) { return document.getElementById(id); }
-  var resta = {{ estado.resta }}, dlg = g("dlg-pin"), uid = null, ret = g("retorno"), some = null;
-  function mostrar(tipo, texto) {
-    ret.hidden = false; ret.className = "retorno " + tipo; ret.textContent = texto;
-    clearTimeout(some); some = setTimeout(function () { ret.hidden = true; }, 8000);
+  var resta = {{ estado.resta }}, dlg = g("dlg-pin"), pessoa = null, ocupado = false, some = null;
+
+  // ---- resultado em tela cheia
+  function resultado(tipo, titulo, texto) {
+    var r = g("resultado");
+    r.className = "totem-resultado " + tipo; r.hidden = false;
+    g("res-ic").textContent = { ok: "✓", aviso: "!", info: "…" }[tipo] || "✕";
+    g("res-titulo").textContent = titulo; g("res-texto").textContent = texto;
+    clearTimeout(some); some = setTimeout(fecharResultado, tipo === "ok" ? 4500 : 7000);
   }
+  function fecharResultado() { g("resultado").hidden = true; }
+  g("resultado").addEventListener("click", fecharResultado);
+
+  // ---- código e QR do celular
   function atualizar() {
     fetch("/totem/estado").then(function (r) { if (r.status === 403) location.reload(); return r.json(); }).then(function (j) {
       if (!j.codigo) return;
@@ -62,34 +112,101 @@
   function horaEmSeg(h) { var p = h.split(":"); return (+p[0]) * 3600 + (+p[1]) * 60 + (+(p[2] || 0)); }
   var desvio = horaEmSeg(g("relogio").textContent) - segAgora();
   function doisDig(n) { return ("0" + n).slice(-2); }
+  function escreverData() {
+    try {
+      var txt = new Date().toLocaleDateString(document.documentElement.lang || "pt-BR",
+                                              { weekday: "long", day: "numeric", month: "long" });
+      g("data").textContent = txt.charAt(0).toUpperCase() + txt.slice(1);
+    } catch (e) {}
+  }
+  escreverData();
   setInterval(function () {
     var s = ((segAgora() + desvio) % 86400 + 86400) % 86400;
     g("relogio").textContent = doisDig(Math.floor(s / 3600)) + ":" + doisDig(Math.floor(s / 60) % 60) + ":" + doisDig(s % 60);
+    if (s % 60 === 0) escreverData();
   }, 1000);
   setInterval(function () {
     resta -= 1;
     if (resta <= 0) { resta = 60; atualizar(); }
     g("resta").textContent = resta;
+    g("barra").style.width = (resta / 60 * 100) + "%";
   }, 1000);
   setInterval(atualizar, 20000);
-  document.querySelectorAll(".totem-nomes button").forEach(function (b) {
-    b.addEventListener("click", function () {
-      uid = b.dataset.uid; g("pin-nome").textContent = b.dataset.nome; g("pin").value = "";
-      dlg.showModal(); g("pin").focus();
+
+  // ---- busca de nomes
+  var busca = g("busca");
+  if (busca) busca.addEventListener("input", function () {
+    function sem(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+    var q = sem(busca.value.trim()), achou = 0;
+    document.querySelectorAll(".totem-pessoa").forEach(function (b) {
+      var v = !q || sem(b.dataset.nome).indexOf(q) >= 0;
+      b.hidden = !v; if (v) achou++;
     });
+    g("nada").hidden = achou > 0;
+  });
+
+  // ---- PIN com teclado na tela
+  var campo = g("pin");
+  function pintar() {
+    var n = campo.value.length;
+    document.querySelectorAll("#pontos i").forEach(function (p, i) { p.className = i < n ? "cheio" : ""; });
+  }
+  function abrir(b) {
+    if (ocupado) return;
+    pessoa = { uid: b.dataset.uid, nome: b.dataset.nome, facial: !!b.dataset.facial,
+               ini: b.querySelector(".totem-ini").textContent };
+    g("pin-nome").textContent = pessoa.nome; g("pin-ini").textContent = pessoa.ini;
+    campo.value = ""; pintar(); fecharResultado();
+    dlg.showModal();
+  }
+  document.querySelectorAll(".totem-pessoa").forEach(function (b) { b.addEventListener("click", function () { abrir(b); }); });
+  document.querySelectorAll(".totem-teclado [data-n]").forEach(function (b) {
+    b.addEventListener("click", function () { if (campo.value.length < 6) { campo.value += b.dataset.n; pintar(); } });
+  });
+  g("pin-apagar").addEventListener("click", function () { campo.value = campo.value.slice(0, -1); pintar(); });
+  campo.addEventListener("input", function () { campo.value = campo.value.replace(/\D/g, "").slice(0, 6); pintar(); });
+  campo.addEventListener("keydown", function (ev) { if (ev.key === "Enter") confirmar(); });
+  dlg.addEventListener("keydown", function (ev) {
+    if (ev.target === campo) return;
+    if (/^\d$/.test(ev.key) && campo.value.length < 6) { campo.value += ev.key; pintar(); }
+    else if (ev.key === "Backspace") { campo.value = campo.value.slice(0, -1); pintar(); }
+    else if (ev.key === "Enter") confirmar();
   });
   g("pin-cancelar").addEventListener("click", function () { dlg.close(); });
-  function bater() {
-    var pin = g("pin").value; dlg.close();
+  g("pin-ok").addEventListener("click", confirmar);
+
+  function confirmar() {
+    var pin = campo.value;
+    if (pin.length < 4) { g("pin-dica").textContent = t("O PIN tem de 4 a 6 números."); return; }
+    g("pin-dica").textContent = t("Digite o seu PIN.");
+    dlg.close();
+    var dados = { uid: pessoa.uid, pin: pin };
+    if (pessoa.facial && window.Facial) {
+      ocupado = true;
+      window.Facial.capturar({}).then(function (r) { dados.facial = r.descritor; enviar(dados); }, function (err) {
+        ocupado = false;
+        if (err && err.codigo === "cancelado") return;
+        if (err && err.codigo === "suporte") {       // tablet sem suporte: registra sem o rosto, para o gestor conferir
+          enviar(dados); return;
+        }
+        resultado("erro", pessoa.nome, (err && err.message) || t("Não consegui ler o seu rosto. Tente de novo."));
+      });
+    } else enviar(dados);
+  }
+  function enviar(dados) {
+    ocupado = true;
+    resultado("info", pessoa.nome, t("Registrando o ponto…"));
     fetch("/totem/ponto", {
       method: "POST", headers: { "Content-Type": "application/json", "X-CSRF": "{{ csrf }}" },
-      body: JSON.stringify({ uid: uid, pin: pin })
+      body: JSON.stringify(dados)
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-      .then(function (x) { mostrar(x.ok ? "ok" : "erro", x.ok ? x.j.mensagem : (x.j.erro || x.j.detail || t("Não foi possível registrar."))); })
-      .catch(function () { mostrar("erro", t("Sem conexão. Confira a internet do tablet.")); });
+      .then(function (x) {
+        if (x.ok) resultado(x.j.facial === "diverge" ? "aviso" : "ok", x.j.titulo || pessoa.nome, x.j.mensagem);
+        else resultado("erro", pessoa.nome, x.j.erro || x.j.detail || t("Não foi possível registrar."));
+      })
+      .catch(function () { resultado("erro", pessoa.nome, t("Sem conexão. Confira a internet do tablet.")); })
+      .then(function () { ocupado = false; });
   }
-  g("pin-ok").addEventListener("click", bater);
-  g("pin").addEventListener("keydown", function (ev) { if (ev.key === "Enter") bater(); });
 })();
 </script>
 {% endif %}

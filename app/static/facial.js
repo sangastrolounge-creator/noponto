@@ -121,7 +121,7 @@
             errosSeguidos = 0;
             if (parar) return;
             if (rostos.length > 1) { dizer(t("Só uma pessoa na frente da câmera, por favor.")); return; }
-            if (!rostos.length) { dizer(t("Não estou vendo o rosto. Aproxime o celular.")); return; }
+            if (!rostos.length) { dizer(t("Não estou vendo o rosto. Fique de frente para a câmera.")); return; }
             var r = rostos[0], pts = r.landmarks;
             var ear = (abertura(pts.getLeftEye()) + abertura(pts.getRightEye())) / 2;
             if (ear > maior) maior = ear;
