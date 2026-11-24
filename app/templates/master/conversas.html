@@ -4,9 +4,33 @@
 <p class="suave" style="margin:0">{{ _('O que os visitantes perguntaram no chat da página inicial. Use para entender as dúvidas e melhorar a página. Conversas paradas há 180 dias são apagadas.') }}</p></div></div>
 {% if not ligado %}<p class="alerta">{{ _('O assistente está desligado: falta a chave da API do Claude (a mesma da revisão da folha, em Pagamento). Enquanto isso, o botão abre só o WhatsApp.') }}</p>{% endif %}
 {% if not plat.whatsapp %}<p class="alerta">{{ _('Sem número de WhatsApp em Master → Plataforma: o chat não oferece a passagem para o WhatsApp.') }}</p>{% endif %}
+<section class="cartao" id="contatos">
+  <h2>{{ _('Contatos para retornar') }} ({{ contatos|length }})</h2>
+  {% if contatos %}
+  <div class="tabela-rolagem"><table class="tabela">
+    <thead><tr><th>{{ _('Quando') }}</th><th>{{ _('Nome') }}</th><th>{{ _('Empresa') }}</th><th>{{ _('WhatsApp') }}</th><th>{{ _('Situação') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for x in contatos %}{% set c = x.c %}
+      <tr>
+        <td>{{ local(u.empresa, c.contato_em or c.atualizado_em, '%d/%m %H:%M') }}</td>
+        <td>{{ c.nome or '—' }}{% if not c.autorizou %}<br><span class="suave pequeno">{{ _('número escrito no chat') }}</span>{% endif %}</td>
+        <td>{{ c.empresa or '—' }}</td>
+        <td><a class="botao mini" href="{{ x.zap }}" target="_blank" rel="noopener">{{ c.telefone }}</a></td>
+        <td><form method="post" action="/master/conversas/{{ c.id }}/situacao" class="inline">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <select name="situacao" onchange="this.form.submit()" aria-label="{{ _('Situação') }}">
+            {% for k, v in SITUACOES.items() %}<option value="{{ k }}" {{ 'selected' if c.situacao == k }}>{{ _(v) }}</option>{% endfor %}
+          </select></form></td>
+        <td><a href="#c{{ c.id }}" class="pequeno">{{ _('conversa') }}</a></td>
+      </tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% else %}<p class="suave">{{ _('Ninguém deixou o WhatsApp ainda. O assistente oferece o formulário depois de algumas respostas.') }}</p>{% endif %}
+</section>
 {% for x in itens %}
-<details class="cartao">
+<details class="cartao" id="c{{ x.c.id }}">
   <summary><strong>{{ local(u.empresa, x.c.atualizado_em, '%d/%m %H:%M') }}</strong> · {{ x.msgs|selectattr('papel', 'equalto', 'pessoa')|list|length }} {{ _('pergunta(s)') }}
+    {% if x.c.telefone %}<span class="etiqueta">{{ x.c.nome or x.c.telefone }}</span>{% endif %}
     {% if x.c.foi_whatsapp %}<span class="etiqueta ok">{{ _('foi para o WhatsApp') }}</span>{% endif %}
     <br><span class="suave pequeno">{{ (x.msgs[0].texto if x.msgs else '')|truncate(120) }}</span></summary>
   <div style="margin-top:10px">
