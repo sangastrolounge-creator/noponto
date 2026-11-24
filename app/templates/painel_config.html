@@ -31,6 +31,8 @@
         <div class="ajuda">{{ _('Distância máxima da empresa para o ponto valer. 150 m cobre a imprecisão normal do GPS.') }}</div></div>
       <label class="marcar campo"><input type="checkbox" name="bloquear_fora" value="1" {{ 'checked' if e.bloquear_fora }}>
         <span>{{ _('Bloquear o ponto fora do raio') }}<br><span class="ajuda">{{ _('Desmarcado, o ponto é aceito e marcado como “fora da área”. Nos dois casos você é avisado.') }}</span></span></label>
+      <label class="marcar campo"><input type="checkbox" name="ponto_na_lotacao" value="1" {{ 'checked' if e.ponto_na_lotacao }}>
+        <span>{{ _('Cada pessoa bate o ponto só no local dela') }}<br><span class="ajuda">{{ _('Vale o local da ficha (o endereço principal ou uma filial). Quem é da matriz não bate na filial, e vice-versa. Para um dia em outro local, escolha o local na escala. Desmarcado, vale qualquer endereço cadastrado.') }}</span></span></label>
       <div class="campo"><label for="tolerancia_min">{{ _('Tolerância de atraso (minutos)') }}</label><input id="tolerancia_min" type="number" name="tolerancia_min" value="{{ e.tolerancia_min }}" min="0" max="120" required>
         <div class="ajuda">{{ _('Depois disso sem bater a entrada, você recebe o aviso.') }}</div></div>
       <div class="campo"><label for="fuso">{{ _('Fuso horário') }}</label><select id="fuso" name="fuso">

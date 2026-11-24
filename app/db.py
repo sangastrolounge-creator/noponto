@@ -271,6 +271,9 @@ class Empresa(Base):
     lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     raio_m: Mapped[int] = mapped_column(Integer, default=150)
     bloquear_fora: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Ponto só no local de lotação de cada pessoa (o da ficha: principal ou uma filial), salvo quando o
+    # dia da escala aponta outro local. Desligado, vale qualquer endereço cadastrado da empresa.
+    ponto_na_lotacao: Mapped[bool] = mapped_column(Boolean, default=True)
     tolerancia_min: Mapped[int] = mapped_column(Integer, default=10)
     fuso: Mapped[str] = mapped_column(String(40), default="America/Sao_Paulo")
     # --- confiança no ponto ---
@@ -1360,6 +1363,7 @@ COLUNAS_NOVAS = [
     ("empresas", "usa_faturamento", "BOOLEAN NOT NULL DEFAULT 0"),
     ("empresas", "logo", "VARCHAR(60) NOT NULL DEFAULT ''"),
     ("empresas", "facial_ativo", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("empresas", "ponto_na_lotacao", "BOOLEAN NOT NULL DEFAULT 0"),
     ("usuarios", "facial_consentimento", "VARCHAR(10) NOT NULL DEFAULT ''"),
     ("usuarios", "facial_consentido_em", "DATETIME"),
     ("usuarios", "facial_descritor", "TEXT NOT NULL DEFAULT ''"),

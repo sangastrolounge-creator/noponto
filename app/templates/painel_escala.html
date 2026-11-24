@@ -217,7 +217,7 @@
       <div class="campo"><label for="d-intervalo">{{ _('Intervalo (minutos)') }}</label><input type="number" name="intervalo" id="d-intervalo" min="0" max="240">
         <div class="ajuda">{{ _('Tempo de almoço ou descanso, que não conta como hora trabalhada.') }}</div></div>
       {% if locais %}<div class="campo"><label for="d-local">{{ _('Local') }}</label><select name="local_id" id="d-local">
-        <option value="">{{ _('Qualquer local da empresa') }}</option>
+        <option value="">{{ _('O local da ficha da pessoa') if e.ponto_na_lotacao else _('Qualquer endereço da empresa (principal ou filiais)') }}</option>
         {% for l in locais %}<option value="{{ l.id }}">{{ l.nome }}</option>{% endfor %}</select>
         <div class="ajuda">{{ _('Escolhendo um local, o ponto desse dia só vale lá.') }}</div></div>{% endif %}
       <div class="campo"><label for="d-obs">{{ _('Observação (opcional)') }}</label><input type="text" name="obs" id="d-obs" maxlength="200"></div>
