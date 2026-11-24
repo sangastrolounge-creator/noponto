@@ -1,0 +1,59 @@
+{% extends "master/base.html" %}
+{% block master %}
+<style>
+  .cx-barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+  .cx-barra select{width:auto;min-width:170px}.cx-barra input[type=search]{width:280px;max-width:100%}
+  .cx-lista{list-style:none;margin:0;padding:0}
+  .cx-lista li a{display:grid;grid-template-columns:200px minmax(0,1fr) 90px;gap:12px;padding:10px 12px;border-bottom:1px solid var(--borda,#e3e6f2);color:inherit;text-decoration:none;align-items:baseline}
+  .cx-lista li a:hover{background:var(--cartao-2,#f4f5fa)}
+  .cx-lista li.novo a{font-weight:700}
+  .cx-lista li.novo a .cx-de::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#4f6bf5;margin-right:6px}
+  .cx-de,.cx-ass{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cx-ass .suave{font-weight:400}
+  .cx-data{text-align:right;font-size:13px;color:var(--suave,#6b7080);font-weight:400}
+  @media (max-width:700px){.cx-lista li a{grid-template-columns:minmax(0,1fr) 70px}.cx-ass{grid-column:1/-1;grid-row:2}}
+</style>
+<div class="cabecalho"><div><h1>{{ _('E-mail') }}</h1>
+<p class="suave" style="margin:0">{{ caixa_email }}{% if sinc %} · {{ _('atualizado às') }} {{ local(u.empresa, sinc, '%H:%M') }}{% endif %}</p></div>
+<div class="acoes">
+  <a class="botao" href="/master/caixa/novo">{{ _('Escrever') }}</a>
+  <form method="post" action="/master/caixa/atualizar" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao claro" type="submit">{{ _('Atualizar') }}</button></form>
+  {% if pode_config %}<a class="botao claro" href="/master/caixa/config">{{ _('Configurar') }}</a>{% endif %}
+</div></div>
+{% if erro %}<p class="alerta">{{ _('Não consegui ler a caixa na última tentativa:') }} {{ erro }}</p>{% endif %}
+
+<form method="get" class="cx-barra">
+  <select name="pasta" onchange="this.form.submit()" aria-label="{{ _('Pasta') }}">
+    {% for k, v in PASTAS.items() %}<option value="{{ k }}" {{ 'selected' if pasta == k }}>{{ _(v) }}{% if k == 'entrada' and nao_lidos %} ({{ nao_lidos }}){% endif %}</option>{% endfor %}
+  </select>
+  <select name="filtro" onchange="this.form.submit()" aria-label="{{ _('Filtro') }}">
+    <option value="">{{ _('Todos') }}</option>
+    <option value="nao_lidos" {{ 'selected' if filtro == 'nao_lidos' }}>{{ _('Não lidos') }}</option>
+    <option value="leads" {{ 'selected' if filtro == 'leads' }}>{{ _('De leads do CRM') }}</option>
+  </select>
+  <input type="search" name="q" value="{{ q }}" placeholder="{{ _('Buscar no assunto, remetente ou texto') }}">
+  <button class="botao claro" type="submit">{{ _('Buscar') }}</button>
+  <span class="suave pequeno">{{ _('{v1} e-mail(s)', v1=total) }}</span>
+</form>
+
+<section class="cartao" style="padding:0;overflow:hidden">
+{% if lista %}
+<ul class="cx-lista">
+{% for m in lista %}
+  <li class="{{ 'novo' if not m.lido }}"><a href="/master/caixa/{{ m.id }}">
+    <span class="cx-de">{% if pasta == 'enviados' %}{{ _('Para:') }} {{ m.para }}{% else %}{{ m.de_nome or m.de_email }}{% endif %}</span>
+    <span class="cx-ass">{% if m.lead_id %}<span class="etiqueta">{{ _('Lead') }}</span> {% endif %}{% if m.anexos != '[]' %}📎 {% endif %}{{ m.assunto }} <span class="suave">— {{ (m.texto or '')|replace('\n', ' ')|truncate(120) }}</span></span>
+    <span class="cx-data">{{ local(u.empresa, m.data, '%d/%m %H:%M') }}</span>
+  </a></li>
+{% endfor %}
+</ul>
+{% else %}<p class="suave" style="padding:18px">{{ _('Nenhum e-mail aqui.') }}</p>{% endif %}
+</section>
+{% if paginas > 1 %}
+<p class="acoes" style="justify-content:center">
+  {% if pag > 1 %}<a class="botao claro" href="?pasta={{ pasta }}&filtro={{ filtro }}&q={{ q|urlencode }}&pag={{ pag - 1 }}">← {{ _('Anterior') }}</a>{% endif %}
+  <span class="suave">{{ pag }} / {{ paginas }}</span>
+  {% if pag < paginas %}<a class="botao claro" href="?pasta={{ pasta }}&filtro={{ filtro }}&q={{ q|urlencode }}&pag={{ pag + 1 }}">{{ _('Próxima') }} →</a>{% endif %}
+</p>
+{% endif %}
+{% endblock %}

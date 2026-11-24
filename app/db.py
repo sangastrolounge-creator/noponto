@@ -120,6 +120,30 @@ class LeadTarefa(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime)
 
 
+class CaixaEmail(Base):
+    """Cópia local dos e-mails da caixa de contato (Master -> E-mail), lida por IMAP.
+    Os anexos ficam no servidor de e-mail e são baixados na hora (só o nome e o tamanho ficam aqui)."""
+    __tablename__ = "caixa_emails"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pasta: Mapped[str] = mapped_column(String(12), default="entrada", index=True)  # entrada | enviados | lixeira
+    uid: Mapped[int] = mapped_column(Integer, default=0, index=True)      # UID no IMAP (0 = enviado daqui)
+    message_id: Mapped[str] = mapped_column(String(300), default="", index=True)
+    em_resposta_a: Mapped[str] = mapped_column(String(300), default="")
+    referencias: Mapped[str] = mapped_column(Text, default="")
+    de_nome: Mapped[str] = mapped_column(String(200), default="")
+    de_email: Mapped[str] = mapped_column(String(200), default="", index=True)
+    para: Mapped[str] = mapped_column(Text, default="")
+    cc: Mapped[str] = mapped_column(Text, default="")
+    assunto: Mapped[str] = mapped_column(String(500), default="")
+    texto: Mapped[str] = mapped_column(Text, default="")
+    html: Mapped[str] = mapped_column(Text, default="")
+    anexos: Mapped[str] = mapped_column(Text, default="[]")   # [{"n": índice, "nome", "tipo", "tam"}]
+    data: Mapped[datetime] = mapped_column(DateTime, index=True)
+    lido: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    lead_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    autor_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # quem respondeu pela plataforma
+
+
 class Plataforma(Base):
     """Configuração da revenda (uma linha só, id 1)."""
     __tablename__ = "plataforma"
@@ -438,7 +462,7 @@ class Usuario(Base):
     def areas_master(self) -> set[str]:
         """Áreas do Master que esta pessoa acessa (o dono da plataforma acessa todas)."""
         if self.is_admin:
-            return {"crm", "supervisao", "suporte", "financeiro", "config"}
+            return {"crm", "supervisao", "suporte", "financeiro", "config", "email"}
         return {a for a in (self.master_areas or "").split(",") if a}
 
     @property

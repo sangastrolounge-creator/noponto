@@ -26,7 +26,7 @@ ETAPAS = [("novo", "Novo"), ("contato", "Em contato"), ("proposta", "Proposta"),
           ("cliente", "Cliente"), ("perdido", "Perdido")]
 NOME_ETAPA = dict(ETAPAS)
 ORIGENS = {"chat": "Chat do site", "teste": "Conta de teste", "manual": "Cadastro manual",
-           "indicacao": "Indicação", "whatsapp": "WhatsApp"}
+           "indicacao": "Indicação", "whatsapp": "WhatsApp", "email": "E-mail"}
 TIPOS = {"nota": "Anotação", "ligacao": "Ligação", "whatsapp": "WhatsApp", "email": "E-mail",
          "etapa": "Etapa", "sistema": "Sistema"}
 AO_VIVO_MIN = 30   # conversas com atividade nos últimos X minutos aparecem no chat ao vivo
@@ -377,10 +377,13 @@ def ficha(lid: int, request: Request, u: Usuario = Depends(admin_logado), db: Se
     msg = f"Olá{(' ' + ld.nome.split()[0]) if ld.nome else ''}! Aqui é {u.primeiro_nome}, do {marca}."
     zap = f"https://wa.me/55{ld.telefone}?text={quote(msg)}" if ld.telefone else ""
     emp = db.get(Empresa, ld.empresa_id) if ld.empresa_id else None
+    from .db import CaixaEmail
+    emails = list(db.scalars(select(CaixaEmail).where(CaixaEmail.lead_id == ld.id)
+                             .order_by(CaixaEmail.data.desc()).limit(30)))
     return render(request, "master/crm_lead.html", u=u, e=u.empresa, aba="master", sub="crm", ld=ld,
                   ativ=ativ, tar=tar, conv=conv, msgs=json.loads(conv.mensagens or "[]") if conv else [],
                   time=time, nomes=nomes, zap=zap, emp=emp, ETAPAS=ETAPAS, ORIGENS=ORIGENS, TIPOS=TIPOS,
-                  supervisor=supervisor(u), agora=_agora())
+                  supervisor=supervisor(u), agora=_agora(), emails=emails)
 
 
 @rota.post("/master/crm/{lid}", dependencies=CSRF)

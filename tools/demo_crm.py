@@ -31,3 +31,19 @@ with SessionLocal() as db:
             db.add(LeadTarefa(lead_id=ld.id, dono_id=d, titulo="Ligar de novo", quando=agora + timedelta(hours=i - 2),
                               criado_em=agora))
     db.commit()
+
+# Caixa de e-mail de demonstração (sem servidor de verdade: só para fotografar as telas)
+from app.db import CaixaEmail, Config  # noqa: E402
+with SessionLocal() as db:
+    for k, v in {"caixa_user": "contato@dataworke.com.br", "caixa_senha": "demo"}.items():
+        db.merge(Config(chave=k, valor=v))
+    agora = banco.agora()
+    exemplos = [("Bia Lima", "bia@padariasol.com", "Dúvida sobre banco de horas", "Olá! Vocês calculam o banco de horas automaticamente?", False, 1),
+                ("Rui Prado", "rui@clinicavida.com", "Proposta assinada", "Segue a proposta assinada em anexo.", True, None),
+                ("Google Play", "noreply@google.com", "Seu app foi aprovado", "O app Data Worke Brasil foi publicado.", True, None)]
+    for i, (n, e, a, t, lido, lead) in enumerate(exemplos):
+        db.add(CaixaEmail(pasta="entrada", uid=100 + i, message_id=f"<d{i}@x>", de_nome=n, de_email=e,
+                          para="contato@dataworke.com.br", assunto=a, texto=t, lido=lido, lead_id=lead,
+                          anexos='[{"n": 2, "nome": "proposta.pdf", "tipo": "application/pdf", "tam": 48213}]' if i == 1 else "[]",
+                          data=agora - timedelta(hours=i * 3)))
+    db.commit()
