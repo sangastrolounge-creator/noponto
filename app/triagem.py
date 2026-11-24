@@ -148,10 +148,10 @@ def aplicar(db: Session, e, autor: str, r: dict) -> list[str]:
         e.saida_auto_min = 60
     if seg[5] and not e.entrada_antecipada_min:
         e.entrada_antecipada_min = seg[5]
-    feito.append(_("Ponto: tolerância de {v1} min, saída automática 60 min depois do fim do turno e aviso quando alguém estiver perto da hora extra do dia.",
+    feito.append(_("Ponto: tolerância de {v1} min, aviso de saída esquecida 60 min depois do fim do turno e aviso quando alguém estiver perto da hora extra do dia.",
                    v1=e.tolerancia_min))
     if seg[5]:
-        feito.append(_("O ponto só abre {v1} min antes do turno, para evitar hora extra de quem chega cedo.", v1=seg[5]))
+        feito.append(_("Entrada feita mais de {v1} min antes do turno fica sinalizada para você decidir se o tempo conta.", v1=seg[5]))
 
     # funções
     gorjeta = r.get("gorjeta") == "sim"

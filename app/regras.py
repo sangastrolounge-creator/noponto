@@ -376,11 +376,12 @@ def bater(db: Session, u: Usuario, lat: float | None, lng: float | None,
         t = db.get(Turno, aberta.turno_id) if aberta.turno_id else None
     else:
         t = turno_para_entrada(db, u, agora_l)
-        if t and e.entrada_antecipada_min and agora_l < intervalo(t)[0] - timedelta(minutes=e.entrada_antecipada_min):
-            abre = intervalo(t)[0] - timedelta(minutes=e.entrada_antecipada_min)
-            raise ErroPonto(f"Seu turno começa às {t.inicio}. O ponto abre às {abre:%H:%M}, "
-                            f"{e.entrada_antecipada_min} min antes. Se o gestor pediu para você "
-                            "começar mais cedo, peça a ele para lançar a entrada.")
+    # Portaria 671 (art. 74, I): o sistema não pode restringir o horário da marcação. A entrada muito
+    # antes do turno é registrada e só fica sinalizada para o gestor decidir no tratamento do ponto.
+    antecipada = 0
+    if (not aberta and t and e.entrada_antecipada_min
+            and agora_l < intervalo(t)[0] - timedelta(minutes=e.entrada_antecipada_min)):
+        antecipada = int((intervalo(t)[0] - agora_l).total_seconds() // 60)
 
     dist = dentro = None
     local_nome, origem, onde = "", "", "da empresa"
@@ -446,6 +447,12 @@ def bater(db: Session, u: Usuario, lat: float | None, lng: float | None,
             b.dia, b.turno_id = t.data, t.id
             primeira = not db.scalar(select(Batida.id).where(
                 Batida.turno_id == t.id, VALIDA).limit(1))
+            if antecipada:
+                b.conferida = False
+                alertas.append(_alerta(
+                    db, u, "antecipada",
+                    f"{u.nome} bateu a entrada às {agora_l:%H:%M}, {fmt_min(antecipada)} antes do turno "
+                    f"({t.inicio}). Decida em Problemas de ponto se o tempo antes conta.", t.id))
             if primeira:
                 b.atraso_min = max(0, int((agora_l - intervalo(t)[0]).total_seconds() // 60))
                 if b.atraso_min > tol and _alertas_do_plano(u.empresa):
@@ -559,22 +566,26 @@ def verificar_turnos(db: Session) -> tuple[list[Alerta], list[tuple[int, str, st
                 t.lembrou_fim = True
                 lembretes.append((t.usuario_id, "Fim do turno",
                                   f"Seu turno terminou às {t.fim}. Não esqueça de bater a saída."))
-            from .ponto_problemas import saidas_automaticas
-            lembretes += saidas_automaticas(db, e, t, bats, al)
             tipo = texto = None
             if (not bats and al > ini + timedelta(minutes=e.tolerancia_min)
                     and _alertas_do_plano(e)):
                 tipo = "sem_ponto"
                 texto = f"{t.usuario.nome} não bateu o ponto (entrada às {t.inicio})."
-            elif bats and bats[-1].tipo == "entrada" and al > fim + timedelta(minutes=60):
+            elif bats and bats[-1].tipo == "entrada" and al > fim + timedelta(minutes=min(e.saida_auto_min or 60, 300)):
+                # Portaria 671 (art. 74, II): nada de saída automática. Avisa e o gestor lança.
                 tipo = "sem_saida"
-                texto = f"{t.usuario.nome} não registrou a saída (turno terminou às {t.fim})."
+                texto = (f"{t.usuario.nome} não registrou a saída (turno terminou às {t.fim}). "
+                         "Lance em Problemas de ponto.")
             if tipo and not db.scalar(select(Alerta.id).where(
                     Alerta.turno_id == t.id, Alerta.tipo == tipo).limit(1)):
                 novos.append(_alerta(db, t.usuario, tipo, texto, t.id))
                 if tipo == "sem_ponto":
                     lembretes.append((t.usuario_id, "Você ainda não bateu o ponto",
                                       f"Seu turno começou às {t.inicio}."))
+                else:
+                    lembretes.append((t.usuario_id, "Você não bateu a saída",
+                                      f"Seu turno terminou às {t.fim}. Bata a saída agora ou, se já saiu, "
+                                      "peça um ajuste no app."))
     db.commit()
     return novos, lembretes
 

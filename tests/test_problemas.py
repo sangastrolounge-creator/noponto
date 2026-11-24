@@ -1,5 +1,6 @@
-"""Problemas de ponto em lote e regras automáticas: entrada antecipada bloqueada, saída automática
-para conferir, saída esquecida com horário sugerido. Rodar da raiz:
+"""Problemas de ponto em lote e regras do ponto (Portaria 671, art. 74: sem bloqueio de horário e sem
+marcação automática): entrada antecipada registrada e sinalizada, saída esquecida avisada e lançada
+pelo gestor com horário sugerido. Rodar da raiz:
 .venv/Scripts/python tests/test_problemas.py"""
 import os
 import re
@@ -89,31 +90,39 @@ def main():
     assert "entre 0 e 720" in flash(g, "/painel/ponto/problemas")
     posta(g, "/painel/config/regras-ponto", tg, entrada_antecipada_min="30", saida_auto_min="30")
 
-    # ---- entrada antecipada: às 8h ainda não abre; às 8h40 abre
+    # ---- entrada antecipada: às 8h (1 h antes do turno, regra de 30 min) o ponto é registrado e sinalizado
     as_("08:00", SEG)
     r = ana.post("/app/ponto", json={"lat": LAT, "lng": LNG, "precisao": 10}, headers={"X-CSRF": ta})
-    assert r.status_code == 400 and "O ponto abre às 08:30" in r.json()["erro"], r.text
-    as_("08:40", SEG)
-    r = ana.post("/app/ponto", json={"lat": LAT, "lng": LNG, "precisao": 10}, headers={"X-CSRF": ta})
-    assert r.status_code == 200 and r.json()["tipo"] == "entrada"
+    assert r.status_code == 200 and r.json()["tipo"] == "entrada", r.text
+    assert "o gestor vai conferir" in r.json()["mensagem"]
+    with SessionLocal() as db:
+        b = db.scalar(select(Batida).where(Batida.usuario_id == ids["Ana"]))
+        assert not b.conferida and not b.anulada
+        from app.db import Alerta, RegistroRep
+        assert db.scalar(select(Alerta.id).where(Alerta.tipo == "antecipada", Alerta.texto.contains("1h")))
+        assert db.scalar(select(RegistroRep.id).where(RegistroRep.batida_id == b.id, RegistroRep.tipo == 7))
+        ent_ana = b.id
+    tela = g.get("/painel/ponto/problemas").text
+    assert "Entrada antecipada" in tela and "Considerar a partir de 09:00" in tela and 'value="08:00"' in tela
 
-    # ---- saída automática: Bruno entra às 9h e esquece a saída (turno até 13h, regra de 30 min)
+    # ---- saída esquecida: Bruno entra às 9h (turno até 13h, aviso 30 min depois): nada é marcado sozinho
     as_("12:00", SEG)
     posta(g, "/painel/ponto/manual", tg, usuario_id=ids["Bruno"], tipo="entrada", data=SEG.isoformat(),
           hora="09:00", obs="t")
     as_("13:20", SEG)
     with SessionLocal() as db:
-        regras.verificar_turnos(db)
-    assert saidas(ids["Bruno"]) == []
+        novos, _ = regras.verificar_turnos(db)
+    assert not [a for a in novos if a.tipo == "sem_saida"]
     as_("13:31", SEG)
     with SessionLocal() as db:
-        _, lembretes = regras.verificar_turnos(db)
-    assert saidas(ids["Bruno"]) == [("11/16 13:00", "auto", False, False)]
-    assert any(l[0] == ids["Bruno"] and "automaticamente" in l[1] for l in lembretes)
-    with SessionLocal() as db:   # não duplica no minuto seguinte
+        novos, lembretes = regras.verificar_turnos(db)
+        assert [a.tipo for a in novos if a.usuario_id == ids["Bruno"]] == ["sem_saida"]
+    assert saidas(ids["Bruno"]) == []
+    assert any(l[0] == ids["Bruno"] and "não bateu a saída" in l[1] for l in lembretes)
+    with SessionLocal() as db:   # não repete o alerta no minuto seguinte
         as_("13:32", SEG)
-        regras.verificar_turnos(db)
-    assert len(saidas(ids["Bruno"])) == 1
+        novos, _ = regras.verificar_turnos(db)
+        assert not [a for a in novos if a.usuario_id == ids["Bruno"]]
 
     # ---- Ana sai às 17h; terça esquece a saída; Caio entra no domingo sem escala e esquece
     as_("17:00", SEG)
@@ -125,24 +134,35 @@ def main():
     posta(g, "/painel/ponto/manual", tg, usuario_id=ids["Caio"], tipo="entrada", data=DOM.isoformat(),
           hora="10:00", obs="t")
     tela = g.get("/painel/ponto/problemas").text
-    assert tela.count("Saída esquecida") >= 2 and "Saída automática para conferir" in tela
+    assert tela.count("Saída esquecida") >= 3 and "Saída automática para conferir" not in tela
     assert 'value="17:00"' in tela and 'value="13:00"' in tela and "Sem escala: informe o horário." in tela
-    assert "Problemas (3)" in g.get("/painel/ponto").text
+    assert "Problemas (4)" in g.get("/painel/ponto").text
 
-    # ---- resolver em lote: Ana com a sugestão, Bruno trocando o horário, Caio sem horário
+    # ---- resolver em lote: Ana com a sugestão, Caio sem horário (fica), Bruno às 13h15
     tp = csrf(g, "/painel/ponto/problemas")
-    r = g.post("/painel/ponto/problemas", data={
+    g.post("/painel/ponto/problemas", data={
         "csrf": tp, f"sel_s-{ids['Ana']}-{TER.isoformat()}": "1", f"hora_s-{ids['Ana']}-{TER.isoformat()}": "17:00",
-        f"sel_s-{ids['Caio']}-{DOM.isoformat()}": "1", f"hora_s-{ids['Caio']}-{DOM.isoformat()}": ""})
-    assert "1 problema(s) resolvido(s). 1 com horário inválido" in flash(g, "/painel/ponto")
-    with SessionLocal() as db:
-        auto_id = db.scalar(select(Batida.id).where(Batida.origem == "auto"))
-    g.post("/painel/ponto/problemas", data={"csrf": tp, f"sel_a-{auto_id}": "1", f"hora_a-{auto_id}": "13:15"})
+        f"sel_s-{ids['Caio']}-{DOM.isoformat()}": "1", f"hora_s-{ids['Caio']}-{DOM.isoformat()}": "",
+        f"sel_s-{ids['Bruno']}-{SEG.isoformat()}": "1", f"hora_s-{ids['Bruno']}-{SEG.isoformat()}": "13:15"})
+    assert "2 problema(s) resolvido(s). 1 com horário inválido" in flash(g, "/painel/ponto")
     assert ("11/17 17:00", "", True, False) in saidas(ids["Ana"])
-    sb = saidas(ids["Bruno"])
-    assert sb[0] == ("11/16 13:00", "auto", True, True) and sb[1][0] == "11/16 13:15", sb
+    assert saidas(ids["Bruno"]) == [("11/16 13:15", "", True, False)]
+
+    # ---- entrada antecipada: horário antes da marcação é recusado; 09:00 desconsidera a original
+    g.post("/painel/ponto/problemas", data={"csrf": tp, f"sel_e-{ent_ana}": "1", f"hora_e-{ent_ana}": "07:30"})
+    with SessionLocal() as db:
+        assert not db.get(Batida, ent_ana).conferida
+    g.post("/painel/ponto/problemas", data={"csrf": tp, f"sel_e-{ent_ana}": "1", f"hora_e-{ent_ana}": "09:00"})
+    with SessionLocal() as db:
+        orig = db.get(Batida, ent_ana)
+        assert orig.anulada and orig.conferida and orig.anulada_por == "Gil"
+        nova = db.scalar(select(Batida).where(Batida.usuario_id == ids["Ana"], Batida.tipo == "entrada",
+                                              Batida.manual.is_(True), Batida.dia == SEG))
+        assert regras.para_local(orig.usuario.empresa, nova.momento).strftime("%H:%M") == "09:00"
+        assert "considerada a partir de 09:00" in nova.obs and nova.atraso_min == 0
     tela = g.get("/painel/ponto/problemas").text
-    assert "Caio Reis" in tela and "Bruno Lima" not in tela and "Problemas (1)" in g.get("/painel/ponto").text
+    assert "Caio Reis" in tela and "Bruno Lima" not in tela and "Entrada antecipada" not in tela
+    assert "Problemas (1)" in g.get("/painel/ponto").text
     print("OK: problemas de ponto e regras automáticas passou")
 
 
