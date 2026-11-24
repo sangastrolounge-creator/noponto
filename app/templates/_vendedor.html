@@ -29,6 +29,13 @@
   .vd-form button{border:0;border-radius:12px;background:#4f6bf5;color:#fff;padding:0 14px;font-weight:700;cursor:pointer}
   .vd-zap{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 10px 10px;padding:10px;border-radius:12px;
     background:#25d366;color:#fff;font-weight:700;text-decoration:none}
+  .vd-lead{align-self:stretch;background:#fff;border:1px solid #cdd3f5;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .vd-lead strong{font-size:14px}
+  .vd-lead input[type=text],.vd-lead input[type=tel]{border:1px solid #d6dae8;border-radius:10px;padding:9px 10px;font:inherit}
+  .vd-lead label{font-size:12px;color:#5b607a;display:flex;gap:6px;align-items:flex-start}
+  .vd-lead button{border:0;border-radius:10px;background:#25d366;color:#fff;font-weight:700;padding:10px;cursor:pointer}
+  .vd-lead .vd-erro{color:#c0392b;font-size:12px}
+  .vd-quero{display:block;margin:0 10px 8px;border:1px dashed #4f6bf5;background:#fff;color:#3d55db;border-radius:12px;padding:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;width:calc(100% - 20px)}
   .vd-aviso{font-size:11px;color:#7a7f98;text-align:center;padding:0 12px 8px}
   .vd-aviso a{color:inherit}
   @media (prefers-reduced-motion:reduce){.vd-botao{transition:none}}
@@ -56,6 +63,7 @@
   {% else %}
   <div class="vd-msgs"><div class="vd-m ele">{{ _('Oi! Toque no botão abaixo para falar com a gente pelo WhatsApp.') }}</div></div>
   {% endif %}
+  {% if chat %}<button type="button" class="vd-quero" id="vd-quero">{{ _('📞 Quero que me chamem no WhatsApp') }}</button>{% endif %}
   {% if zap %}<a class="vd-zap" id="vd-zap" href="https://wa.me/55{{ zap }}" target="_blank" rel="noopener">{{ _('Falar no WhatsApp') }}</a>{% endif %}
   {% if chat %}<div class="vd-aviso">{{ _('Respostas automáticas. A conversa é guardada para atendimento.') }} <a href="/privacy">{{ _('Privacidade') }}</a></div>{% endif %}
 </div>
@@ -89,13 +97,37 @@
     if (conversa) fetch("/vendedor/whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ conversa: conversa }) }).catch(function () {});
   });
   if (!CHAT) return;
+  var temContato = false, formAberto = false, respostas = 0;
+  function formContato() {
+    if (temContato || formAberto) return; formAberto = true; g("vd-quero").hidden = true;
+    var f = document.createElement("form"); f.className = "vd-lead"; f.noValidate = true;
+    f.innerHTML = '<strong>' + {{ _('Quer que a gente chame você no WhatsApp?')|tojson }} + '</strong>'
+      + '<input type="text" name="nome" maxlength="80" autocomplete="name" placeholder="' + {{ _('Seu nome')|tojson }} + '">'
+      + '<input type="text" name="empresa" maxlength="80" autocomplete="organization" placeholder="' + {{ _('Empresa (opcional)')|tojson }} + '">'
+      + '<input type="tel" name="telefone" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="' + {{ _('WhatsApp com DDD')|tojson }} + '">'
+      + '<label><input type="checkbox" name="autorizo"> ' + {{ _('Autorizo o contato pelo WhatsApp sobre o {v1}.', v1=app_nome)|tojson }} + '</label>'
+      + '<span class="vd-erro" hidden></span><button type="submit">' + {{ _('Quero que me chamem')|tojson }} + '</button>';
+    f.addEventListener("submit", function (e) {
+      e.preventDefault(); var er = f.querySelector(".vd-erro"); er.hidden = true;
+      fetch("/vendedor/contato", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+        conversa: conversa, nome: f.nome.value, empresa: f.empresa.value, telefone: f.telefone.value, autorizo: f.autorizo.checked }) })
+        .then(function (r) { return r.json(); }).then(function (j) {
+          if (j.ok) { temContato = true; if (j.conversa) conversa = j.conversa; f.remove(); add("ele", j.mensagem); }
+          else { er.textContent = j.erro || "…"; er.hidden = false; }
+        }).catch(function () { er.textContent = {{ _('Sem conexão agora. Toque em “Falar no WhatsApp”.')|tojson }}; er.hidden = false; });
+    });
+    g("vd-msgs").appendChild(f); g("vd-msgs").scrollTop = 1e6; f.nome.focus();
+  }
+  g("vd-quero").addEventListener("click", formContato);
   function enviar(texto) {
     texto = (texto || "").trim(); if (!texto || ocupado) return;
     ocupado = true; g("vd-sug").hidden = true; add("eu", texto); perguntas.push(texto.slice(0, 160)); linkZap();
     var d = add("ele", {{ _('digitando…')|tojson }}, "digitando");
     fetch("/vendedor/mensagem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto: texto, conversa: conversa }) })
       .then(function (r) { return r.json(); })
-      .then(function (j) { if (j.conversa) conversa = j.conversa; d.className = "vd-m ele"; d.textContent = j.resposta || j.erro || "…"; })
+      .then(function (j) { if (j.conversa) conversa = j.conversa; d.className = "vd-m ele"; d.textContent = j.resposta || j.erro || "…";
+        if (j.contato) { temContato = true; g("vd-quero").hidden = true; }
+        respostas += 1; if (respostas === 3 && !temContato) formContato(); })
       .catch(function () { d.className = "vd-m ele"; d.textContent = {{ _('Sem conexão agora. Toque em “Falar no WhatsApp”.')|tojson }}; })
       .then(function () { ocupado = false; g("vd-msgs").scrollTop = 1e6; });
   }

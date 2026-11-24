@@ -73,8 +73,27 @@ def main():
     with SessionLocal() as db:
         c = db.scalar(select(ConversaVenda).where(ConversaVenda.chave == r1["conversa"]))
         assert c.foi_whatsapp and "restaurante" in c.mensagens
+    # contato pelo formulário: validação e autorização
+    assert v.post("/vendedor/contato", json={"conversa": r1["conversa"], "nome": "Ana", "telefone": "123",
+                                             "autorizo": True}).status_code == 400
+    assert "autorização" in v.post("/vendedor/contato", json={"conversa": r1["conversa"], "nome": "Ana",
+                                                             "telefone": "(98) 99999-0001"}).json()["erro"]
+    ok = v.post("/vendedor/contato", json={"conversa": r1["conversa"], "nome": "Ana Souza", "empresa": "Bar Mar",
+                                           "telefone": "(98) 99999-0001", "autorizo": True}).json()
+    assert ok["ok"] and "Ana" in ok["mensagem"]
+    # número escrito no próprio chat também vira contato
+    r3 = v.post("/vendedor/mensagem", json={"texto": "me chama no 98 98888-7777 por favor"}).json()
+    assert r3["contato"]
+    with SessionLocal() as db:
+        c3 = db.scalar(select(ConversaVenda).where(ConversaVenda.chave == r3["conversa"]))
+        assert c3.telefone == "98988887777" and not c3.autorizou
     tela = m.get("/master/conversas").text
     assert "restaurante" in tela and "foi para o WhatsApp" in tela
+    assert "Contatos para retornar (2)" in tela and "wa.me/5598999990001?text=" in tela and "Bar Mar" in tela
+    cid = re.search(r'/master/conversas/(\d+)/situacao', tela).group(1)
+    m.post(f"/master/conversas/{cid}/situacao", data={"csrf": csrf(m, "/master/conversas"), "situacao": "fechou"})
+    with SessionLocal() as db:
+        assert db.get(ConversaVenda, int(cid)).situacao == "fechou"
     assert v.get("/master/conversas").status_code in (303, 307, 403, 404)
     print("ok: assistente de vendas")
 

@@ -64,6 +64,13 @@ class ConversaVenda(Base):
     origem: Mapped[str] = mapped_column(String(200), default="")
     ip_hash: Mapped[str] = mapped_column(String(16), default="")
     foi_whatsapp: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Contato deixado pela pessoa para o time chamar (com autorização) e acompanhamento da venda.
+    nome: Mapped[str] = mapped_column(String(80), default="")
+    telefone: Mapped[str] = mapped_column(String(20), default="")
+    empresa: Mapped[str] = mapped_column(String(80), default="")
+    autorizou: Mapped[bool] = mapped_column(Boolean, default=False)
+    contato_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    situacao: Mapped[str] = mapped_column(String(20), default="")  # "", "contatado", "fechou", "perdido"
 
 
 class Plataforma(Base):
@@ -1245,6 +1252,12 @@ COLUNAS_NOVAS = [
     ("usuarios", "data_admissao", "DATE"),
     ("usuarios", "ponto_desde", "DATE"),
     ("usuarios", "conta_excluida_em", "DATETIME"),
+    ("conversas_venda", "nome", "VARCHAR(80) NOT NULL DEFAULT ''"),
+    ("conversas_venda", "telefone", "VARCHAR(20) NOT NULL DEFAULT ''"),
+    ("conversas_venda", "empresa", "VARCHAR(80) NOT NULL DEFAULT ''"),
+    ("conversas_venda", "autorizou", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("conversas_venda", "contato_em", "DATETIME"),
+    ("conversas_venda", "situacao", "VARCHAR(20) NOT NULL DEFAULT ''"),
     ("empresas", "exclusao_pedida_em", "DATETIME"),
     ("usuarios", "desligado_em", "DATE"),
     ("usuarios", "desligamento_tipo", "VARCHAR(20) NOT NULL DEFAULT ''"),
