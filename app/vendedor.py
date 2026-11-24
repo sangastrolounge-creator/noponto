@@ -133,7 +133,7 @@ async def mensagem(request: Request, tarefas_bg: BackgroundTasks, db: Session = 
                              ip_hash=hashlib.sha256(quem.encode()).hexdigest()[:16])
         db.add(conv)
     msgs = json.loads(conv.mensagens or "[]")
-    if sum(1 for m in msgs if m["papel"] == "pessoa") >= MAX_MENSAGENS:
+    if not conv.atendente_id and sum(1 for m in msgs if m["papel"] == "pessoa") >= MAX_MENSAGENS:
         return JSONResponse({"conversa": conv.chave, "resposta": "Para continuar, toque em \"Falar no WhatsApp\" "
                              "que alguém do time responde você.", "whatsapp": True})
     msgs.append({"papel": "pessoa", "texto": texto})
@@ -143,13 +143,30 @@ async def mensagem(request: Request, tarefas_bg: BackgroundTasks, db: Session = 
         if celular_valido(tel):
             conv.telefone, conv.contato_em = tel, banco.agora()   # a própria pessoa escreveu para ser chamada
             novo_contato = True
+    if conv.atendente_id:
+        # um atendente assumiu a conversa: o robô fica quieto e a resposta chega por /vendedor/novas
+        conv.mensagens = json.dumps(msgs, ensure_ascii=False)
+        conv.atualizado_em = banco.agora()
+        db.commit()
+        if novo_contato:
+            _lead(conv.id)
+            tarefas_bg.add_task(avisar_time, conv.id)
+        return {"conversa": conv.chave, "resposta": "", "humano": True, "total": len(msgs),
+                "contato": bool(conv.telefone), "teste": False}
     api_key = revisor.chave(db)
     if not api_key:
         resposta = "No momento o assistente está fora do ar. Toque em \"Falar no WhatsApp\" que a gente responde."
     else:
         import anthropic
         historico = [{"role": "user" if m["papel"] == "pessoa" else "assistant", "content": m["texto"]}
-                     for m in msgs[-MAX_TURNOS:]]
+                     for m in msgs[-MAX_TURNOS:] if m["papel"] != "sistema"]
+        juntos = []   # mensagens seguidas do mesmo lado viram uma só (a API pede alternância)
+        for h in historico:
+            if juntos and juntos[-1]["role"] == h["role"]:
+                juntos[-1]["content"] += "\n\n" + h["content"]
+            else:
+                juntos.append(dict(h))
+        historico = juntos
         while historico and historico[0]["role"] != "user":
             historico.pop(0)
         try:
@@ -174,8 +191,35 @@ async def mensagem(request: Request, tarefas_bg: BackgroundTasks, db: Session = 
     conv.atualizado_em = banco.agora()
     db.commit()
     if novo_contato:
+        _lead(conv.id)
         tarefas_bg.add_task(avisar_time, conv.id)
-    return {"conversa": conv.chave, "resposta": resposta, "contato": bool(conv.telefone), "teste": teste}
+    return {"conversa": conv.chave, "resposta": resposta, "contato": bool(conv.telefone), "teste": teste,
+            "total": len(msgs)}
+
+
+def _lead(conv_id: int) -> None:
+    """Contato novo vira lead no CRM (nunca derruba a resposta do chat)."""
+    try:
+        from . import crm
+        with SessionLocal() as db:
+            c = db.get(ConversaVenda, conv_id)
+            if c and crm.lead_da_conversa(db, c):
+                db.commit()
+    except Exception:
+        pass
+
+
+@rota.get("/vendedor/novas")
+def novas(conversa: str = "", desde: int = 0, db: Session = Depends(get_db)):
+    """O chat do site pergunta, a cada poucos segundos, se o atendente escreveu algo."""
+    conv = db.scalar(select(ConversaVenda).where(ConversaVenda.chave == conversa[:40])) if conversa else None
+    if not conv:
+        return {"mensagens": [], "total": 0, "humano": False}
+    msgs = json.loads(conv.mensagens or "[]")
+    desde = max(0, min(desde, len(msgs)))
+    novas_ = [{"papel": m["papel"], "texto": m["texto"], "nome": m.get("nome", "")}
+              for m in msgs[desde:] if m["papel"] in ("atendente", "sistema")]
+    return {"mensagens": novas_, "total": len(msgs), "humano": bool(conv.atendente_id)}
 
 
 def avisar_time(conv_id: int) -> None:
@@ -191,7 +235,7 @@ def avisar_time(conv_id: int) -> None:
         email_envio.enviar(para, f"Novo contato pelo site: {c.nome or c.telefone}",
                            f"Nome: {c.nome or '-'}\nEmpresa: {c.empresa or '-'}\nWhatsApp: {c.telefone}\n"
                            f"Chamar: https://wa.me/55{c.telefone}\n\nPerguntas:\n- " + "\n- ".join(perguntas or ["-"])
-                           + "\n\nVeja em Master -> Conversas.")
+                           + "\n\nVeja em Master -> CRM.")
 
 
 @rota.post("/vendedor/contato")
@@ -223,6 +267,7 @@ async def contato(request: Request, tarefas_bg: BackgroundTasks, db: Session = D
     conv.nome, conv.empresa, conv.telefone, conv.autorizou = nome, empresa, tel, True
     conv.contato_em = conv.atualizado_em = banco.agora()
     db.commit()
+    _lead(conv.id)
     tarefas_bg.add_task(avisar_time, conv.id)
     return {"ok": True, "conversa": conv.chave,
             "mensagem": f"Obrigado, {nome.split()[0]}! Alguém do time vai chamar você no WhatsApp em horário comercial."}

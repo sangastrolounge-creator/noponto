@@ -249,7 +249,7 @@ def empresa_entrar(empresa_id: int, request: Request, u: Usuario = Depends(admin
 def voltar_ao_master(request: Request, db: Session = Depends(get_db)):
     mid = request.session.pop("master_uid", None)
     m = db.get(Usuario, mid) if mid else None
-    if not m or not m.is_admin:
+    if not m or "suporte" not in m.areas_master:
         request.session.clear()
         return ir("/entrar")
     request.session["uid"] = m.id

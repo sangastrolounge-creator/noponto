@@ -1,0 +1,24 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Tarefas de retorno') }}</h1>
+<p class="suave" style="margin:0">{{ _('Ligações e retornos marcados nos leads. As atrasadas aparecem em vermelho.') }}</p></div>
+{% if supervisor %}<div class="acoes">{% if todos %}<a class="botao claro" href="/master/crm/tarefas">{{ _('Só as minhas') }}</a>{% else %}<a class="botao claro" href="/master/crm/tarefas?todos=1">{{ _('De toda a equipe') }}</a>{% endif %}</div>{% endif %}
+</div>
+<section class="cartao">
+{% if lista %}
+<div class="tabela-rolagem"><table class="tabela">
+  <thead><tr><th>{{ _('Quando') }}</th><th>{{ _('Tarefa') }}</th><th>{{ _('Lead') }}</th>{% if todos %}<th>{{ _('Responsável') }}</th>{% endif %}<th></th></tr></thead>
+  <tbody>
+  {% for t in lista %}{% set ld = leads.get(t.lead_id) %}
+    <tr>
+      <td>{% if t.quando < agora %}<strong style="color:#c0392b">{{ local(u.empresa, t.quando, '%d/%m %H:%M') }}</strong>{% else %}{{ local(u.empresa, t.quando, '%d/%m %H:%M') }}{% endif %}</td>
+      <td>{{ t.titulo }}</td>
+      <td>{% if ld %}<a href="/master/crm/{{ ld.id }}">{{ ld.nome or ld.telefone or ld.id }}</a>{% if ld.empresa_nome %}<br><span class="suave pequeno">{{ ld.empresa_nome }}</span>{% endif %}{% endif %}</td>
+      {% if todos %}<td>{{ nomes.get(t.dono_id, '—') }}</td>{% endif %}
+      <td><form method="post" action="/master/crm/tarefa/{{ t.id }}/feita" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="/master/crm/tarefas{{ '?todos=1' if todos }}"><button class="botao mini" type="submit">{{ _('Feita') }}</button></form></td>
+    </tr>
+  {% endfor %}
+  </tbody></table></div>
+{% else %}<p class="suave">{{ _('Nenhuma tarefa pendente.') }}</p>{% endif %}
+</section>
+{% endblock %}

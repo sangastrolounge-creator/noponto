@@ -1,0 +1,54 @@
+{% extends "master/base.html" %}
+{% macro areas(p) %}
+  {% for k, desc in AREAS.items() %}
+  <label class="marcar" style="margin:4px 0"><input type="checkbox" name="area_{{ k }}" value="1" {{ 'checked' if p and k in p.areas_master }}>
+    <span>{{ _(desc) }}</span></label>
+  {% endfor %}
+{% endmacro %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Equipe do Master') }}</h1>
+<p class="suave" style="margin:0">{{ _('Pessoas do suporte, do atendimento e do call center. Cada uma entra pela tela de login normal e só vê as áreas do Master que você marcar.') }}</p></div></div>
+
+{% if link %}
+<section class="cartao" style="border-color:#2e9e5b">
+  <h2>{{ _('Link de primeiro acesso') }}</h2>
+  <p>{{ _('Envie este link para a pessoa criar a senha. Depois ela entra pela tela de login com o e-mail.') }}</p>
+  <div style="display:flex;gap:8px"><input type="text" readonly value="{{ link }}" id="eq-link" style="flex:1">
+  <button class="botao" type="button" onclick="navigator.clipboard.writeText(document.getElementById('eq-link').value);this.textContent={{ _('Copiado')|tojson }}">{{ _('Copiar') }}</button></div>
+</section>
+{% endif %}
+
+{% for p in gente %}
+<section class="cartao">
+  <h2 style="margin-bottom:2px">{{ p.nome }}{% if p.is_admin %} <span class="etiqueta">{{ _('Dono da plataforma') }}</span>{% endif %}</h2>
+  <p class="suave pequeno" style="margin-top:0">{{ p.email or p.celular or '' }}{% if not p.senha_hash and p.convite_token %} · {{ _('ainda não criou a senha') }} · <a href="/convite/{{ p.convite_token }}" onclick="navigator.clipboard.writeText(this.href);this.textContent={{ _('link copiado')|tojson }};return false">{{ _('copiar o link de acesso') }}</a>{% endif %}</p>
+  {% if p.is_admin %}
+    <p class="suave">{{ _('Acesso a todas as áreas.') }}</p>
+  {% else %}
+  <form method="post" action="/master/equipe/{{ p.id }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {{ areas(p) }}
+    <div class="acoes" style="margin-top:10px">
+      <button class="botao" type="submit">{{ _('Salvar acesso') }}</button>
+      <button class="botao perigo" type="submit" name="remover" value="1" onclick="return confirm({{ _('Tirar o acesso desta pessoa ao Master? Os leads abertos dela voltam para a fila.')|tojson }})">{{ _('Tirar o acesso') }}</button>
+    </div>
+  </form>
+  {% endif %}
+</section>
+{% endfor %}
+
+<section class="cartao">
+  <h2>{{ _('Adicionar pessoa') }}</h2>
+  <form method="post" action="/master/equipe">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div class="campo"><label>{{ _('Nome') }}</label><input type="text" name="nome" maxlength="80" required></div>
+      <div class="campo"><label>{{ _('E-mail de login') }}</label><input type="email" name="email" maxlength="200" required></div>
+    </div>
+    <p style="margin:10px 0 4px"><strong>{{ _('Áreas liberadas') }}</strong></p>
+    {{ areas(None) }}
+    <label class="marcar" style="margin-top:8px"><input type="checkbox" name="na_escala" value="1"><span>{{ _('Também bate ponto na empresa (aparece na escala)') }}</span></label>
+    <button class="botao" type="submit" style="margin-top:12px">{{ _('Adicionar e gerar o link') }}</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "master/base.html" %}
+{% block master %}
+<style>
+  .crm-2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+  @media (max-width:900px){.crm-2{grid-template-columns:1fr}}
+  .crm-hist{list-style:none;padding:0;margin:0}
+  .crm-hist li{border-left:3px solid #e3e6f2;padding:4px 0 8px 10px;margin-bottom:4px}
+  .crm-hist li.etapa{border-color:#4f6bf5}.crm-hist li.sistema{border-color:#c9ccd8}
+  .crm-hist li.ligacao,.crm-hist li.whatsapp,.crm-hist li.email{border-color:#2e9e5b}
+  .crm-chat p{margin:6px 0}
+  .atrasada{color:#c0392b;font-weight:600}
+</style>
+<p><a href="/master/crm">← {{ _('Voltar ao funil') }}</a></p>
+<div class="cabecalho"><div><h1>{{ ld.nome or ld.telefone or _('Sem nome') }}</h1>
+<p class="suave" style="margin:0">{{ ld.empresa_nome or '' }}{% if ld.empresa_nome %} · {% endif %}{{ _(ORIGENS.get(ld.origem, ld.origem)) }} · {{ _('desde') }} {{ local(u.empresa, ld.criado_em, '%d/%m/%Y') }}
+ · {% if ld.dono_id %}{{ _('Responsável:') }} {{ nomes.get(ld.dono_id, '—') }}{% else %}<strong>{{ _('Na fila') }}</strong>{% endif %}</p></div>
+<div class="acoes">
+  {% if zap %}<a class="botao zap" href="{{ zap }}" target="_blank" rel="noopener">{{ _('WhatsApp') }}</a>
+  <a class="botao claro" href="tel:+55{{ ld.telefone }}">{{ _('Ligar') }}</a>{% endif %}
+  {% if ld.email %}<a class="botao claro" href="mailto:{{ ld.email }}">{{ _('E-mail') }}</a>{% endif %}
+  {% if emp and 'suporte' in u.areas_master %}<a class="botao claro" href="/master/empresas/{{ emp.id }}">{{ _('Ver a conta') }}</a>{% endif %}
+</div></div>
+{% if ld.autorizou %}<p class="suave pequeno">{{ _('Autorizou o contato pelo WhatsApp.') }}</p>{% elif ld.origem == 'chat' %}<p class="suave pequeno">{{ _('Escreveu o número no chat para ser chamado.') }}</p>{% endif %}
+
+<section class="cartao">
+  <h2>{{ _('Etapa') }}</h2>
+  <form method="post" action="/master/crm/{{ ld.id }}/etapa" class="crm-filtros" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="campo"><select name="etapa" aria-label="{{ _('Etapa') }}">{% for k, v in ETAPAS %}<option value="{{ k }}" {{ 'selected' if ld.etapa == k }}>{{ _(v) }}</option>{% endfor %}</select></div>
+    <div class="campo"><input type="text" name="motivo" maxlength="120" placeholder="{{ _('Motivo, se não fechou') }}" value="{{ ld.motivo_perda }}"></div>
+    <button class="botao" type="submit">{{ _('Mudar etapa') }}</button>
+  </form>
+</section>
+
+<div class="crm-2">
+<div>
+  <section class="cartao" id="historico">
+    <h2>{{ _('Registrar contato') }}</h2>
+    <form method="post" action="/master/crm/{{ ld.id }}/atividade">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="linha-form" style="grid-template-columns:170px 1fr">
+        <div class="campo"><select name="tipo" aria-label="{{ _('Tipo') }}">{% for k in ['ligacao', 'whatsapp', 'email', 'nota'] %}<option value="{{ k }}">{{ _(TIPOS[k]) }}</option>{% endfor %}</select></div>
+        <div class="campo"><textarea name="texto" rows="2" maxlength="4000" required placeholder="{{ _('O que foi conversado, objeções, próximo passo…') }}"></textarea></div>
+      </div>
+      <button class="botao" type="submit" style="margin-top:8px">{{ _('Salvar no histórico') }}</button>
+    </form>
+    <h2 style="margin-top:18px">{{ _('Histórico') }}</h2>
+    <ul class="crm-hist">
+    {% for a in ativ %}
+      <li class="{{ a.tipo }}"><span class="suave pequeno">{{ local(u.empresa, a.criado_em, '%d/%m %H:%M') }} · {{ _(TIPOS.get(a.tipo, a.tipo)) }}{% if a.autor_id %} · {{ nomes.get(a.autor_id, '') }}{% endif %}</span><br>{{ a.texto }}</li>
+    {% else %}<li class="suave">{{ _('Nada registrado ainda.') }}</li>{% endfor %}
+    </ul>
+  </section>
+  {% if conv %}
+  <details class="cartao crm-chat" {{ 'open' if not ativ or ld.etapa == 'novo' }}>
+    <summary><strong>{{ _('Conversa no chat do site') }}</strong> · {{ local(u.empresa, conv.criado_em, '%d/%m %H:%M') }}</summary>
+    {% for m in msgs %}<p>{% if m.papel == 'sistema' %}<em class="suave">{{ m.texto }}</em>{% else %}<strong>{{ _('Visitante') if m.papel == 'pessoa' else (m.nome or _('Atendente')) if m.papel == 'atendente' else _('Assistente') }}:</strong> {{ m.texto }}{% endif %}</p>{% endfor %}
+  </details>
+  {% endif %}
+</div>
+<div>
+  <section class="cartao">
+    <h2>{{ _('Tarefas') }}</h2>
+    {% for t in tar %}
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        {% if t.feita_em %}<span class="suave">✓ <s>{{ t.titulo }}</s></span>
+        {% else %}
+        <form method="post" action="/master/crm/tarefa/{{ t.id }}/feita" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao mini" type="submit">{{ _('Feita') }}</button></form>
+        <span class="{{ 'atrasada' if t.quando < agora }}">{{ local(u.empresa, t.quando, '%d/%m %H:%M') }}</span> {{ t.titulo }}
+        {% endif %}
+      </div>
+    {% else %}<p class="suave">{{ _('Nenhuma tarefa.') }}</p>{% endfor %}
+    <form method="post" action="/master/crm/{{ ld.id }}/tarefa" style="margin-top:10px">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label>{{ _('Próximo passo') }}</label><input type="text" name="titulo" maxlength="120" required placeholder="{{ _('Ex.: ligar para apresentar a proposta') }}"></div>
+      <div class="campo"><label>{{ _('Quando') }}</label><input type="datetime-local" name="quando" required></div>
+      <button class="botao" type="submit" style="margin-top:8px">{{ _('Marcar tarefa') }}</button>
+    </form>
+  </section>
+  <section class="cartao">
+    <h2>{{ _('Dados') }}</h2>
+    <form method="post" action="/master/crm/{{ ld.id }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label>{{ _('Nome') }}</label><input type="text" name="nome" maxlength="80" value="{{ ld.nome }}"></div>
+      <div class="campo"><label>{{ _('Empresa') }}</label><input type="text" name="empresa_nome" maxlength="80" value="{{ ld.empresa_nome }}"></div>
+      <div class="campo"><label>{{ _('WhatsApp com DDD') }}</label><input type="tel" name="telefone" maxlength="20" value="{{ ld.telefone }}"></div>
+      <div class="campo"><label>{{ _('E-mail') }}</label><input type="email" name="email" maxlength="120" value="{{ ld.email }}"></div>
+      <div class="linha-form" style="grid-template-columns:1fr 1fr">
+        <div class="campo"><label>{{ _('Funcionários') }}</label><input type="number" name="funcionarios" min="0" value="{{ ld.funcionarios }}"></div>
+        <div class="campo"><label>{{ _('Mensalidade prevista (R$)') }}</label><input type="text" name="valor" inputmode="decimal" value="{{ ('%.2f'|format(ld.valor_centavos / 100))|replace('.', ',') if ld.valor_centavos else '' }}"></div>
+      </div>
+      {% if supervisor %}
+      <div class="campo"><label>{{ _('Responsável') }}</label><select name="dono_id">
+        <option value="fila" {{ 'selected' if not ld.dono_id }}>{{ _('Na fila (sem dono)') }}</option>
+        {% for p in time %}<option value="{{ p.id }}" {{ 'selected' if ld.dono_id == p.id }}>{{ p.nome }}</option>{% endfor %}
+      </select></div>
+      {% endif %}
+      <button class="botao" type="submit" style="margin-top:8px">{{ _('Salvar') }}</button>
+    </form>
+  </section>
+</div>
+</div>
+{% endblock %}

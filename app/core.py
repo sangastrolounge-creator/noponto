@@ -553,9 +553,61 @@ def permissao_da_rota(caminho: str, metodo: str = "GET") -> str | None:
     return None
 
 
-def admin_logado(u: Usuario = Depends(usuario_logado)) -> Usuario:
-    if not u.is_admin:
+MASTER_AREAS = {
+    "crm": "CRM: leads, funil, conversas e chat ao vivo",
+    "supervisao": "Supervisão do CRM: vê os leads de todos, distribui e acompanha a equipe",
+    "suporte": "Suporte às empresas clientes",
+    "financeiro": "Financeiro: cobranças, cupons e parceiros",
+    "config": "Configurações da plataforma e equipe do Master",
+}
+# Caminho do Master -> área exigida (o mais específico primeiro). O que não estiver aqui é "config".
+_AREA_CAMINHO = [
+    (re.compile(r"^/master/empresas/\d+/(pagamento|cancelar-assinatura)"), "financeiro"),
+    (re.compile(r"^/master/(crm|conversas)(/|$)"), "crm"),
+    (re.compile(r"^/master/(cupons|parceiros)(/|$)"), "financeiro"),
+    (re.compile(r"^/master/(empresas|avisos|voltar)(/|$)"), "suporte"),
+    (re.compile(r"^/master/?$"), "suporte"),
+]
+_AREA_INICIO = {"crm": "/master/crm", "suporte": "/master", "financeiro": "/master/cupons",
+                "config": "/master/planos", "supervisao": "/master/crm"}
+
+
+def area_do_caminho(caminho: str) -> str:
+    for rx, area in _AREA_CAMINHO:
+        if rx.search(caminho):
+            return area
+    return "config"
+
+
+def inicio_master(u: Usuario) -> str:
+    for a in ("suporte", "crm", "financeiro", "config"):
+        if a in u.areas_master:
+            return _AREA_INICIO[a]
+    return "/painel" if u.gestor else "/app"
+
+
+def destino_inicial(u: Usuario) -> str:
+    """Para onde vai depois de entrar: a equipe do Master (que não é gestor) cai direto no Master."""
+    if u.acesso_master and not u.is_admin and not u.gestor:
+        return inicio_master(u)
+    return "/painel" if u.gestor else "/app"
+
+
+def admin_logado(request: Request, u: Usuario = Depends(usuario_logado)) -> Usuario:
+    if not u.acesso_master:
         raise Redirecionar("/painel" if u.gestor else "/app")
+    area = area_do_caminho(request.url.path)
+    if area not in u.areas_master:
+        if request.url.path.rstrip("/") == "/master":
+            raise Redirecionar(inicio_master(u))
+        avisar(request, "Você não tem acesso a esta área do Master.", "erro")
+        raise Redirecionar(inicio_master(u))
+    return u
+
+
+def dono_plataforma(u: Usuario = Depends(usuario_logado)) -> Usuario:
+    if not u.is_admin:
+        raise Redirecionar("/master" if u.acesso_master else ("/painel" if u.gestor else "/app"))
     return u
 
 

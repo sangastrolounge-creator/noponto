@@ -1,12 +1,17 @@
 {% extends "painel_base.html" %}
 {% block conteudo %}
+{% set ar = u.areas_master %}
 <nav class="subabas" aria-label="{{ _('Painel Master') }}">
-  <a href="/master" class="{{ 'ativa' if sub == 'geral' }}">{{ _('Empresas') }}</a>
+  {% if 'crm' in ar %}<a href="/master/crm" class="{{ 'ativa' if sub == 'crm' }}">{{ _('CRM') }}</a>
+  <a href="/master/crm/ao-vivo" class="{{ 'ativa' if sub == 'aovivo' }}">{{ _('Chat ao vivo') }}</a>
+  <a href="/master/crm/tarefas" class="{{ 'ativa' if sub == 'tarefas' }}">{{ _('Tarefas') }}</a>
+  <a href="/master/conversas" class="{{ 'ativa' if sub == 'conversas' }}">{{ _('Conversas') }}</a>{% endif %}
+  {% if 'suporte' in ar %}<a href="/master" class="{{ 'ativa' if sub == 'geral' }}">{{ _('Empresas') }}</a>{% endif %}
+  {% if 'financeiro' in ar %}<a href="/master/cupons" class="{{ 'ativa' if sub == 'cupons' }}">{{ _('Cupons') }}</a>
+  <a href="/master/parceiros" class="{{ 'ativa' if sub == 'parceiros' }}">{{ _('Parceiros') }}</a>{% endif %}
+  {% if 'config' in ar %}<a href="/master/equipe" class="{{ 'ativa' if sub == 'equipe' }}">{{ _('Equipe do Master') }}</a>
   <a href="/master/planos" class="{{ 'ativa' if sub == 'planos' }}">{{ _('Planos') }}</a>
-  <a href="/master/cupons" class="{{ 'ativa' if sub == 'cupons' }}">{{ _('Cupons') }}</a>
-  <a href="/master/parceiros" class="{{ 'ativa' if sub == 'parceiros' }}">{{ _('Parceiros') }}</a>
   <a href="/master/portaria671" class="{{ 'ativa' if sub == 'portaria671' }}">{{ _('Portaria 671') }}</a>
-  <a href="/master/conversas" class="{{ 'ativa' if sub == 'conversas' }}">{{ _('Conversas') }}</a>
   <a href="/master/lojas" class="{{ 'ativa' if sub == 'lojas' }}">{{ _('Lojas de apps') }}</a>
   <a href="/master/pagina" class="{{ 'ativa' if sub == 'pagina' }}">{{ _('Página de vendas') }}</a>
   <a href="/master/plataforma" class="{{ 'ativa' if sub == 'plataforma' }}">{{ _('Plataforma') }}</a>
@@ -14,7 +19,9 @@
   <a href="/master/entrada" class="{{ 'ativa' if sub == 'entrada' }}">{{ _('Tela de entrada') }}</a>
   <a href="/master/folha" class="{{ 'ativa' if sub == 'folha' }}">{{ _('Claude') }}</a>
   <a href="/master/email" class="{{ 'ativa' if sub == 'email' }}">{{ _('E-mail') }}</a>
-  <a href="/master/avisos" class="{{ 'ativa' if sub == 'avisos' }}">{{ _('Avisos') }}</a>
+  {% endif %}
+  {% if 'suporte' in ar %}<a href="/master/avisos" class="{{ 'ativa' if sub == 'avisos' }}">{{ _('Avisos') }}</a>{% endif %}
+  {% if not u.is_admin and u.na_escala %}<a href="/app">{{ _('Meu ponto') }}</a>{% endif %}
 </nav>
 {% block master %}{% endblock %}
 {% endblock %}

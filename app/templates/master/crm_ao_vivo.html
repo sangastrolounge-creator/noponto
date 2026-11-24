@@ -1,0 +1,119 @@
+{% extends "master/base.html" %}
+{% block master %}
+<style>
+  .av{display:grid;grid-template-columns:300px minmax(0,1fr);gap:14px}
+  @media (max-width:900px){.av{grid-template-columns:1fr}}
+  .av-lista{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow:auto}
+  .av-item{border:1px solid #e3e6f2;border-radius:10px;padding:8px 10px;background:#fff;cursor:pointer;text-align:left;font:inherit}
+  .av-item.sel{border-color:#4f6bf5;box-shadow:0 0 0 2px #4f6bf533}
+  .av-item .st{font-size:12px;color:#6b7080}
+  .av-item .on{color:#2e9e5b;font-weight:600}
+  .av-msgs{display:flex;flex-direction:column;gap:6px;height:52vh;overflow:auto;background:#f4f5fa;border-radius:10px;padding:10px}
+  .av-m{max-width:80%;padding:8px 11px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word;background:#fff;border:1px solid #e3e6f2}
+  .av-m.pessoa{align-self:flex-start}
+  .av-m.assistente{align-self:flex-end;background:#eef1fe;border-color:#d5dcfb}
+  .av-m.atendente{align-self:flex-end;background:#f0fbf4;border-color:#9fd8b4}
+  .av-m.sistema{align-self:center;background:none;border:0;color:#6b7080;font-size:12px}
+  .av-m small{display:block;color:#6b7080;font-size:11px}
+  .av-resp{display:flex;gap:8px;margin-top:8px}
+  .av-resp textarea{flex:1}
+</style>
+<div class="cabecalho"><div><h1>{{ _('Chat ao vivo') }}</h1>
+<p class="suave" style="margin:0">{{ _('Conversas do chat do site nos últimos 30 minutos, atualizadas sozinhas. Para responder no lugar do assistente, toque em “Assumir”: o robô para de responder até você devolver a conversa.') }}</p></div></div>
+
+{% if supervisor %}
+<section class="cartao" id="av-equipe-cartao">
+  <h2>{{ _('Equipe agora') }} <span class="suave pequeno" id="av-fila"></span></h2>
+  <div class="tabela-rolagem"><table class="tabela">
+    <thead><tr><th>{{ _('Atendente') }}</th><th>{{ _('Chats assumidos') }}</th><th>{{ _('Registros hoje') }}</th><th>{{ _('Leads abertos') }}</th><th>{{ _('Tarefas atrasadas') }}</th><th>{{ _('Último registro') }}</th></tr></thead>
+    <tbody id="av-equipe"></tbody></table></div>
+</section>
+{% endif %}
+
+<div class="av">
+  <section class="cartao"><h2>{{ _('Conversas') }}</h2><div class="av-lista" id="av-lista"><p class="suave">{{ _('Carregando…') }}</p></div></section>
+  <section class="cartao">
+    <div id="av-vazio" class="suave">{{ _('Escolha uma conversa à esquerda.') }}</div>
+    <div id="av-painel" hidden>
+      <div class="cabecalho" style="margin-bottom:8px"><div><h2 id="av-titulo" style="margin:0"></h2><span class="suave pequeno" id="av-sub"></span></div>
+        <div class="acoes"><button class="botao" id="av-assumir" type="button">{{ _('Assumir') }}</button>
+        <button class="botao claro" id="av-devolver" type="button" hidden>{{ _('Devolver ao assistente') }}</button></div></div>
+      <div class="av-msgs" id="av-msgs" aria-live="polite"></div>
+      <form class="av-resp" id="av-form">
+        <textarea id="av-texto" rows="2" maxlength="2000" placeholder="{{ _('Escreva a resposta (Enter envia)') }}"></textarea>
+        <button class="botao" type="submit">{{ _('Enviar') }}</button>
+      </form>
+      <p class="suave pequeno" id="av-erro" hidden></p>
+    </div>
+  </section>
+</div>
+<script>
+(function () {
+  var CSRF = {{ csrf|tojson }}, sel = null, dados = null, ultimoTotal = -1;
+  var T = { robo: {{ _('Assistente')|tojson }}, visit: {{ _('Visitante')|tojson }}, com: {{ _('com')|tojson }},
+            semNome: {{ _('Visitante sem nome')|tojson }}, robo_resp: {{ _('o assistente está respondendo')|tojson }},
+            nenhuma: {{ _('Nenhuma conversa nos últimos 30 minutos.')|tojson }}, msgs: {{ _('mensagens')|tojson }},
+            agora: {{ _('agora')|tojson }}, fila: {{ _('Na fila do CRM:')|tojson }} };
+  function g(i) { return document.getElementById(i); }
+  function el(tag, cls, txt) { var d = document.createElement(tag); if (cls) d.className = cls; if (txt != null) d.textContent = txt; return d; }
+  function post(url, corpo) {
+    return fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF": CSRF }, body: JSON.stringify(corpo || {}) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.erro || "erro"); return j; }); });
+  }
+  function erro(m) { var e = g("av-erro"); e.textContent = m || ""; e.hidden = !m; }
+  function lista() {
+    var L = g("av-lista"); L.innerHTML = "";
+    if (!dados.conversas.length) { L.appendChild(el("p", "suave", T.nenhuma)); return; }
+    dados.conversas.forEach(function (c) {
+      var b = el("button", "av-item" + (c.id === sel ? " sel" : "")); b.type = "button";
+      b.appendChild(el("strong", "", c.nome || c.telefone || T.semNome));
+      var ult = c.mensagens.length ? c.mensagens[c.mensagens.length - 1].texto : "";
+      b.appendChild(el("div", "pequeno", ult.slice(0, 80)));
+      var st = el("div", "st", (c.segundos < 90 ? T.agora : c.atualizado) + " · " + c.total + " " + T.msgs + " · ");
+      st.appendChild(el("span", c.atendente ? "on" : "", c.atendente ? T.com + " " + c.atendente : T.robo_resp));
+      b.appendChild(st);
+      b.addEventListener("click", function () { sel = c.id; ultimoTotal = -1; lista(); conversa(); });
+      L.appendChild(b);
+    });
+  }
+  function conversa() {
+    var c = dados.conversas.filter(function (x) { return x.id === sel; })[0];
+    g("av-vazio").hidden = !!c; g("av-painel").hidden = !c; if (!c) return;
+    g("av-titulo").textContent = c.nome || c.telefone || T.semNome;
+    g("av-sub").textContent = (c.telefone ? c.telefone + " · " : "") + (c.atendente ? T.com + " " + c.atendente : T.robo_resp);
+    g("av-assumir").hidden = c.meu; g("av-devolver").hidden = !c.atendente;
+    if (c.total === ultimoTotal) return; ultimoTotal = c.total;
+    var M = g("av-msgs"), noFim = M.scrollTop + M.clientHeight >= M.scrollHeight - 30; M.innerHTML = "";
+    c.mensagens.forEach(function (m) {
+      var d = el("div", "av-m " + m.papel);
+      if (m.papel !== "sistema") d.appendChild(el("small", "", m.papel === "pessoa" ? T.visit : m.papel === "atendente" ? (m.nome || "") : T.robo));
+      d.appendChild(document.createTextNode(m.texto)); M.appendChild(d);
+    });
+    if (noFim || ultimoTotal === c.total) M.scrollTop = 1e6;
+  }
+  function equipe() {
+    var E = g("av-equipe"); if (!E || !dados.equipe) return; E.innerHTML = "";
+    dados.equipe.forEach(function (p) {
+      var tr = el("tr");
+      [p.nome, p.chats, p.atividades_hoje, p.leads_abertos, p.tarefas_atrasadas, p.ultima || "—"].forEach(function (v) { tr.appendChild(el("td", "", String(v))); });
+      E.appendChild(tr);
+    });
+    g("av-fila").textContent = T.fila + " " + (dados.fila || 0);
+  }
+  function atualizar() {
+    if (document.hidden) return;
+    fetch("/master/crm/ao-vivo.json").then(function (r) { return r.json(); })
+      .then(function (j) { dados = j; lista(); conversa(); equipe(); }).catch(function () {});
+  }
+  g("av-assumir").addEventListener("click", function () { post("/master/crm/conversa/" + sel + "/assumir").then(atualizar, function (e) { erro(e.message); }); });
+  g("av-devolver").addEventListener("click", function () { post("/master/crm/conversa/" + sel + "/devolver").then(atualizar, function (e) { erro(e.message); }); });
+  function enviar() {
+    var t = g("av-texto"), txt = t.value.trim(); if (!txt || !sel) return; erro("");
+    post("/master/crm/conversa/" + sel + "/mensagem", { texto: txt }).then(function () { t.value = ""; atualizar(); }, function (e) { erro(e.message); });
+  }
+  g("av-form").addEventListener("submit", function (e) { e.preventDefault(); enviar(); });
+  g("av-texto").addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); } });
+  atualizar(); setInterval(atualizar, 3000);
+})();
+</script>
+{% endblock %}

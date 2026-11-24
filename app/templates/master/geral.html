@@ -6,8 +6,8 @@
   <a class="botao" href="/master/empresas/nova">{{ _('Nova empresa') }}</a>
 </div>
 <div class="grade">
-  <div class="numero"><div class="rotulo">{{ _('Receita mensal') }}</div><div class="valor">{{ mrr|dinheiro }}</div><div class="nota">{{ _('soma dos planos das empresas ativas') }}</div></div>
-  <div class="numero"><div class="rotulo">{{ _('Recebido em 30 dias') }}</div><div class="valor">{{ recebido|dinheiro }}</div><div class="nota">{{ _('pagamentos registrados') }}</div></div>
+  {% if 'financeiro' in u.areas_master %}  <div class="numero"><div class="rotulo">{{ _('Receita mensal') }}</div><div class="valor">{{ mrr|dinheiro }}</div><div class="nota">{{ _('soma dos planos das empresas ativas') }}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Recebido em 30 dias') }}</div><div class="valor">{{ recebido|dinheiro }}</div><div class="nota">{{ _('pagamentos registrados') }}</div></div>{% endif %}
   <div class="numero"><div class="rotulo">{{ _('Ativas') }}</div><div class="valor">{{ contagem.ativa }}</div><div class="nota">{{ _('pagantes em dia') }}</div></div>
   <div class="numero"><div class="rotulo">{{ _('Em teste') }}</div><div class="valor">{{ contagem.teste }}</div><div class="nota">{{ _('{v1} {v2} em 30 dias', v1=(novas), v2=(_('nova') if novas == 1 else _('novas'))) }}</div></div>
   <div class="numero {{ 'ruim' if contagem.vencida }}"><div class="rotulo">{{ _('Vencidas') }}</div><div class="valor">{{ contagem.vencida }}</div><div class="nota">{{ contagem.bloqueada }} {{ _('bloqueada') if contagem.bloqueada == 1 else _('bloqueadas') }}</div></div>

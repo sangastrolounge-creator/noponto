@@ -201,6 +201,8 @@ def ao_criar_empresa(request: Request, db: Session, u: Usuario, cupom: str = "",
         if erro:
             avisar(request, f"Cupom não aplicado: {erro}", "erro")
     db.commit()
+    from . import crm
+    crm.lead_do_cadastro(db, e, u)   # conta de teste nova entra no funil do CRM
 
 
 @rota.get("/i/{codigo}")
