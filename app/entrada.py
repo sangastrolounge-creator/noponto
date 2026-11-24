@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from . import avisos_master, legal, master
 from . import db as banco
-from .core import (admin_logado, avisar, base_url, dentro_do_limite, exigir_csrf, google_credenciais,
+from .core import (admin_logado, avisar, base_url, destino_inicial, dentro_do_limite, exigir_csrf, google_credenciais,
                    google_ligado, ip, ir, plataforma, plataforma_mudou, render)
 from .db import Config, Plataforma, Usuario, get_db
 
@@ -237,7 +237,7 @@ def google_volta(request: Request, code: str = "", state: str = "", error: str =
             db.commit()
         request.session.pop("master_uid", None)
         request.session["uid"] = u.id
-        return ir("/painel" if u.gestor else "/app")
+        return ir(destino_inicial(u))
     # Ninguém com este e-mail: segue para criar a conta da empresa (se o cadastro estiver aberto).
     if not plataforma()["cadastro_aberto"]:
         avisar(request, "Não encontramos uma conta com este e-mail. Peça o acesso ao seu gestor.", "erro")

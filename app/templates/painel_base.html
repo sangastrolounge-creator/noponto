@@ -63,7 +63,7 @@
     <div class="conta-rodape">
     {{ seletor() }}
     <div class="conta-icones">
-      {% if u.is_admin and not suporte %}<a href="/master" class="icone-conta {{ 'ativa' if aba == 'master' }}" title="{{ _('Master') }}" aria-label="{{ _('Master') }}">
+      {% if u.acesso_master and not suporte %}<a href="/master" class="icone-conta {{ 'ativa' if aba == 'master' }}" title="{{ _('Master') }}" aria-label="{{ _('Master') }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></a>{% endif %}
       <button class="icone-conta" type="button" id="abrir-guia" title="{{ _('Ver o guia desta tela') }}" aria-label="{{ _('Guia') }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.8 1c0 1.7-2.3 2.2-2.3 3.8"/><path d="M12 17.2h.01"/></svg></button>

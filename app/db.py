@@ -71,6 +71,53 @@ class ConversaVenda(Base):
     autorizou: Mapped[bool] = mapped_column(Boolean, default=False)
     contato_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     situacao: Mapped[str] = mapped_column(String(20), default="")  # "", "contatado", "fechou", "perdido"
+    # Atendente da equipe que assumiu a conversa no lugar do robô (chat ao vivo).
+    atendente_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    atendente_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class Lead(Base):
+    """CRM da plataforma: um possível cliente no funil de vendas."""
+    __tablename__ = "crm_leads"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nome: Mapped[str] = mapped_column(String(80), default="")
+    empresa_nome: Mapped[str] = mapped_column(String(80), default="")
+    telefone: Mapped[str] = mapped_column(String(20), default="", index=True)
+    email: Mapped[str] = mapped_column(String(120), default="", index=True)
+    funcionarios: Mapped[int] = mapped_column(Integer, default=0)
+    origem: Mapped[str] = mapped_column(String(20), default="manual")  # chat | teste | manual | indicacao
+    etapa: Mapped[str] = mapped_column(String(20), default="novo", index=True)
+    dono_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)  # atendente; vazio = fila
+    conversa_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    empresa_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)  # conta criada no sistema
+    valor_centavos: Mapped[int] = mapped_column(Integer, default=0)  # mensalidade esperada
+    motivo_perda: Mapped[str] = mapped_column(String(120), default="")
+    autorizou: Mapped[bool] = mapped_column(Boolean, default=False)  # autorizou contato (LGPD)
+    criado_em: Mapped[datetime] = mapped_column(DateTime)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime)
+
+
+class LeadAtividade(Base):
+    """Histórico do lead: anotações de ligação/WhatsApp, mudanças de etapa e eventos do sistema."""
+    __tablename__ = "crm_atividades"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lead_id: Mapped[int] = mapped_column(Integer, index=True)
+    autor_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    tipo: Mapped[str] = mapped_column(String(20), default="nota")  # nota | ligacao | whatsapp | email | etapa | sistema
+    texto: Mapped[str] = mapped_column(Text, default="")
+    criado_em: Mapped[datetime] = mapped_column(DateTime, index=True)
+
+
+class LeadTarefa(Base):
+    """Lembrete de retorno: ligar, mandar proposta, conferir o teste."""
+    __tablename__ = "crm_tarefas"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lead_id: Mapped[int] = mapped_column(Integer, index=True)
+    dono_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    titulo: Mapped[str] = mapped_column(String(120), default="")
+    quando: Mapped[datetime] = mapped_column(DateTime, index=True)
+    feita_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime)
 
 
 class Plataforma(Base):
@@ -328,6 +375,8 @@ class Usuario(Base):
     pin_hash: Mapped[str | None] = mapped_column(String(200), nullable=True)
     pin_erros: Mapped[int] = mapped_column(Integer, default=0)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)  # dono da plataforma (master)
+    # Equipe da plataforma (suporte, call center): áreas do Master liberadas, separadas por vírgula.
+    master_areas: Mapped[str] = mapped_column(String(120), default="")
     guia_visto: Mapped[bool] = mapped_column(Boolean, default=False)  # já viu o convite do guia
     # Dados para a folha de pagamento (valores em centavos).
     salario_centavos: Mapped[int] = mapped_column(Integer, default=0)
@@ -384,6 +433,17 @@ class Usuario(Base):
     @property
     def primeiro_nome(self) -> str:
         return self.nome.strip().split(" ")[0]
+
+    @property
+    def areas_master(self) -> set[str]:
+        """Áreas do Master que esta pessoa acessa (o dono da plataforma acessa todas)."""
+        if self.is_admin:
+            return {"crm", "supervisao", "suporte", "financeiro", "config"}
+        return {a for a in (self.master_areas or "").split(",") if a}
+
+    @property
+    def acesso_master(self) -> bool:
+        return bool(self.areas_master)
 
 
 class AsaasEvento(Base):
@@ -1258,6 +1318,9 @@ COLUNAS_NOVAS = [
     ("conversas_venda", "autorizou", "BOOLEAN NOT NULL DEFAULT 0"),
     ("conversas_venda", "contato_em", "DATETIME"),
     ("conversas_venda", "situacao", "VARCHAR(20) NOT NULL DEFAULT ''"),
+    ("conversas_venda", "atendente_id", "INTEGER"),
+    ("conversas_venda", "atendente_em", "DATETIME"),
+    ("usuarios", "master_areas", "VARCHAR(120) NOT NULL DEFAULT ''"),
     ("empresas", "exclusao_pedida_em", "DATETIME"),
     ("usuarios", "desligado_em", "DATE"),
     ("usuarios", "desligamento_tipo", "VARCHAR(20) NOT NULL DEFAULT ''"),

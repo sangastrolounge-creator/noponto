@@ -1,0 +1,88 @@
+{% extends "master/base.html" %}
+{% block master %}
+<style>
+  .crm-quadro{display:grid;grid-template-columns:repeat(6,minmax(220px,1fr));gap:10px;overflow-x:auto;padding-bottom:8px}
+  .crm-col{background:var(--fundo-suave,#f4f5fa);border-radius:12px;padding:8px;min-height:180px;display:flex;flex-direction:column;gap:8px}
+  .crm-col.sobre{outline:2px dashed #4f6bf5}
+  .crm-col h3{margin:2px 4px 4px;font-size:14px;display:flex;justify-content:space-between}
+  .crm-card{background:#fff;border:1px solid #e3e6f2;border-radius:10px;padding:8px 10px;cursor:grab;display:block;color:inherit;text-decoration:none;font-size:14px}
+  .crm-card:hover{border-color:#4f6bf5}
+  .crm-card .dono{font-size:12px;color:#6b7080}
+  .crm-card .atr{color:#c0392b;font-size:12px;font-weight:600}
+  .crm-card .tar{color:#4f6bf5;font-size:12px}
+  .crm-filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+</style>
+<div class="cabecalho"><div><h1>{{ _('CRM') }}</h1>
+<p class="suave" style="margin:0">{{ _('Funil de vendas da plataforma. Quem deixa o WhatsApp no chat do site e quem cria conta de teste entra aqui sozinho. Arraste o cartão para mudar a etapa.') }}</p></div>
+<div class="acoes">
+  <form method="post" action="/master/crm/pegar" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="botao" type="submit" {{ 'disabled' if not fila }}>{{ _('Pegar o próximo da fila') }} ({{ fila }})</button></form>
+  <button class="botao claro" type="button" onclick="document.getElementById('crm-novo').hidden=!document.getElementById('crm-novo').hidden">{{ _('Novo lead') }}</button>
+</div></div>
+
+<form method="post" action="/master/crm/novo" class="cartao" id="crm-novo" hidden>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Novo lead') }}</h2>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+    <div class="campo"><label>{{ _('Nome') }}</label><input type="text" name="nome" maxlength="80" required></div>
+    <div class="campo"><label>{{ _('Empresa') }}</label><input type="text" name="empresa_nome" maxlength="80"></div>
+    <div class="campo"><label>{{ _('WhatsApp com DDD') }}</label><input type="tel" name="telefone" maxlength="20"></div>
+    <div class="campo"><label>{{ _('E-mail') }}</label><input type="email" name="email" maxlength="120"></div>
+    <div class="campo"><label>{{ _('Origem') }}</label><select name="origem">
+      {% for k in ['manual', 'indicacao', 'whatsapp'] %}<option value="{{ k }}">{{ _(ORIGENS[k]) }}</option>{% endfor %}</select></div>
+  </div>
+  <button class="botao" type="submit" style="margin-top:10px">{{ _('Cadastrar') }}</button>
+</form>
+
+<form method="get" class="crm-filtros" style="margin:12px 0">
+  <select name="ver" onchange="this.form.submit()" aria-label="{{ _('Mostrar') }}">
+    {% if supervisor %}<option value="todos" {{ 'selected' if ver == 'todos' }}>{{ _('Todos os leads') }}</option>{% endif %}
+    <option value="meus_fila" {{ 'selected' if ver == 'meus_fila' }}>{{ _('Meus e a fila') }}</option>
+    <option value="meus" {{ 'selected' if ver == 'meus' }}>{{ _('Só os meus') }}</option>
+    <option value="fila" {{ 'selected' if ver == 'fila' }}>{{ _('Só a fila (sem dono)') }}</option>
+    {% if supervisor %}{% for p in time %}<option value="{{ p.id }}" {{ 'selected' if ver == p.id|string }}>{{ _('De {v1}', v1=p.nome) }}</option>{% endfor %}{% endif %}
+  </select>
+  <input type="search" name="q" value="{{ q }}" placeholder="{{ _('Nome, empresa, telefone ou e-mail') }}" style="max-width:280px">
+  <button class="botao claro" type="submit">{{ _('Buscar') }}</button>
+  <span class="suave pequeno">{{ _('{v1} lead(s)', v1=total) }}{% if valor %} · {{ _('previsão {v1}/mês', v1=valor|dinheiro) }}{% endif %}</span>
+</form>
+
+<div class="crm-quadro" id="crm-quadro">
+{% for k, nome, itens in colunas %}
+  <div class="crm-col" data-etapa="{{ k }}">
+    <h3><span>{{ _(nome) }}</span><span class="suave">{{ itens|length }}</span></h3>
+    {% for ld in itens %}{% set t = pend.get(ld.id) %}
+    <a class="crm-card" href="/master/crm/{{ ld.id }}" draggable="true" data-id="{{ ld.id }}">
+      <strong>{{ ld.nome or ld.telefone or _('Sem nome') }}</strong>
+      {% if ld.empresa_nome %}<br><span class="pequeno">{{ ld.empresa_nome }}</span>{% endif %}
+      <br><span class="dono">{{ nomes.get(ld.dono_id, _('Na fila')) if ld.dono_id else _('Na fila') }} · {{ _(ORIGENS.get(ld.origem, ld.origem)) }}</span>
+      {% if t %}<br>{% if t < agora %}<span class="atr">{{ _('Retorno atrasado') }}</span>{% else %}<span class="tar">{{ _('Retorno') }} {{ local(u.empresa, t, '%d/%m %H:%M') }}</span>{% endif %}{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+{% endfor %}
+</div>
+<script>
+(function () {
+  var CSRF = {{ csrf|tojson }}, arrastando = null;
+  document.querySelectorAll(".crm-card").forEach(function (c) {
+    c.addEventListener("dragstart", function (e) { arrastando = c; e.dataTransfer.setData("text/plain", c.dataset.id); });
+  });
+  document.querySelectorAll(".crm-col").forEach(function (col) {
+    col.addEventListener("dragover", function (e) { e.preventDefault(); col.classList.add("sobre"); });
+    col.addEventListener("dragleave", function () { col.classList.remove("sobre"); });
+    col.addEventListener("drop", function (e) {
+      e.preventDefault(); col.classList.remove("sobre");
+      if (!arrastando || arrastando.parentNode === col) return;
+      var etapa = col.dataset.etapa, motivo = "";
+      if (etapa === "perdido") { motivo = prompt({{ _('Por que não fechou?')|tojson }}, "") ; if (motivo === null) return; }
+      var card = arrastando;
+      fetch("/master/crm/" + card.dataset.id + "/etapa", { method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF": CSRF }, body: JSON.stringify({ etapa: etapa, motivo: motivo }) })
+        .then(function (r) { if (!r.ok) throw 0; col.appendChild(card); })
+        .catch(function () { alert({{ _('Não foi possível mudar a etapa. Recarregue a página.')|tojson }}); });
+    });
+  });
+})();
+</script>
+{% endblock %}

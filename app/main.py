@@ -24,11 +24,11 @@ from . import core
 from . import db as banco
 from . import crescimento, entrada, parceiros, rep
 from . import setores as setores_mod
-from . import (apuracao, asaas, cobranca, conta, desligamento, lojas, vendedor, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
+from . import (apuracao, asaas, cobranca, conta, crm, desligamento, lojas, vendedor, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
                ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
-                   SECRET_KEY, Redirecionar, app_ios, avisar, base_url, celular_limpo,
+                   SECRET_KEY, Redirecionar, app_ios, destino_inicial, avisar, base_url, celular_limpo,
                    da_empresa, data_iso, ir,
                    celular_valido, conferir_senha, dentro_do_limite,
                    email_valido, exigir_csrf, gerar_hash, gestor_logado, ip,
@@ -54,6 +54,10 @@ def ciclo_alertas():
         regras.limpar_fotos(db)
         cobranca.ajustar_valores(db)
     vendedor.limpar_antigas()   # planos por pessoa: uma vez por dia
+    try:
+        crm.sincronizar()           # leads do chat e contas que assinaram
+    except Exception:
+        pass
     push.avisar_alertas([a.id for a in novos])
     push.avisar_usuarios(lembretes)
     avisos_master.resumo_testes()   # uma vez por dia, depois das 09:00 de Brasília
@@ -133,6 +137,7 @@ app.include_router(rep.rota)
 app.include_router(conta.rota)
 app.include_router(lojas.rota)
 app.include_router(vendedor.rota)
+app.include_router(crm.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 
 templates.env.globals.update(
@@ -243,7 +248,7 @@ def offline(request: Request):
 def inicio(request: Request, db: Session = Depends(get_db)):
     u = db.get(Usuario, request.session.get("uid") or 0)
     if u and u.ativo:
-        return ir("/painel" if u.gestor else "/app")
+        return ir(destino_inicial(u))
     publicado = vendas.conteudo_publicado(db)
     if publicado:  # página de vendas longa, editada no Painel Master
         return render(request, "vendas.html", previa=False,
@@ -320,7 +325,7 @@ def entrar(request: Request, login: str = Form(""), senha: str = Form(""),
                       erro="Esta conta está bloqueada. Fale com o suporte.")
     request.session.pop("master_uid", None)
     request.session["uid"] = u.id
-    return ir("/painel" if u.gestor else "/app")
+    return ir(destino_inicial(u))
 
 
 @app.post("/sair", dependencies=CSRF)
@@ -355,7 +360,7 @@ def convite(request: Request, token: str, senha: str = Form(""), consentimento: 
     legal.registrar_aceite(u)
     db.commit()
     request.session["uid"] = u.id
-    return ir("/painel" if u.gestor else "/app")
+    return ir(destino_inicial(u))
 
 
 # ============================================================ painel: hoje

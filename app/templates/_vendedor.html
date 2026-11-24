@@ -22,6 +22,8 @@
   .vd-m.eu{align-self:flex-end;background:#4f6bf5;color:#fff;border-bottom-right-radius:4px}
   .vd-m.ele{align-self:flex-start;background:#fff;border:1px solid #e3e6f2;border-bottom-left-radius:4px}
   .vd-m.digitando{opacity:.7;font-style:italic}
+  .vd-m.humano{border-color:#9fd8b4;background:#f0fbf4}
+  .vd-m.sis{align-self:center;background:none;color:#6b7080;font-size:12px;padding:2px 8px}
   .vd-sugestoes{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px;background:#f5f6fb}
   .vd-sugestoes button{border:1px solid #cdd3f5;background:#fff;color:#3d55db;border-radius:99px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
   .vd-form{display:flex;gap:8px;padding:10px;border-top:1px solid #e3e6f2}
@@ -127,7 +129,9 @@
     var d = add("ele", {{ _('digitando…')|tojson }}, "digitando");
     fetch("/vendedor/mensagem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto: texto, conversa: conversa }) })
       .then(function (r) { return r.json(); })
-      .then(function (j) { if (j.conversa) conversa = j.conversa; d.className = "vd-m ele"; d.textContent = j.resposta || j.erro || "…";
+      .then(function (j) { if (j.conversa) conversa = j.conversa;
+        if (j.humano) { d.remove(); return; }
+        d.className = "vd-m ele"; d.textContent = j.resposta || j.erro || "…";
         if (j.teste) { var a = document.createElement("a"); a.className = "vd-teste"; a.href = "/cadastro";
           a.textContent = {{ _('Testar {v1} dias grátis', v1=(plat.dias_teste or 7))|tojson }}; g("vd-msgs").appendChild(a); }
         if (j.contato) { temContato = true; g("vd-quero").hidden = true; }
@@ -135,6 +139,22 @@
       .catch(function () { d.className = "vd-m ele"; d.textContent = {{ _('Sem conexão agora. Toque em “Falar no WhatsApp”.')|tojson }}; })
       .then(function () { ocupado = false; g("vd-msgs").scrollTop = 1e6; });
   }
+  // chat ao vivo: quando alguém do time assume a conversa, as respostas dele chegam por aqui
+  var total = 0, buscando = false;
+  function buscar() {
+    if (!conversa || buscando || document.hidden) return; buscando = true;
+    fetch("/vendedor/novas?conversa=" + encodeURIComponent(conversa) + "&desde=" + total)
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        (j.mensagens || []).forEach(function (m) {
+          if (m.papel === "atendente") add("ele", (m.nome ? m.nome + ": " : "") + m.texto, "humano");
+          else add("sis", m.texto);
+          if (jan.hidden) bolha.hidden = false;
+        });
+        if (j.total) total = j.total;
+      }).catch(function () {}).then(function () { buscando = false; });
+  }
+  setInterval(function () { if (!jan.hidden || conversa) buscar(); }, 4000);
   g("vd-form").addEventListener("submit", function (e) { e.preventDefault(); var t = g("vd-texto"); enviar(t.value); t.value = ""; });
   g("vd-sug").addEventListener("click", function (e) { if (e.target.tagName === "BUTTON") enviar(e.target.textContent); });
 })();
