@@ -552,7 +552,7 @@ def escala(request: Request, semana: str = "", dia: str = "", setor: str | None 
 def escala_turno(request: Request, usuario_id: int = Form(...), data: str = Form(...),
                  modo: str = Form("trabalho"), inicio: str = Form(""), fim: str = Form(""),
                  repetir: str = Form("dia"), obs: str = Form(""), intervalo: str = Form(""),
-                 local_id: str = Form(""), fixar: str = Form(""),
+                 local_id: str = Form(""), fixar: str = Form(""), local_sempre: str = Form(""),
                  intervalo_inicio: str = Form(""), a_pedido: str = Form(""),
                  u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     f = da_empresa(db, Usuario, usuario_id, u)
@@ -562,6 +562,10 @@ def escala_turno(request: Request, usuario_id: int = Form(...), data: str = Form
         return ir("/painel/escala")
     pausa = int(intervalo) if intervalo.strip().isdigit() else 0
     local = da_empresa(db, banco.Local, int(local_id), u) if local_id.isdigit() else None
+    na_matriz = local_id == "principal"
+    # Outro local vale só para os dias marcados agora; na escala fixa ele só entra se o gestor
+    # marcar "usar este local também nas próximas semanas".
+    local_na_fixa = bool(local_sempre) or not (local or na_matriz)
     fechado = apuracao.fechado_ate(db, u.empresa)
     seg = d - timedelta(days=d.weekday())
     volta = f"/painel/escala?semana={seg.isoformat()}"
@@ -613,8 +617,9 @@ def escala_turno(request: Request, usuario_id: int = Form(...), data: str = Form
         if t.intervalo_inicio != saida_int:
             t.intervalo_inicio, t.lembrou_int = saida_int, False
         t.local_id = local.id if local and not t.folga else None
+        t.so_principal = na_matriz and not t.folga
         t.obs = obs.strip()[:200]
-        t.fixa = fixo
+        t.fixa = fixo and local_na_fixa   # local avulso: o dia fica diferente da escala fixa
         if antes_fw.get(dia) != escala_justa._valor(t):
             t.confirmado_em, t.lembrou_conf = None, False   # mudou: precisa confirmar de novo
     if fixo:
@@ -633,7 +638,9 @@ def escala_turno(request: Request, usuario_id: int = Form(...), data: str = Form
             r.inicio, r.fim = ("", "") if r.folga else (inicio, fim)
             r.intervalo_min = 0 if r.folga else pausa
             r.intervalo_inicio = saida_int
-            r.local_id = local.id if local and not r.folga else None
+            if local_na_fixa or r.folga:
+                r.local_id = local.id if local and not r.folga else None
+                r.so_principal = na_matriz and not r.folga
             r.obs = obs.strip()[:200]
         regras.limpar_futuros(db, [f.id], max(alvo), {dia.weekday() for dia in alvo})
         regras.registrar(db, u.empresa_id, u.nome, "escala fixa alterada",
@@ -715,8 +722,8 @@ def escala_copiar(request: Request, semana: str = Form(...),
         if t.usuario_id in ativos and (t.usuario_id, novo) not in ja:
             db.add(Turno(empresa_id=t.empresa_id, usuario_id=t.usuario_id, data=novo,
                          inicio=t.inicio, fim=t.fim, folga=t.folga, obs=t.obs,
-                         intervalo_min=t.intervalo_min, local_id=t.local_id,
-                         intervalo_inicio=t.intervalo_inicio))
+                         intervalo_min=t.intervalo_min, intervalo_inicio=t.intervalo_inicio))
+            # o local de um dia avulso não passa para a semana seguinte: a pessoa volta ao local dela
             n += 1
     db.commit()
     avisar(request, f"{n} dia(s) copiado(s) da semana anterior." if n

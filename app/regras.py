@@ -128,6 +128,7 @@ def copiar_para(destino, origem):
     destino.folga, destino.inicio, destino.fim = origem.folga, origem.inicio, origem.fim
     destino.intervalo_min, destino.local_id, destino.obs = (
         origem.intervalo_min, origem.local_id, origem.obs)
+    destino.so_principal = bool(origem.so_principal)
     destino.intervalo_inicio = origem.intervalo_inicio
 
 
@@ -325,11 +326,13 @@ def lugares(db: Session, e: Empresa, t: Turno | None, u: Usuario | None = None) 
     extras = [l for l in db.scalars(select(Local).where(
         Local.empresa_id == e.id, Local.ativo.is_(True)).order_by(Local.id))
         if l.lat is not None and l.lng is not None]
+    principal = [("", e.lat, e.lng, e.raio_m, pontos(e.cerca))] if e.lat is not None and e.lng is not None else []
+    if t and t.so_principal and not t.local_id and principal:
+        return principal
     if t and t.local_id:
         do_turno = [(l.nome, l.lat, l.lng, l.raio_m, pontos(l.cerca)) for l in extras if l.id == t.local_id]
         if do_turno:
             return do_turno
-    principal = [("", e.lat, e.lng, e.raio_m, pontos(e.cerca))] if e.lat is not None and e.lng is not None else []
     if u is not None and e.ponto_na_lotacao:
         if u.local_id:
             lotacao = [(l.nome, l.lat, l.lng, l.raio_m, pontos(l.cerca)) for l in extras if l.id == u.local_id]

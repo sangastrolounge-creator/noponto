@@ -95,7 +95,7 @@ def assinaturas(turnos: dict, equipe: list[Usuario], dias: list[date]) -> dict[s
         for d in dias:
             t = turnos.get((f.id, d))
             if t:
-                partes.append(f"{d:%d%m}:{'F' if t.folga else t.inicio + '-' + t.fim}:{t.local_id or ''}")
+                partes.append(f"{d:%d%m}:{'F' if t.folga else t.inicio + '-' + t.fim}:{t.local_id or ('M' if t.so_principal else '')}")
         sai[str(f.id)] = "|".join(partes)
     return sai
 

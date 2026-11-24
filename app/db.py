@@ -634,8 +634,10 @@ class Turno(Base):
     # Hora combinada para sair para o intervalo ("" = o funcionário escolhe).
     intervalo_inicio: Mapped[str] = mapped_column(String(5), default="")
     lembrou_int: Mapped[bool] = mapped_column(Boolean, default=False)
-    # Local extra onde a pessoa trabalha nesse dia. Vazio = qualquer local da empresa.
+    # Local extra onde a pessoa trabalha nesse dia. Vazio = o local da ficha (ou qualquer um, sem a
+    # regra de lotação). so_principal = nesse dia trabalha no endereço principal (matriz).
     local_id: Mapped[int | None] = mapped_column(ForeignKey("locais.id"), nullable=True)
+    so_principal: Mapped[bool] = mapped_column(Boolean, default=False)
     # True = veio da escala fixa e não foi alterado só para este dia.
     fixa: Mapped[bool] = mapped_column(Boolean, default=False)
     # Confirmação do funcionário ("vou estar lá") e se o lembrete de confirmar já foi enviado.
@@ -660,6 +662,7 @@ class EscalaFixa(Base):
     intervalo_min: Mapped[int] = mapped_column(Integer, default=0)
     intervalo_inicio: Mapped[str] = mapped_column(String(5), default="")
     local_id: Mapped[int | None] = mapped_column(ForeignKey("locais.id"), nullable=True)
+    so_principal: Mapped[bool] = mapped_column(Boolean, default=False)
     obs: Mapped[str] = mapped_column(String(200), default="")
 
 
@@ -1364,6 +1367,8 @@ COLUNAS_NOVAS = [
     ("empresas", "logo", "VARCHAR(60) NOT NULL DEFAULT ''"),
     ("empresas", "facial_ativo", "BOOLEAN NOT NULL DEFAULT 0"),
     ("empresas", "ponto_na_lotacao", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("turnos", "so_principal", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("escala_fixa", "so_principal", "BOOLEAN NOT NULL DEFAULT 0"),
     ("usuarios", "facial_consentimento", "VARCHAR(10) NOT NULL DEFAULT ''"),
     ("usuarios", "facial_consentido_em", "DATETIME"),
     ("usuarios", "facial_descritor", "TEXT NOT NULL DEFAULT ''"),
