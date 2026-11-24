@@ -53,6 +53,19 @@ class Config(Base):
     valor: Mapped[str] = mapped_column(Text)
 
 
+class ConversaVenda(Base):
+    """Conversa do assistente de vendas do site (Master -> Conversas). Apagada após 180 dias parada."""
+    __tablename__ = "conversas_venda"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chave: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime)
+    mensagens: Mapped[str] = mapped_column(Text, default="[]")
+    origem: Mapped[str] = mapped_column(String(200), default="")
+    ip_hash: Mapped[str] = mapped_column(String(16), default="")
+    foi_whatsapp: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
 class Plataforma(Base):
     """Configuração da revenda (uma linha só, id 1)."""
     __tablename__ = "plataforma"

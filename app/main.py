@@ -24,7 +24,7 @@ from . import core
 from . import db as banco
 from . import crescimento, entrada, parceiros, rep
 from . import setores as setores_mod
-from . import (apuracao, asaas, cobranca, conta, desligamento, lojas, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
+from . import (apuracao, asaas, cobranca, conta, desligamento, lojas, vendedor, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
                ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
@@ -52,7 +52,8 @@ def ciclo_alertas():
         novos += n2
         lembretes += l2
         regras.limpar_fotos(db)
-        cobranca.ajustar_valores(db)   # planos por pessoa: uma vez por dia
+        cobranca.ajustar_valores(db)
+    vendedor.limpar_antigas()   # planos por pessoa: uma vez por dia
     push.avisar_alertas([a.id for a in novos])
     push.avisar_usuarios(lembretes)
     avisos_master.resumo_testes()   # uma vez por dia, depois das 09:00 de Brasília
@@ -131,9 +132,11 @@ app.include_router(parceiros.rota)
 app.include_router(rep.rota)
 app.include_router(conta.rota)
 app.include_router(lojas.rota)
+app.include_router(vendedor.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 
 templates.env.globals.update(
+    vendedor_ligado=vendedor.ligado,
     local=lambda e, dt, f="%H:%M": regras.para_local(e, dt).strftime(f) if dt else "",
     fmt_min=regras.fmt_min, fmt_min_raw=regras.minutos_turno, DIAS=i18n.DIAS, fmt_saldo=apuracao.fmt_saldo, com_acrescimo=apuracao.com_acrescimo,
     TIPOS_AUSENCIA=i18n.Traduzido(apuracao.TIPOS_AUSENCIA), zap=fase3.zap,
