@@ -42,7 +42,7 @@
       {% endfor %}
     </tbody>
   </table></div>
-  <p class="ajuda">{{ _('O ponto vale em qualquer local ativo. Se na escala você escolher um local para o dia, o ponto daquele dia só vale lá.') }}</p>
+  <p class="ajuda">{{ _('Cada pessoa bate o ponto no local da ficha dela (o endereço principal ou uma filial). Se na escala você escolher outro local para o dia, o ponto daquele dia só vale lá.') if e.ponto_na_lotacao else _('O ponto vale em qualquer local ativo. Se na escala você escolher um local para o dia, o ponto daquele dia só vale lá.') }}</p>
 
   <details>
     <summary>{{ _('Adicionar um local') }}</summary>

@@ -60,7 +60,7 @@ def main():
     en = novo(headers={"Accept-Language": "en-US,en;q=0.9"})
     tela = en.get("/entrar").text
     assert 'lang="en"' in tela and "Sign in" in tela and "Email or phone number" in tela
-    assert 'href="/idioma/es?volta=/entrar"' in tela and 'class="ativa" aria-current="true">EN<' in tela
+    assert 'href="/idioma/es?volta=/entrar"' in tela and 'aria-label="English" class="ativa" aria-current="true"><svg class="bandeira"' in tela
     r = en.get("/idioma/es?volta=/entrar")
     assert r.status_code == 303 and r.headers["location"] == "/entrar"
     assert "Correo o celular" in en.get("/entrar").text          # o cookie vence o navegador
