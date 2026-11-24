@@ -161,7 +161,7 @@ def main():
         assert regras.para_local(orig.usuario.empresa, nova.momento).strftime("%H:%M") == "09:00"
         assert "considerada a partir de 09:00" in nova.obs and nova.atraso_min == 0
     tela = g.get("/painel/ponto/problemas").text
-    assert "Caio Reis" in tela and "Bruno Lima" not in tela and "Entrada antecipada" not in tela
+    assert "Caio Reis" in tela and "Bruno Lima" not in tela and f"sel_e-{ent_ana}" not in tela
     assert "Problemas (1)" in g.get("/painel/ponto").text
     print("OK: problemas de ponto e regras automáticas passou")
 
