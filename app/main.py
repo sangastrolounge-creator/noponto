@@ -722,8 +722,8 @@ def escala_copiar(request: Request, semana: str = Form(...),
         if t.usuario_id in ativos and (t.usuario_id, novo) not in ja:
             db.add(Turno(empresa_id=t.empresa_id, usuario_id=t.usuario_id, data=novo,
                          inicio=t.inicio, fim=t.fim, folga=t.folga, obs=t.obs,
-                         intervalo_min=t.intervalo_min, intervalo_inicio=t.intervalo_inicio))
-            # o local de um dia avulso não passa para a semana seguinte: a pessoa volta ao local dela
+                         intervalo_min=t.intervalo_min, local_id=t.local_id, so_principal=t.so_principal,
+                         intervalo_inicio=t.intervalo_inicio))   # copiar a semana é decisão do gestor: leva o local
             n += 1
     db.commit()
     avisar(request, f"{n} dia(s) copiado(s) da semana anterior." if n
