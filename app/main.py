@@ -1129,7 +1129,7 @@ def config(request: Request, u: Usuario = Depends(gestor_logado), db: Session = 
 def config_salvar(request: Request, nome: str = Form(""), endereco: str = Form(""),
                   lat: str = Form(""), lng: str = Form(""), raio_m: str = Form("150"),
                   tolerancia_min: str = Form("10"), fuso: str = Form("America/Sao_Paulo"),
-                  bloquear_fora: str = Form(""), exigir_foto: str = Form(""),
+                  bloquear_fora: str = Form(""), ponto_na_lotacao: str = Form(""), exigir_foto: str = Form(""),
                   aparelho_unico: str = Form(""), ajuste_dias: str = Form("7"),
                   fotos_dias: str = Form("45"), controle: str = Form("banco"),
                   intervalo_padrao_min: str = Form("60"), intervalo_auto: str = Form(""),
@@ -1142,7 +1142,7 @@ def config_salvar(request: Request, nome: str = Form(""), endereco: str = Form("
                   db: Session = Depends(get_db)):
     e = u.empresa
     antes = (e.lat, e.lng, e.raio_m, e.bloquear_fora, e.tolerancia_min, e.exigir_foto,
-             e.aparelho_unico, e.ajuste_dias, e.fotos_dias)
+             e.aparelho_unico, e.ajuste_dias, e.fotos_dias, e.ponto_na_lotacao)
     jornada_antes = (e.controle, e.intervalo_padrao_min, e.intervalo_auto, e.tolerancia_dia_min,
                      e.pct_extra_normal, e.pct_extra_especial, e.pct_noturno,
                      e.noturno_reduzida, e.intervalo_obrigatorio, e.dsr_faltas, e.dsr_extras,
@@ -1182,6 +1182,7 @@ def config_salvar(request: Request, nome: str = Form(""), endereco: str = Form("
     e.lat, e.lng = (la, lo) if la is not None and lo is not None else (None, None)
     e.raio_m, e.tolerancia_min = int(raio), int(tol)
     e.bloquear_fora = bool(bloquear_fora)
+    e.ponto_na_lotacao = bool(ponto_na_lotacao)
     e.exigir_foto, e.aparelho_unico = bool(exigir_foto), bool(aparelho_unico)
     e.ajuste_dias, e.fotos_dias = int(aj), int(fd)
     e.controle = controle if controle in ("banco", "extra") else "banco"
@@ -1210,11 +1211,12 @@ def config_salvar(request: Request, nome: str = Form(""), endereco: str = Form("
     if fuso in dict(regras.FUSOS):
         e.fuso = fuso
     depois = (e.lat, e.lng, e.raio_m, e.bloquear_fora, e.tolerancia_min, e.exigir_foto,
-              e.aparelho_unico, e.ajuste_dias, e.fotos_dias)
+              e.aparelho_unico, e.ajuste_dias, e.fotos_dias, e.ponto_na_lotacao)
     if antes != depois:
         regras.registrar(db, e.id, u.nome, "regras do ponto alteradas",
                          f"Local {e.lat}, {e.lng}; raio {e.raio_m} m; "
                          f"{'bloqueia' if e.bloquear_fora else 'aceita'} fora do raio; "
+                         f"ponto {'só no local de cada pessoa' if e.ponto_na_lotacao else 'em qualquer endereço'}; "
                          f"tolerância {e.tolerancia_min} min; foto {'obrigatória' if e.exigir_foto else 'não exigida'}; "
                          f"aparelho único {'ligado' if e.aparelho_unico else 'desligado'}; "
                          f"ajuste até {e.ajuste_dias} dias; fotos guardadas por {e.fotos_dias} dias.")

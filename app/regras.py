@@ -311,10 +311,11 @@ def limpar_fotos(db: Session) -> int:
     return n
 
 
-def lugares(db: Session, e: Empresa, t: Turno | None) -> list[tuple]:
+def lugares(db: Session, e: Empresa, t: Turno | None, u: Usuario | None = None) -> list[tuple]:
     """Lugares onde o ponto vale agora, como (nome, lat, lng, raio, contorno). Nome vazio = o
     endereço principal da empresa. Contorno (cerca desenhada) vazio = vale o raio. Turno com
-    local definido só vale naquele local."""
+    local definido só vale naquele local; sem ele, com "ponto na lotação" ligado, vale só o local
+    da ficha da pessoa (principal ou filial)."""
     from .cerca import pontos as _pontos
     from .core import cerca_liberada
     liberada = cerca_liberada(e)
@@ -329,6 +330,13 @@ def lugares(db: Session, e: Empresa, t: Turno | None) -> list[tuple]:
         if do_turno:
             return do_turno
     principal = [("", e.lat, e.lng, e.raio_m, pontos(e.cerca))] if e.lat is not None and e.lng is not None else []
+    if u is not None and e.ponto_na_lotacao:
+        if u.local_id:
+            lotacao = [(l.nome, l.lat, l.lng, l.raio_m, pontos(l.cerca)) for l in extras if l.id == u.local_id]
+            if lotacao:
+                return lotacao
+        elif principal:
+            return principal
     return principal + [(l.nome, l.lat, l.lng, l.raio_m, pontos(l.cerca)) for l in extras]
 
 
@@ -390,7 +398,7 @@ def bater(db: Session, u: Usuario, lat: float | None, lng: float | None,
         local_nome = totem.local.nome if totem.local else ""
         lat = lng = precisao = None
     else:
-        ls = lugares(db, e, t) if lat is not None and lng is not None else []
+        ls = lugares(db, e, t, u) if lat is not None and lng is not None else []
         if ls:
             from .cerca import medir
             medidos = [(medir(lat, lng, l), l) for l in ls]

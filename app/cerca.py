@@ -146,7 +146,7 @@ def conferir(tarefas_bg: BackgroundTasks, lat: str = Form(""), lng: str = Form("
     except ValueError:
         return {"ativo": True, "dentro": None}
     t = db.get(regras.Turno, aberta.turno_id) if aberta.turno_id else None
-    ls = regras.lugares(db, e, t)
+    ls = regras.lugares(db, e, t, u)
     if not ls:
         return {"ativo": True, "dentro": None}
     dist, dentro = min((medir(la, ln, l) for l in ls), key=lambda m: (not m[1], m[0]))
