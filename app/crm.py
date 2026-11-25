@@ -29,7 +29,7 @@ ORIGENS = {"chat": "Chat do site", "teste": "Conta de teste", "manual": "Cadastr
            "indicacao": "Indicação", "whatsapp": "WhatsApp", "email": "E-mail", "instagram": "Instagram"}
 MANUAIS = ["manual", "instagram", "indicacao", "whatsapp"]   # origens que a equipe escolhe ao cadastrar
 TIPOS = {"nota": "Anotação", "ligacao": "Ligação", "whatsapp": "WhatsApp", "email": "E-mail",
-         "etapa": "Etapa", "sistema": "Sistema"}
+         "etapa": "Etapa", "sistema": "Sistema", "instagram": "Direct do Instagram"}
 AO_VIVO_MIN = 30   # conversas com atividade nos últimos X minutos aparecem no chat ao vivo
 
 

@@ -9,6 +9,7 @@
 """
 import base64
 import json
+import os
 import re
 from datetime import date, datetime, timedelta
 from urllib.parse import urlparse
@@ -17,6 +18,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from . import core, instagram
 from . import db as banco
 from .core import admin_logado, avisar, exigir_csrf, ir, render
 from .db import Config, Empresa, Lead, Pagamento, SessionLocal, Usuario, VisitaCanal, get_db
@@ -207,7 +209,9 @@ def resumo(o: dict | str | None) -> str:
 @rota.get("/master/rastreamento")
 def tela(request: Request, u: Usuario = Depends(admin_logado)):
     return render(request, "master/rastreamento.html", u=u, e=u.empresa, aba="master", sub="rastreamento",
-                  d=ids(), CAMPOS=CAMPOS)
+                  d=ids(), CAMPOS=CAMPOS, ig_ligado=instagram.ligado(),
+                  ig_token=bool(os.environ.get("META_IG_TOKEN", "").strip()),
+                  ig_url=(core.PUBLIC_URL or str(request.base_url).rstrip("/")) + "/webhooks/instagram")
 
 
 @rota.post("/master/rastreamento", dependencies=[Depends(exigir_csrf)])

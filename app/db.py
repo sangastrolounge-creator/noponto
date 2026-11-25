@@ -98,6 +98,7 @@ class Lead(Base):
     telefone: Mapped[str] = mapped_column(String(20), default="", index=True)
     email: Mapped[str] = mapped_column(String(120), default="", index=True)
     instagram: Mapped[str] = mapped_column(String(60), default="", index=True)  # perfil sem o @, minúsculo
+    instagram_id: Mapped[str] = mapped_column(String(40), default="", index=True)  # remetente no direct (IGSID)
     funcionarios: Mapped[int] = mapped_column(Integer, default=0)
     origem: Mapped[str] = mapped_column(String(20), default="manual")  # chat | teste | manual | indicacao | instagram
     etapa: Mapped[str] = mapped_column(String(20), default="novo", index=True)
@@ -120,6 +121,7 @@ class LeadAtividade(Base):
     autor_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     tipo: Mapped[str] = mapped_column(String(20), default="nota")  # nota | ligacao | whatsapp | email | etapa | sistema
     texto: Mapped[str] = mapped_column(Text, default="")
+    ref: Mapped[str] = mapped_column(String(120), default="", index=True)  # id externo (mensagem do direct)
     criado_em: Mapped[datetime] = mapped_column(DateTime, index=True)
 
 
@@ -1387,6 +1389,8 @@ COLUNAS_NOVAS = [
     ("empresas", "origem", "TEXT NOT NULL DEFAULT ''"),
     ("crm_leads", "utm", "TEXT NOT NULL DEFAULT ''"),
     ("crm_leads", "instagram", "VARCHAR(60) NOT NULL DEFAULT ''"),
+    ("crm_leads", "instagram_id", "VARCHAR(40) NOT NULL DEFAULT ''"),
+    ("crm_atividades", "ref", "VARCHAR(120) NOT NULL DEFAULT ''"),
     ("conversas_venda", "utm", "TEXT NOT NULL DEFAULT ''"),
     ("turnos", "so_principal", "BOOLEAN NOT NULL DEFAULT 0"),
     ("escala_fixa", "so_principal", "BOOLEAN NOT NULL DEFAULT 0"),
