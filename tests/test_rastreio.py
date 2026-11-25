@@ -127,7 +127,9 @@ def main():
     tela = m.get("/master/crm/canais").text
     linha = re.search(r"<tr><td>Instagram · anúncio</td>(.*?)</tr>", tela, re.S).group(1)
     nums = re.findall(r'class="num">([^<]*)<', linha)
-    assert nums[:3] == ["1", "1", "1"] and nums[-1] == "100%", nums
+    # visitas: Instagram, depois outra campanha, depois Instagram de novo = 2 visitas do mesmo canal/campanha
+    assert nums[:4] == ["2", "1", "1", "1"] and nums[-1] == "100%", nums
+    assert "Por campanha" in tela and "<td>escala</td>" in tela
     assert "Google · anúncio" in tela
 
     # página de vendas: dias de teste sempre os atuais

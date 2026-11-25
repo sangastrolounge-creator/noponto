@@ -26,7 +26,8 @@ ETAPAS = [("novo", "Novo"), ("contato", "Em contato"), ("proposta", "Proposta"),
           ("cliente", "Cliente"), ("perdido", "Perdido")]
 NOME_ETAPA = dict(ETAPAS)
 ORIGENS = {"chat": "Chat do site", "teste": "Conta de teste", "manual": "Cadastro manual",
-           "indicacao": "Indicação", "whatsapp": "WhatsApp", "email": "E-mail"}
+           "indicacao": "Indicação", "whatsapp": "WhatsApp", "email": "E-mail", "instagram": "Instagram"}
+MANUAIS = ["manual", "instagram", "indicacao", "whatsapp"]   # origens que a equipe escolhe ao cadastrar
 TIPOS = {"nota": "Anotação", "ligacao": "Ligação", "whatsapp": "WhatsApp", "email": "E-mail",
          "etapa": "Etapa", "sistema": "Sistema"}
 AO_VIVO_MIN = 30   # conversas com atividade nos últimos X minutos aparecem no chat ao vivo
@@ -82,12 +83,25 @@ def mudar_etapa(db: Session, ld: Lead, etapa: str, autor: Usuario | None = None,
     return True
 
 
-def _achar(db: Session, telefone: str = "", email: str = "") -> Lead | None:
+def arroba(texto: str) -> str:
+    """Perfil do Instagram sem o @, em minúsculas. Aceita "@perfil", "perfil" ou o link do perfil.
+    Devolve "" se não parecer um perfil válido."""
+    t = (texto or "").strip()
+    m = re.search(r"instagram\.com/([^/?#\s]+)", t, re.I)
+    if m:
+        t = m.group(1)
+    t = t.lstrip("@").strip().lower()
+    return t if re.fullmatch(r"[a-z0-9._]{1,30}", t) else ""
+
+
+def _achar(db: Session, telefone: str = "", email: str = "", instagram: str = "") -> Lead | None:
     conds = []
     if telefone:
         conds.append(Lead.telefone == telefone)
     if email:
         conds.append(func.lower(Lead.email) == email.lower())
+    if instagram:
+        conds.append(Lead.instagram == instagram)
     if not conds:
         return None
     return db.scalar(select(Lead).where(or_(*conds)).order_by(Lead.id.desc()).limit(1))
@@ -124,7 +138,10 @@ def lead_do_cadastro(db: Session, e: Empresa, gestor: Usuario) -> None:
         tel = celular_limpo(gestor.celular or "")
         ld = db.scalar(select(Lead).where(Lead.empresa_id == e.id)) or _achar(db, tel, gestor.email or "")
         if not ld:
-            ld = Lead(origem="teste", etapa="novo", criado_em=_agora(), atualizado_em=_agora())
+            from .rastreio import canal
+            veio_do_ig = canal(e.origem or "").startswith("Instagram ·")
+            ld = Lead(origem="instagram" if veio_do_ig else "teste", etapa="novo", criado_em=_agora(),
+                      atualizado_em=_agora())
             db.add(ld)
         ld.nome = ld.nome or gestor.nome
         ld.empresa_nome = ld.empresa_nome or e.nome
@@ -158,8 +175,10 @@ def sincronizar() -> None:
 
 
 # ------------------------------------------------------------------ funil
-def _visiveis(db: Session, u: Usuario, ver: str, q: str):
+def _visiveis(db: Session, u: Usuario, ver: str, q: str, origem: str = ""):
     sel = select(Lead)
+    if origem in ORIGENS:
+        sel = sel.where(Lead.origem == origem)
     if ver == "meus":
         sel = sel.where(Lead.dono_id == u.id)
     elif ver == "fila":
@@ -172,7 +191,7 @@ def _visiveis(db: Session, u: Usuario, ver: str, q: str):
     if termo:
         tel = re.sub(r"\D", "", termo)
         conds = [Lead.nome.ilike(f"%{termo}%"), Lead.empresa_nome.ilike(f"%{termo}%"),
-                 Lead.email.ilike(f"%{termo}%")]
+                 Lead.email.ilike(f"%{termo}%"), Lead.instagram.contains(termo.lstrip("@").lower())]
         if len(tel) >= 4:
             conds.append(Lead.telefone.contains(tel))
         sel = sel.where(or_(*conds))
@@ -180,10 +199,11 @@ def _visiveis(db: Session, u: Usuario, ver: str, q: str):
 
 
 @rota.get("/master/crm")
-def funil(request: Request, ver: str = "", q: str = "", u: Usuario = Depends(admin_logado),
+def funil(request: Request, ver: str = "", q: str = "", origem: str = "", u: Usuario = Depends(admin_logado),
           db: Session = Depends(get_db)):
     ver = ver or ("todos" if supervisor(u) else "meus_fila")
-    leads = _visiveis(db, u, ver, q)
+    origem = origem if origem in ORIGENS else ""
+    leads = _visiveis(db, u, ver, q, origem)
     ids = [x.id for x in leads]
     pend = dict(db.execute(select(LeadTarefa.lead_id, func.min(LeadTarefa.quando)).where(
         LeadTarefa.lead_id.in_(ids or [0]), LeadTarefa.feita_em.is_(None)).group_by(LeadTarefa.lead_id)).all())
@@ -194,25 +214,32 @@ def funil(request: Request, ver: str = "", q: str = "", u: Usuario = Depends(adm
                                                       Lead.etapa.not_in(("cliente", "perdido")))) or 0
     return render(request, "master/crm.html", u=u, e=u.empresa, aba="master", sub="crm", colunas=colunas,
                   pend=pend, agora=_agora(), nomes=nomes, time=time, ver=ver, q=q, fila=fila,
-                  supervisor=supervisor(u), ORIGENS=ORIGENS, total=len(leads),
+                  supervisor=supervisor(u), ORIGENS=ORIGENS, MANUAIS=MANUAIS, origem=origem, total=len(leads),
                   valor=sum(x.valor_centavos for x in leads if x.etapa not in ("perdido",)))
 
 
 @rota.post("/master/crm/novo", dependencies=CSRF)
 def novo(request: Request, nome: str = Form(""), empresa_nome: str = Form(""), telefone: str = Form(""),
-         email: str = Form(""), origem: str = Form("manual"), u: Usuario = Depends(admin_logado),
-         db: Session = Depends(get_db)):
+         email: str = Form(""), instagram: str = Form(""), funcionarios: str = Form(""),
+         origem: str = Form("manual"), u: Usuario = Depends(admin_logado), db: Session = Depends(get_db)):
     tel = celular_limpo(telefone)
-    if not nome.strip() or (telefone and not celular_valido(tel)) or (email and not email_valido(email.strip())):
-        avisar(request, "Informe o nome e confira o telefone (com DDD) e o e-mail.", "erro")
+    ig = arroba(instagram)
+    if instagram.strip() and not ig:
+        avisar(request, "Confira o @ do Instagram (só letras, números, ponto e sublinhado).", "erro")
         return ir("/master/crm")
-    if tel or email.strip():
-        ja = _achar(db, tel, email.strip())
+    if not (nome.strip() or ig) or (telefone and not celular_valido(tel)) or (email and not email_valido(email.strip())):
+        avisar(request, "Informe o nome (ou o @ do Instagram) e confira o telefone (com DDD) e o e-mail.", "erro")
+        return ir("/master/crm")
+    if tel or email.strip() or ig:
+        ja = _achar(db, tel, email.strip(), ig)
         if ja:
-            avisar(request, "Já existe um lead com este telefone ou e-mail.", "erro")
+            avisar(request, "Já existe um lead com este telefone, e-mail ou Instagram.", "erro")
             return ir(f"/master/crm/{ja.id}" if pode_ver(u, ja) else "/master/crm")
-    ld = Lead(nome=nome.strip()[:80], empresa_nome=empresa_nome.strip()[:80], telefone=tel,
-              email=email.strip()[:120], origem=origem if origem in ORIGENS else "manual", etapa="novo",
+    if origem not in ORIGENS:
+        origem = "instagram" if ig else "manual"
+    ld = Lead(nome=(nome.strip() or f"@{ig}")[:80], empresa_nome=empresa_nome.strip()[:80], telefone=tel,
+              email=email.strip()[:120], instagram=ig, origem=origem, etapa="novo",
+              funcionarios=max(0, min(int(funcionarios), 100000)) if funcionarios.strip().isdigit() else 0,
               dono_id=u.id, criado_em=_agora(), atualizado_em=_agora())
     db.add(ld)
     db.flush()
@@ -384,14 +411,15 @@ def ficha(lid: int, request: Request, u: Usuario = Depends(admin_logado), db: Se
                              .order_by(CaixaEmail.data.desc()).limit(30)))
     return render(request, "master/crm_lead.html", u=u, e=u.empresa, aba="master", sub="crm", ld=ld,
                   ativ=ativ, tar=tar, conv=conv, msgs=json.loads(conv.mensagens or "[]") if conv else [],
-                  time=time, nomes=nomes, zap=zap, emp=emp, ETAPAS=ETAPAS, ORIGENS=ORIGENS, TIPOS=TIPOS,
+                  time=time, nomes=nomes, zap=zap, emp=emp, ETAPAS=ETAPAS, ORIGENS=ORIGENS, MANUAIS=MANUAIS, TIPOS=TIPOS,
                   supervisor=supervisor(u), agora=_agora(), emails=emails)
 
 
 @rota.post("/master/crm/{lid}", dependencies=CSRF)
 def salvar(lid: int, request: Request, nome: str = Form(""), empresa_nome: str = Form(""),
            telefone: str = Form(""), email: str = Form(""), funcionarios: int = Form(0),
-           valor: str = Form(""), dono_id: str = Form(""), u: Usuario = Depends(admin_logado),
+           valor: str = Form(""), dono_id: str = Form(""), instagram: str = Form(""), origem: str = Form(""),
+           u: Usuario = Depends(admin_logado),
            db: Session = Depends(get_db)):
     ld = _lead(db, u, lid)
     if not ld:
@@ -400,6 +428,19 @@ def salvar(lid: int, request: Request, nome: str = Form(""), empresa_nome: str =
     if telefone and not celular_valido(tel):
         avisar(request, "Confira o telefone com DDD.", "erro")
         return ir(f"/master/crm/{lid}")
+    ig = arroba(instagram)
+    if instagram.strip() and not ig:
+        avisar(request, "Confira o @ do Instagram (só letras, números, ponto e sublinhado).", "erro")
+        return ir(f"/master/crm/{lid}")
+    if ig and ig != ld.instagram:
+        outro = _achar(db, instagram=ig)
+        if outro and outro.id != ld.id:
+            avisar(request, "Já existe outro lead com este Instagram.", "erro")
+            return ir(f"/master/crm/{lid}")
+    ld.instagram = ig
+    if origem in ORIGENS and origem != ld.origem:
+        registrar(db, ld, f"Origem: {ORIGENS.get(ld.origem, ld.origem)} → {ORIGENS[origem]}.", "sistema", u)
+        ld.origem = origem
     ld.nome, ld.empresa_nome, ld.telefone = nome.strip()[:80], empresa_nome.strip()[:80], tel
     ld.email, ld.funcionarios = email.strip()[:120], max(0, min(funcionarios, 100000))
     try:

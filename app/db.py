@@ -53,6 +53,18 @@ class Config(Base):
     valor: Mapped[str] = mapped_column(Text)
 
 
+class VisitaCanal(Base):
+    """Contador de visitas que chegaram por link marcado (UTM ou anúncio), por dia, canal e campanha.
+    Só números: nada que identifique o visitante."""
+    __tablename__ = "visitas_canal"
+    __table_args__ = (UniqueConstraint("dia", "canal", "campanha", name="uq_visita_canal"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dia: Mapped[date] = mapped_column(Date, index=True)
+    canal: Mapped[str] = mapped_column(String(60), default="")
+    campanha: Mapped[str] = mapped_column(String(60), default="")
+    visitas: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class ConversaVenda(Base):
     """Conversa do assistente de vendas do site (Master -> Conversas). Apagada após 180 dias parada."""
     __tablename__ = "conversas_venda"
@@ -85,8 +97,9 @@ class Lead(Base):
     empresa_nome: Mapped[str] = mapped_column(String(80), default="")
     telefone: Mapped[str] = mapped_column(String(20), default="", index=True)
     email: Mapped[str] = mapped_column(String(120), default="", index=True)
+    instagram: Mapped[str] = mapped_column(String(60), default="", index=True)  # perfil sem o @, minúsculo
     funcionarios: Mapped[int] = mapped_column(Integer, default=0)
-    origem: Mapped[str] = mapped_column(String(20), default="manual")  # chat | teste | manual | indicacao
+    origem: Mapped[str] = mapped_column(String(20), default="manual")  # chat | teste | manual | indicacao | instagram
     etapa: Mapped[str] = mapped_column(String(20), default="novo", index=True)
     dono_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)  # atendente; vazio = fila
     conversa_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -1373,6 +1386,7 @@ COLUNAS_NOVAS = [
     ("empresas", "ponto_na_lotacao", "BOOLEAN NOT NULL DEFAULT 0"),
     ("empresas", "origem", "TEXT NOT NULL DEFAULT ''"),
     ("crm_leads", "utm", "TEXT NOT NULL DEFAULT ''"),
+    ("crm_leads", "instagram", "VARCHAR(60) NOT NULL DEFAULT ''"),
     ("conversas_venda", "utm", "TEXT NOT NULL DEFAULT ''"),
     ("turnos", "so_principal", "BOOLEAN NOT NULL DEFAULT 0"),
     ("escala_fixa", "so_principal", "BOOLEAN NOT NULL DEFAULT 0"),

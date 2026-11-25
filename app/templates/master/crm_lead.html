@@ -20,6 +20,7 @@
   {% if ld.email %}{% if 'email' in u.areas_master %}<a class="botao claro" href="/master/caixa/novo?lead={{ ld.id }}">{{ _('Enviar e-mail') }}</a>{% else %}<a class="botao claro" href="mailto:{{ ld.email }}">{{ _('E-mail') }}</a>{% endif %}{% endif %}
   {% if emp and 'suporte' in u.areas_master %}<a class="botao claro" href="/master/empresas/{{ emp.id }}">{{ _('Ver a conta') }}</a>{% endif %}
 </div></div>
+{% if ld.instagram %}<p class="suave pequeno">{{ _('Instagram:') }} <a href="https://www.instagram.com/{{ ld.instagram }}/" target="_blank" rel="noopener noreferrer">@{{ ld.instagram }}</a></p>{% endif %}
 {% if ld.utm %}<p class="suave pequeno">{{ _('Chegou por:') }} <strong>{{ origem_resumo(ld.utm) }}</strong></p>{% endif %}
 {% if ld.autorizou %}<p class="suave pequeno">{{ _('Autorizou o contato pelo WhatsApp.') }}</p>{% elif ld.origem == 'chat' %}<p class="suave pequeno">{{ _('Escreveu o número no chat para ser chamado.') }}</p>{% endif %}
 
@@ -95,6 +96,11 @@
       <div class="campo"><label>{{ _('Empresa') }}</label><input type="text" name="empresa_nome" maxlength="80" value="{{ ld.empresa_nome }}"></div>
       <div class="campo"><label>{{ _('WhatsApp com DDD') }}</label><input type="tel" name="telefone" maxlength="20" value="{{ ld.telefone }}"></div>
       <div class="campo"><label>{{ _('E-mail') }}</label><input type="email" name="email" maxlength="120" value="{{ ld.email }}"></div>
+      <div class="linha-form" style="grid-template-columns:1fr 1fr">
+        <div class="campo"><label>{{ _('@ do Instagram') }}</label><input type="text" name="instagram" maxlength="80" placeholder="@perfil" autocapitalize="none" spellcheck="false" value="{{ '@' ~ ld.instagram if ld.instagram else '' }}"></div>
+        <div class="campo"><label>{{ _('Origem') }}</label><select name="origem">
+          {% for k, v in ORIGENS.items() %}<option value="{{ k }}" {{ 'selected' if ld.origem == k }}>{{ _(v) }}</option>{% endfor %}</select></div>
+      </div>
       <div class="linha-form" style="grid-template-columns:1fr 1fr">
         <div class="campo"><label>{{ _('Funcionários') }}</label><input type="number" name="funcionarios" min="0" value="{{ ld.funcionarios }}"></div>
         <div class="campo"><label>{{ _('Mensalidade prevista (R$)') }}</label><input type="text" name="valor" inputmode="decimal" value="{{ ('%.2f'|format(ld.valor_centavos / 100))|replace('.', ',') if ld.valor_centavos else '' }}"></div>
