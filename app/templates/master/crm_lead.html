@@ -47,7 +47,11 @@
 <div>
   {% if wa_envia or wa_tem %}
   <section class="cartao" id="whatsapp">
-    <h2>{{ _('Conversa no WhatsApp') }}</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <h2 style="margin:0">{{ _('Conversa no WhatsApp') }}</h2>
+      <span id="wa-robo" hidden><span class="etiqueta" id="wa-robo-etq"></span>
+        <button class="botao mini claro" type="button" id="wa-robo-bt"></button></span>
+    </div>
     <div class="wa-caixa" id="wa-caixa" aria-live="polite"><p class="suave pequeno" style="margin:0">{{ _('Carregando…') }}</p></div>
     <p class="suave pequeno" id="wa-aviso" hidden></p>
     <form class="wa-form" id="wa-form" {{ 'hidden' if not wa_envia }}>
@@ -145,7 +149,9 @@
   var form = document.getElementById("wa-form"), txt = document.getElementById("wa-texto");
   var aviso = document.getElementById("wa-aviso"), btModelo = document.getElementById("wa-modelo");
   var ST = {enviada: "✓", entregue: "✓✓", lida: "✓✓ " + {{ _('lida')|tojson }}, falhou: {{ _('não entregue')|tojson }}};
-  var ultimo = "";
+  var ultimo = "", roboPausado = false;
+  var roboBox = document.getElementById("wa-robo"), roboEtq = document.getElementById("wa-robo-etq"),
+      roboBt = document.getElementById("wa-robo-bt");
   function mostrar(d) {
     var chave = JSON.stringify(d.mensagens);
     if (chave !== ultimo) {
@@ -168,6 +174,11 @@
       if (embaixo || !ultimo) caixa.scrollTop = caixa.scrollHeight;
       ultimo = chave;
     }
+    roboBox.hidden = !d.robo;
+    roboPausado = d.robo_pausado;
+    roboEtq.className = "etiqueta" + (d.robo_pausado ? "" : " ok");
+    roboEtq.textContent = d.robo_pausado ? {{ _('Robô pausado nesta conversa')|tojson }} : {{ _('Robô respondendo')|tojson }};
+    roboBt.textContent = d.robo_pausado ? {{ _('Devolver para o robô')|tojson }} : {{ _('Pausar o robô')|tojson }};
     var pode = d.envia && d.janela;
     form.hidden = !pode;
     btModelo.hidden = !(d.envia && !d.janela && d.modelo);
@@ -199,6 +210,15 @@
   txt.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
   });
+  roboBt.addEventListener("click", function () {
+    mandarRobo(roboPausado);
+  });
+  function mandarRobo(ligar) {
+    roboBt.disabled = true;
+    fetch(URL + "/robo", {method: "POST", credentials: "same-origin",
+      headers: {"Content-Type": "application/json", "X-CSRF": CSRF}, body: JSON.stringify({ligar: ligar})})
+      .then(function () { carregar(); }).catch(function () {}).finally(function () { roboBt.disabled = false; });
+  }
   btModelo.addEventListener("click", function () {
     if (confirm({{ _('Enviar a mensagem modelo? A Meta cobra por esse envio.')|tojson }})) mandar({modelo: true}, btModelo);
   });
