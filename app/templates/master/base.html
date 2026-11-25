@@ -5,7 +5,8 @@
   {% if 'crm' in ar %}<a href="/master/crm" class="{{ 'ativa' if sub == 'crm' }}">{{ _('CRM') }}</a>
   <a href="/master/crm/ao-vivo" class="{{ 'ativa' if sub == 'aovivo' }}">{{ _('Chat ao vivo') }}</a>
   <a href="/master/crm/tarefas" class="{{ 'ativa' if sub == 'tarefas' }}">{{ _('Tarefas') }}</a>
-  <a href="/master/conversas" class="{{ 'ativa' if sub == 'conversas' }}">{{ _('Conversas') }}</a>{% endif %}
+  <a href="/master/conversas" class="{{ 'ativa' if sub == 'conversas' }}">{{ _('Conversas') }}</a>
+  <a href="/master/crm/canais" class="{{ 'ativa' if sub == 'canais' }}">{{ _('Canais') }}</a>{% endif %}
   {% if 'email' in ar %}{% set nl = caixa_nao_lidos() %}<a href="/master/caixa" class="{{ 'ativa' if sub == 'caixa' }}">{{ _('E-mail') }}{% if nl %} <span class="etiqueta" style="background:#4f6bf5;color:#fff">{{ nl }}</span>{% endif %}</a>{% endif %}
   {% if 'suporte' in ar %}<a href="/master" class="{{ 'ativa' if sub == 'geral' }}">{{ _('Empresas') }}</a>{% endif %}
   {% if 'financeiro' in ar %}<a href="/master/cupons" class="{{ 'ativa' if sub == 'cupons' }}">{{ _('Cupons') }}</a>
@@ -14,6 +15,7 @@
   <a href="/master/planos" class="{{ 'ativa' if sub == 'planos' }}">{{ _('Planos') }}</a>
   <a href="/master/portaria671" class="{{ 'ativa' if sub == 'portaria671' }}">{{ _('Portaria 671') }}</a>
   <a href="/master/lojas" class="{{ 'ativa' if sub == 'lojas' }}">{{ _('Lojas de apps') }}</a>
+  <a href="/master/rastreamento" class="{{ 'ativa' if sub == 'rastreamento' }}">{{ _('Rastreamento') }}</a>
   <a href="/master/pagina" class="{{ 'ativa' if sub == 'pagina' }}">{{ _('Página de vendas') }}</a>
   <a href="/master/plataforma" class="{{ 'ativa' if sub == 'plataforma' }}">{{ _('Plataforma') }}</a>
   <a href="/master/banners" class="{{ 'ativa' if sub == 'banners' }}">{{ _('Banners') }}</a>

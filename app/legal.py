@@ -15,7 +15,7 @@ from . import db as banco
 from .core import plataforma, render
 
 rota = APIRouter()
-VERSAO = "2026-11-19"
+VERSAO = "2026-11-25"
 IDIOMAS = ("pt",)
 
 

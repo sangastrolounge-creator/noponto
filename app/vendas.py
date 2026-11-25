@@ -405,8 +405,32 @@ def conteudo_publicado(db: Session) -> dict | None:
         pag = db.get(PaginaVendas, PAGINA_ID[_lang(lang)])
         c = _carregar(pag.publicado) if pag else None
         if c:
-            return completar(c, lang)
+            return dias_atuais(completar(c, lang))
     return None
+
+
+_DIAS = [re.compile(r"(?i)\b((?:testar|teste por|teste|grátis por|gratis por|free for|try|try it for|trial of|trial lasts|teste dura|prueba dura|pruebe|pruebe por|probar|prueba de)\s+)(\d{1,2})"
+                    r"(\s+(?:dias|days|días))"),
+         re.compile(r"(?i)\b(\d{1,2})(\s+(?:dias|days|días)\s+(?:grátis|gratis|free|sem pagar|sin pagar|sem cartão|sin tarjeta))")]
+
+
+def dias_atuais(c):
+    """Os textos da página publicada guardam o número de dias de teste da época em que foram escritos.
+    Aqui eles passam a usar sempre o valor atual (Master -> Plataforma -> dias de teste)."""
+    dias = plataforma()["dias_teste"]
+    if not dias:
+        return c
+
+    def troca(v):
+        if isinstance(v, str):
+            v = _DIAS[0].sub(lambda m: f"{m.group(1)}{dias}{m.group(3)}", v)
+            return _DIAS[1].sub(lambda m: f"{dias}{m.group(2)}", v)
+        if isinstance(v, dict):
+            return {k: troca(x) for k, x in v.items()}
+        if isinstance(v, list):
+            return [troca(x) for x in v]
+        return v
+    return troca(c)
 
 
 def contexto_da_pagina(db: Session, c: dict) -> dict:

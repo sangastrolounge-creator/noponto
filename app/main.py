@@ -24,7 +24,7 @@ from . import core
 from . import db as banco
 from . import crescimento, entrada, parceiros, rep
 from . import setores as setores_mod
-from . import (apuracao, asaas, caixa, cobranca, conta, crm, desligamento, lojas, vendedor, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
+from . import (apuracao, asaas, caixa, cobranca, conta, crm, rastreio, desligamento, lojas, vendedor, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
                ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
@@ -141,6 +141,7 @@ app.include_router(rep.rota)
 app.include_router(conta.rota)
 app.include_router(lojas.rota)
 app.include_router(vendedor.rota)
+app.include_router(rastreio.rota)   # antes do CRM: /master/crm/canais não é um lead
 app.include_router(crm.rota)
 app.include_router(caixa.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
@@ -148,6 +149,7 @@ app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 templates.env.globals.update(
     vendedor_ligado=vendedor.ligado,
     caixa_nao_lidos=caixa.nao_lidos,
+    origem_resumo=rastreio.resumo,
     local=lambda e, dt, f="%H:%M": regras.para_local(e, dt).strftime(f) if dt else "",
     fmt_min=regras.fmt_min, fmt_min_raw=regras.minutos_turno, DIAS=i18n.DIAS, fmt_saldo=apuracao.fmt_saldo, com_acrescimo=apuracao.com_acrescimo,
     TIPOS_AUSENCIA=i18n.Traduzido(apuracao.TIPOS_AUSENCIA), zap=fase3.zap,
@@ -199,6 +201,10 @@ async def _cabecalhos(request: Request, call_next):
         if p in IOS_BLOQUEADOS or any(p.startswith(x) for x in IOS_BLOQUEADOS_PREFIXO):
             return HTMLResponse(IOS_PAGINA_SITE, status_code=200)
     resp = await call_next(request)
+    try:
+        rastreio.gravar_cookie(request, resp)   # de qual rede ou anúncio o visitante chegou
+    except Exception:
+        pass
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("X-Frame-Options", "DENY")
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")

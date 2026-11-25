@@ -1,0 +1,35 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Rastreamento de anúncios') }}</h1>
+<p class="suave" style="margin:0">{{ _('Cole aqui os IDs das contas de anúncio. Os códigos carregam só na página de vendas e no cadastro, e só para quem aceitar o aviso de cookies. Cada conta de teste criada é enviada como conversão.') }}</p></div>
+<div class="acoes"><a class="botao claro" href="/master/crm/canais">{{ _('Ver clientes por canal') }}</a></div></div>
+<form method="post" action="/master/rastreamento" class="cartao" autocomplete="off">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Meta (Instagram e Facebook)') }}</h2>
+  <div class="campo"><label for="rast_meta_pixel">{{ _('ID do Pixel do Meta') }}</label>
+    <input id="rast_meta_pixel" name="rast_meta_pixel" inputmode="numeric" value="{{ d.rast_meta_pixel }}" placeholder="1234567890123456">
+    <div class="ajuda">{{ _('No Gerenciador de Eventos do Meta: Fontes de dados → seu Pixel → o número embaixo do nome. O evento enviado no cadastro é CompleteRegistration.') }}</div></div>
+  <h2 style="margin-top:18px">{{ _('Google') }}</h2>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <div class="campo"><label for="rast_ga4">{{ _('ID de medição do Google Analytics 4') }}</label>
+      <input id="rast_ga4" name="rast_ga4" value="{{ d.rast_ga4 }}" placeholder="G-XXXXXXXXXX"></div>
+    <div class="campo"><label for="rast_google_ads">{{ _('ID da conta do Google Ads') }}</label>
+      <input id="rast_google_ads" name="rast_google_ads" value="{{ d.rast_google_ads }}" placeholder="AW-123456789"></div>
+    <div class="campo"><label for="rast_google_ads_rotulo">{{ _('Rótulo da conversão do Google Ads') }}</label>
+      <input id="rast_google_ads_rotulo" name="rast_google_ads_rotulo" value="{{ d.rast_google_ads_rotulo }}" placeholder="AbCdEfGhIjK"></div>
+  </div>
+  <p class="ajuda">{{ _('No Google Ads: Metas → Conversões → Nova ação de conversão → Site → instalar manualmente. O ID começa com AW- e o rótulo vem depois da barra em send_to. No GA4, o evento enviado é sign_up.') }}</p>
+  <h2 style="margin-top:18px">{{ _('TikTok') }}</h2>
+  <div class="campo"><label for="rast_tiktok_pixel">{{ _('ID do Pixel do TikTok') }}</label>
+    <input id="rast_tiktok_pixel" name="rast_tiktok_pixel" value="{{ d.rast_tiktok_pixel }}" placeholder="C1A2B3C4D5E6F7G8H9I0">
+    <div class="ajuda">{{ _('No TikTok Ads Manager: Ferramentas → Eventos → Eventos da Web → o código do pixel. O evento enviado no cadastro é CompleteRegistration.') }}</div></div>
+  <div class="acoes" style="margin-top:12px"><button class="botao" type="submit">{{ _('Salvar') }}</button></div>
+  <p class="ajuda">{{ _('Esses IDs não são senhas: eles aparecem no código da página para qualquer visitante. Deixe em branco para desligar um código.') }}</p>
+</form>
+<section class="cartao">
+  <h2>{{ _('Origem de cada cliente') }}</h2>
+  <p>{{ _('Use links marcados nos anúncios e na bio das redes, por exemplo:') }}</p>
+  <p><code>https://dataworke.com.br/?utm_source=instagram&amp;utm_medium=cpc&amp;utm_campaign=escala</code></p>
+  <p class="suave pequeno">{{ _('A origem fica guardada por 90 dias e aparece no lead do CRM, na empresa e no relatório de canais. Sem marcação, o sistema usa o site que mandou o visitante (Google, Instagram etc.) e as marcas de clique dos anúncios.') }}</p>
+</section>
+{% endblock %}

@@ -108,6 +108,7 @@ def lead_da_conversa(db: Session, conv: ConversaVenda) -> Lead | None:
     ld.telefone = ld.telefone or conv.telefone
     ld.conversa_id = ld.conversa_id or conv.id
     ld.autorizou = ld.autorizou or conv.autorizou
+    ld.utm = ld.utm or (conv.utm or "")
     db.flush()
     if novo:
         perguntas = [m["texto"] for m in json.loads(conv.mensagens or "[]") if m["papel"] == "pessoa"][:3]
@@ -130,6 +131,7 @@ def lead_do_cadastro(db: Session, e: Empresa, gestor: Usuario) -> None:
         ld.email = ld.email or (gestor.email or "")
         ld.telefone = ld.telefone or tel
         ld.empresa_id = e.id
+        ld.utm = ld.utm or (e.origem or "")
         db.flush()
         registrar(db, ld, f"Criou a conta de teste \"{e.nome}\".")
         if ld.etapa in ("novo", "contato", "proposta"):

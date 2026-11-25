@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import db as banco
-from . import email_envio, revisor
+from . import email_envio, rastreio, revisor
 from .core import (admin_logado, avisar, celular_limpo, celular_valido, dentro_do_limite, exigir_csrf, ip, ir,
                    plataforma, render)
 from .db import ConversaVenda, Plano, SessionLocal, Usuario, get_db
@@ -130,6 +130,7 @@ async def mensagem(request: Request, tarefas_bg: BackgroundTasks, db: Session = 
         conv = ConversaVenda(chave=hashlib.sha256(os.urandom(16)).hexdigest()[:32], criado_em=banco.agora(),
                              atualizado_em=banco.agora(), mensagens="[]",
                              origem=_limpar(request.headers.get("referer"))[:200],
+                             utm=rastreio.ler_json(request),
                              ip_hash=hashlib.sha256(quem.encode()).hexdigest()[:16])
         db.add(conv)
     msgs = json.loads(conv.mensagens or "[]")
@@ -262,6 +263,7 @@ async def contato(request: Request, tarefas_bg: BackgroundTasks, db: Session = D
         conv = ConversaVenda(chave=hashlib.sha256(os.urandom(16)).hexdigest()[:32], criado_em=banco.agora(),
                              atualizado_em=banco.agora(), mensagens="[]",
                              origem=_limpar(request.headers.get("referer"))[:200],
+                             utm=rastreio.ler_json(request),
                              ip_hash=hashlib.sha256(ip(request).encode()).hexdigest()[:16])
         db.add(conv)
     conv.nome, conv.empresa, conv.telefone, conv.autorizou = nome, empresa, tel, True

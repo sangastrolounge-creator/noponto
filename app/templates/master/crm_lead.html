@@ -20,6 +20,7 @@
   {% if ld.email %}{% if 'email' in u.areas_master %}<a class="botao claro" href="/master/caixa/novo?lead={{ ld.id }}">{{ _('Enviar e-mail') }}</a>{% else %}<a class="botao claro" href="mailto:{{ ld.email }}">{{ _('E-mail') }}</a>{% endif %}{% endif %}
   {% if emp and 'suporte' in u.areas_master %}<a class="botao claro" href="/master/empresas/{{ emp.id }}">{{ _('Ver a conta') }}</a>{% endif %}
 </div></div>
+{% if ld.utm %}<p class="suave pequeno">{{ _('Chegou por:') }} <strong>{{ origem_resumo(ld.utm) }}</strong></p>{% endif %}
 {% if ld.autorizou %}<p class="suave pequeno">{{ _('Autorizou o contato pelo WhatsApp.') }}</p>{% elif ld.origem == 'chat' %}<p class="suave pequeno">{{ _('Escreveu o número no chat para ser chamado.') }}</p>{% endif %}
 
 <section class="cartao">
