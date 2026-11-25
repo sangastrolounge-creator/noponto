@@ -17,7 +17,8 @@ from . import db as banco
 from . import regras
 from .core import (MASTER_AREAS, admin_logado, avisar, celular_limpo, celular_valido, email_valido,
                    exigir_csrf, ir, plataforma, render, situacao)
-from .db import ConversaVenda, Empresa, Lead, LeadAtividade, LeadTarefa, SessionLocal, Usuario, get_db
+from . import whatsapp
+from .db import ConversaVenda, Empresa, Lead, LeadAtividade, LeadTarefa, SessionLocal, Usuario, WhatsMensagem, get_db
 
 rota = APIRouter()
 CSRF = [Depends(exigir_csrf)]
@@ -107,10 +108,10 @@ def _achar(db: Session, telefone: str = "", email: str = "", instagram: str = ""
     return db.scalar(select(Lead).where(or_(*conds)).order_by(Lead.id.desc()).limit(1))
 
 
-def retorno_24h(db: Session, ld: Lead) -> None:
-    """Lead novo do Instagram, sem dono: tarefa de retorno em até 24h (aparece em Tarefas para quem pegar)."""
+def retorno_24h(db: Session, ld: Lead, canal: str = "Instagram") -> None:
+    """Lead novo sem dono (Instagram, WhatsApp): tarefa de retorno em até 24h (passa para quem pegar o lead)."""
     if ld.dono_id is None:
-        db.add(LeadTarefa(lead_id=ld.id, dono_id=None, titulo="Responder o lead do Instagram",
+        db.add(LeadTarefa(lead_id=ld.id, dono_id=None, titulo=f"Responder o lead do {canal}",
                           quando=_agora() + timedelta(hours=24), criado_em=_agora()))
 
 
@@ -226,13 +227,15 @@ def funil(request: Request, ver: str = "", q: str = "", origem: str = "", u: Usu
     pend = dict(db.execute(select(LeadTarefa.lead_id, func.min(LeadTarefa.quando)).where(
         LeadTarefa.lead_id.in_(ids or [0]), LeadTarefa.feita_em.is_(None)).group_by(LeadTarefa.lead_id)).all())
     colunas = [(k, v, [x for x in leads if x.etapa == k]) for k, v in ETAPAS]
+    from .whatsapp import nao_lidas
+    zap_novas = nao_lidas(db, ids)
     time = equipe(db)
     nomes = {x.id: x.nome for x in time}
     fila = db.scalar(select(func.count(Lead.id)).where(Lead.dono_id.is_(None),
                                                       Lead.etapa.not_in(("cliente", "perdido")))) or 0
     return render(request, "master/crm.html", u=u, e=u.empresa, aba="master", sub="crm", colunas=colunas,
                   pend=pend, agora=_agora(), nomes=nomes, time=time, ver=ver, q=q, fila=fila,
-                  supervisor=supervisor(u), ORIGENS=ORIGENS, MANUAIS=MANUAIS, origem=origem, total=len(leads),
+                  supervisor=supervisor(u), ORIGENS=ORIGENS, MANUAIS=MANUAIS, origem=origem, total=len(leads), zap_novas=zap_novas,
                   valor=sum(x.valor_centavos for x in leads if x.etapa not in ("perdido",)))
 
 
@@ -432,7 +435,8 @@ def ficha(lid: int, request: Request, u: Usuario = Depends(admin_logado), db: Se
     return render(request, "master/crm_lead.html", u=u, e=u.empresa, aba="master", sub="crm", ld=ld,
                   ativ=ativ, tar=tar, conv=conv, msgs=json.loads(conv.mensagens or "[]") if conv else [],
                   time=time, nomes=nomes, zap=zap, emp=emp, ETAPAS=ETAPAS, ORIGENS=ORIGENS, MANUAIS=MANUAIS, TIPOS=TIPOS,
-                  supervisor=supervisor(u), agora=_agora(), emails=emails)
+                  supervisor=supervisor(u), agora=_agora(), emails=emails, wa_envia=whatsapp.envia(),
+                  wa_tem=bool(db.scalar(select(func.count(WhatsMensagem.id)).where(WhatsMensagem.lead_id == ld.id))))
 
 
 @rota.post("/master/crm/{lid}", dependencies=CSRF)
