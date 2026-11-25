@@ -17,10 +17,10 @@
   </div>
   <details style="margin-top:8px"><summary class="pequeno">{{ _('Servidores (outro provedor)') }}</summary>
   <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-top:8px">
-    <div class="campo"><label for="host">{{ _('Servidor de leitura (IMAP)') }}</label><input id="host" name="host" value="{{ d.caixa_host }}" required></div>
-    <div class="campo"><label for="porta">{{ _('Porta IMAP') }}</label><input id="porta" name="porta" inputmode="numeric" value="{{ d.caixa_porta }}" required></div>
-    <div class="campo"><label for="smtp_host">{{ _('Servidor de envio (SMTP)') }}</label><input id="smtp_host" name="smtp_host" value="{{ d.caixa_smtp_host }}" required></div>
-    <div class="campo"><label for="smtp_porta">{{ _('Porta SMTP') }}</label><input id="smtp_porta" name="smtp_porta" inputmode="numeric" value="{{ d.caixa_smtp_porta }}" required></div>
+    <div class="campo"><label for="host">{{ _('Servidor de leitura (IMAP)') }}</label><input type="text" id="host" name="host" value="{{ d.caixa_host }}" required></div>
+    <div class="campo"><label for="porta">{{ _('Porta IMAP') }}</label><input type="text" id="porta" name="porta" inputmode="numeric" value="{{ d.caixa_porta }}" required></div>
+    <div class="campo"><label for="smtp_host">{{ _('Servidor de envio (SMTP)') }}</label><input type="text" id="smtp_host" name="smtp_host" value="{{ d.caixa_smtp_host }}" required></div>
+    <div class="campo"><label for="smtp_porta">{{ _('Porta SMTP') }}</label><input type="text" id="smtp_porta" name="smtp_porta" inputmode="numeric" value="{{ d.caixa_smtp_porta }}" required></div>
   </div></details>
   <div class="acoes" style="margin-top:12px"><button class="botao" type="submit">{{ _('Salvar e ligar') }}</button></div>
   <p class="ajuda">{{ _('A senha nunca aparece de novo nesta tela. Não envie a senha por mensagem para ninguém.') }}</p>
