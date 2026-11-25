@@ -38,7 +38,8 @@ def main():
     assert "Termos de Uso" in t and "Estes Termos seguem as leis do Brasil" in t and "Código de Defesa do Consumidor" in t
     p = v.get("/privacy").text
     assert "A localização nunca é lida com o aplicativo fechado" in p and "<strong>Brasil</strong>" in p
-    assert "Não fazemos reconhecimento facial" in p and "OpenStreetMap" in p and "art. 33 da LGPD" in p
+    assert "Reconhecimento facial, só se o empregador ligar e o funcionário consentir" in p and "OpenStreetMap" in p and "art. 33 da LGPD" in p
+    assert "id=\"cookies\"" in p and "só se você aceitar no aviso de cookies" in p
     v.get("/idioma/en?volta=/terms")
     assert "Estes Termos seguem as leis do Brasil" in v.get("/terms").text   # o texto legal fica em português
     for pag in ("/entrar", "/cadastro", "/"):

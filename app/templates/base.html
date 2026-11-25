@@ -54,6 +54,7 @@
 })();
 </script>
 {% if app_ios %}<script src="/static/app_ios.js?v=1" defer></script><style>a[href^="/painel/assinatura"],a[href^="/cadastro"],a[href^="/entrar/google"],a[href^="/parceiros"],a[href^="/planos"]{display:none!important}</style>{% endif %}
+{% include "_rastreio.html" %}
 </head>
 <body>
 {% block corpo %}{% endblock %}

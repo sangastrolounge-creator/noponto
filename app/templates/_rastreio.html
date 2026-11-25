@@ -1,0 +1,74 @@
+{# Códigos de medição de anúncios (Meta, Google, TikTok). Só na página de vendas e no cadastro, e só depois
+   do aceite no aviso de cookies (LGPD). Depois do cadastro, a primeira tela do painel envia a conversão. #}
+{% if rastreio %}
+<script>
+(function () {
+  var R = {{ {"meta": rastreio.rast_meta_pixel, "ga4": rastreio.rast_ga4, "ads": rastreio.rast_google_ads,
+              "rotulo": rastreio.rast_google_ads_rotulo, "tiktok": rastreio.rast_tiktok_pixel,
+              "publica": rastreio.publica, "evento": rastreio.evento}|tojson }};
+  var carregado = false;
+  function script(src) { var s = document.createElement("script"); s.async = true; s.src = src; document.head.appendChild(s); }
+  function carregar() {
+    if (carregado) return; carregado = true;
+    if (R.meta) {
+      !function (f, b, e, v, n, t, s) { if (f.fbq) return; n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments); };
+        if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = "2.0"; n.queue = []; }(window, document);
+      script("https://connect.facebook.net/en_US/fbevents.js");
+      fbq("init", R.meta); fbq("track", "PageView");
+    }
+    if (R.ga4 || R.ads) {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () { dataLayer.push(arguments); };
+      script("https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(R.ga4 || R.ads));
+      gtag("js", new Date());
+      if (R.ga4) gtag("config", R.ga4);
+      if (R.ads) gtag("config", R.ads);
+    }
+    if (R.tiktok) {
+      !function (w, d, t) { w.TiktokAnalyticsObject = t; var ttq = w[t] = w[t] || [];
+        ttq.methods = ["page", "track", "identify", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "enableCookie", "disableCookie"];
+        ttq.setAndDefer = function (o, m) { o[m] = function () { o.push([m].concat(Array.prototype.slice.call(arguments, 0))); }; };
+        for (var i = 0; i < ttq.methods.length; i++) ttq.setAndDefer(ttq, ttq.methods[i]);
+        ttq.load = function (id) { var u = "https://analytics.tiktok.com/i18n/pixel/events.js"; ttq._i = ttq._i || {}; ttq._i[id] = []; ttq._i[id]._u = u;
+          ttq._t = ttq._t || {}; ttq._t[id] = +new Date(); ttq._o = ttq._o || {}; ttq._o[id] = {}; script(u + "?sdkid=" + id + "&lib=" + t); };
+        ttq.load(R.tiktok); ttq.page(); }(window, document, "ttq");
+    }
+    if (R.evento) {   // conta de teste criada
+      if (R.meta) fbq("track", "CompleteRegistration");
+      if (R.ga4) gtag("event", "sign_up", { method: "site" });
+      if (R.ads && R.rotulo) gtag("event", "conversion", { send_to: R.ads + "/" + R.rotulo });
+      if (R.tiktok) ttq.track("CompleteRegistration");
+    }
+  }
+  var escolha = null;
+  try { escolha = localStorage.getItem("dw_cookies"); } catch (e) {}
+  window.dwCookies = function (sim) {
+    try { localStorage.setItem("dw_cookies", sim ? "sim" : "nao"); } catch (e) {}
+    var a = document.getElementById("aviso-cookies"); if (a) a.remove();
+    if (sim) carregar();
+  };
+  if (escolha === "sim") { carregar(); return; }
+  if (escolha === "nao" || !R.publica) return;
+  document.addEventListener("DOMContentLoaded", function () {
+    var a = document.createElement("div");
+    a.id = "aviso-cookies"; a.setAttribute("role", "dialog"); a.setAttribute("aria-label", {{ _('Aviso de cookies')|tojson }});
+    a.innerHTML = '<p></p><div class="ac-botoes"><button type="button" class="botao claro" data-n></button><button type="button" class="botao" data-s></button></div>';
+    var p = a.querySelector("p");
+    p.appendChild(document.createTextNode({{ _('Usamos cookies de medição do Meta, do Google e do TikTok para saber quais anúncios funcionam. Eles só são ligados se você aceitar. ')|tojson }}));
+    var l = document.createElement("a"); l.href = "/privacy#cookies"; l.textContent = {{ _('Saiba mais')|tojson }}; p.appendChild(l);
+    var n = a.querySelector("[data-n]"), s = a.querySelector("[data-s]");
+    n.textContent = {{ _('Recusar')|tojson }}; s.textContent = {{ _('Aceitar')|tojson }};
+    n.onclick = function () { dwCookies(false); }; s.onclick = function () { dwCookies(true); };
+    document.body.appendChild(a);
+  });
+})();
+</script>
+<style>
+#aviso-cookies { position: fixed; z-index: 9999; left: 16px; right: 16px; bottom: 16px; max-width: 560px; margin: 0 auto;
+  background: var(--cartao, #fff); color: var(--texto, #10131f); border: 1px solid var(--borda, #e3e6f2); border-radius: 14px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / .18); padding: 14px 16px; font-size: 14px; line-height: 1.45; }
+#aviso-cookies p { margin: 0 0 10px; }
+#aviso-cookies .ac-botoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+#aviso-cookies .botao { padding: 8px 16px; min-height: 0; }
+</style>
+{% endif %}

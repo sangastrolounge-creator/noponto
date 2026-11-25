@@ -393,6 +393,9 @@ def render(request: Request, nome: str, status_code: int = 200, **ctx):
             "ent_imagens": [n for n in (plat.get("entrada_imagens") or "").split(",") if n],
             "suporte": bool(request.session.get("master_uid")),
             "app_ios": app_ios(request)}
+    if not marca and not base["app_ios"]:
+        from . import rastreio
+        base["rastreio"] = rastreio.contexto(request)   # pixels: só página de vendas, cadastro e conversão
     if base["app_ios"]:
         base["google_ok"] = base["cadastro_aberto"] = False
     if nome == "cadastro.html":   # cupom e parceiro que vieram pelo link

@@ -74,6 +74,7 @@ class ConversaVenda(Base):
     # Atendente da equipe que assumiu a conversa no lugar do robô (chat ao vivo).
     atendente_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     atendente_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    utm: Mapped[str] = mapped_column(Text, default="")   # de onde o visitante chegou (JSON, ver rastreio.py)
 
 
 class Lead(Base):
@@ -93,6 +94,7 @@ class Lead(Base):
     valor_centavos: Mapped[int] = mapped_column(Integer, default=0)  # mensalidade esperada
     motivo_perda: Mapped[str] = mapped_column(String(120), default="")
     autorizou: Mapped[bool] = mapped_column(Boolean, default=False)  # autorizou contato (LGPD)
+    utm: Mapped[str] = mapped_column(Text, default="")   # de onde chegou (JSON, ver rastreio.py)
     criado_em: Mapped[datetime] = mapped_column(DateTime)
     atualizado_em: Mapped[datetime] = mapped_column(DateTime)
 
@@ -266,6 +268,8 @@ class Empresa(Base):
     facial_ativo: Mapped[bool] = mapped_column(Boolean, default=False)  # reconhecimento facial no ponto
     # O dono pediu o encerramento da conta e a exclusão dos dados (a plataforma conclui).
     exclusao_pedida_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # De onde a pessoa chegou ao se cadastrar (UTM/anúncio/site, em JSON; ver rastreio.py).
+    origem: Mapped[str] = mapped_column(Text, default="")
     # Local onde o ponto é válido. Sem lat/lng o ponto é aceito sem conferência.
     lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     lng: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -1367,6 +1371,9 @@ COLUNAS_NOVAS = [
     ("empresas", "logo", "VARCHAR(60) NOT NULL DEFAULT ''"),
     ("empresas", "facial_ativo", "BOOLEAN NOT NULL DEFAULT 0"),
     ("empresas", "ponto_na_lotacao", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("empresas", "origem", "TEXT NOT NULL DEFAULT ''"),
+    ("crm_leads", "utm", "TEXT NOT NULL DEFAULT ''"),
+    ("conversas_venda", "utm", "TEXT NOT NULL DEFAULT ''"),
     ("turnos", "so_principal", "BOOLEAN NOT NULL DEFAULT 0"),
     ("escala_fixa", "so_principal", "BOOLEAN NOT NULL DEFAULT 0"),
     ("usuarios", "facial_consentimento", "VARCHAR(10) NOT NULL DEFAULT ''"),

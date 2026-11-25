@@ -185,8 +185,10 @@ def apos_pagamento(db: Session, e: Empresa, reg: Pagamento):
 def ao_criar_empresa(request: Request, db: Session, u: Usuario, cupom: str = "",
                      contador: bool = False):
     """Cadastro público: liga indicação, parceiro e cupom à empresa nova."""
-    from . import parceiros
+    from . import parceiros, rastreio
     e = u.empresa
+    e.origem = rastreio.ler_json(request)          # de qual rede ou anúncio veio
+    request.session["evento_cadastro"] = 1          # conversão para os pixels (se houver aceite)
     cod = request.session.pop("indicacao", "")
     if cod:
         quem = db.scalar(select(Empresa).where(Empresa.codigo_indicacao == cod))

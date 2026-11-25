@@ -557,7 +557,8 @@ def corpo_html(mid: int, u: Usuario = Depends(admin_logado), db: Session = Depen
     return Response(pagina, media_type="text/html", headers={
         "Content-Security-Policy": "default-src 'none'; img-src https: http: data: cid:; style-src 'unsafe-inline' https:; "
                                    "font-src https: data:; form-action 'none'; frame-ancestors 'self'",
-        "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"})
+        "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer",
+        "X-Frame-Options": "SAMEORIGIN"})   # o quadro da tela de leitura é do mesmo site
 
 
 @rota.get("/master/caixa/{mid}/anexo/{n}")

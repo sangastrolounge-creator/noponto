@@ -341,6 +341,15 @@
       { t: t("Envio de e-mails"), x: t("A caixa que envia os e-mails automáticos da plataforma, como o “Esqueci a senha” e os avisos para o Master. É diferente da aba E-mail, que é a caixa de contato para ler e responder.") },
       { a: "h2:" + t("Caixa de e-mail"), t: t("Servidor de envio"), x: t("Na Hostinger: smtp.hostinger.com, porta 465, com o e-mail e a senha da caixa. Salve e use “Enviar e-mail de teste”.") }
     ],
+    m_canais: [
+      { t: t("Clientes por canal"), x: t("De qual rede, anúncio ou site vieram os leads, as contas de teste e os pagantes de cada mês. É assim que você sabe qual divulgação paga a conta.") },
+      { a: ".pagina table", t: t("Como ler"), x: t("“anúncio” é quem chegou por um link marcado de campanha paga ou por um clique de anúncio; “orgânico” é quem veio de um post ou de uma busca; Direto é quem digitou o endereço. Divida o gasto do canal pelos pagantes para saber o custo de cada cliente.") }
+    ],
+    m_rastreio: [
+      { t: t("Rastreamento de anúncios"), x: t("Os IDs do Pixel do Meta, do Google (Analytics 4 e Google Ads) e do Pixel do TikTok. Os códigos carregam só na página de vendas e no cadastro, e só para quem aceitar o aviso de cookies.") },
+      { a: "form[action='/master/rastreamento']", t: t("A conversão"), x: t("Cada conta de teste criada é enviada às redes como conversão, para elas mostrarem o anúncio a quem tem mais chance de testar. Deixe um campo em branco para desligar aquele código.") },
+      { a: "code", t: t("Links marcados"), x: t("Use links com utm_source, utm_medium e utm_campaign nos anúncios e na bio das redes. A origem aparece no lead do CRM, na empresa e no relatório de canais.") }
+    ],
     m_avisos: [
       { t: t("Avisos para você"), x: t("O que a plataforma avisa para as contas Master, por e-mail e no celular: empresa nova cadastrada, pagamento confirmado, cobrança vencida, assinatura cancelada e o resumo diário dos testes grátis terminando.") },
       { a: "h2:" + t("Me avise quando"), t: t("Me avise quando"), x: t("Desmarque o que não quer receber e salve. Use “Enviar um aviso de teste” para conferir. Para receber no celular, entre no painel pelo celular e toque em “Receber avisos neste aparelho” na tela Hoje.") }
@@ -370,14 +379,15 @@
   // Telas do Master: uma chave por endereço.
   function chaveMaster(c) {
     var M = [[/^\/master\/?$/, "m_geral"], [/^\/master\/empresas\/\d+/, "m_empresa"],
-      [/^\/master\/crm\/?$/, "m_crm"], [/^\/master\/crm\/ao-vivo/, "m_aovivo"], [/^\/master\/crm\/tarefas/, "m_tarefas"],
+      [/^\/master\/crm\/?$/, "m_crm"], [/^\/master\/crm\/ao-vivo/, "m_aovivo"], [/^\/master\/crm\/tarefas/, "m_tarefas"], [/^\/master\/crm\/canais/, "m_canais"],
       [/^\/master\/crm\/\d+/, "m_lead"], [/^\/master\/conversas/, "m_conversas"],
       [/^\/master\/caixa\/?$/, "m_caixa"], [/^\/master\/caixa\/novo/, "m_caixa_novo"], [/^\/master\/caixa\/config/, "m_caixa_config"],
       [/^\/master\/caixa\/\d+/, "m_caixa_ler"], [/^\/master\/equipe/, "m_equipe"], [/^\/master\/cupons/, "m_cupons"],
       [/^\/master\/parceiros/, "m_parceiros"], [/^\/master\/planos/, "m_planos"], [/^\/master\/portaria671/, "m_p671"],
       [/^\/master\/lojas/, "m_lojas"], [/^\/master\/pagina/, "m_pagina"], [/^\/master\/plataforma/, "m_plataforma"],
       [/^\/master\/banners/, "m_banners"], [/^\/master\/entrada/, "m_entrada"], [/^\/master\/folha/, "m_folha"],
-      [/^\/master\/email/, "m_email"], [/^\/master\/avisos/, "m_avisos"]];
+      [/^\/master\/email/, "m_email"], [/^\/master\/avisos/, "m_avisos"],
+      [/^\/master\/rastreamento/, "m_rastreio"]];
     for (var k = 0; k < M.length; k++) if (M[k][0].test(c)) return M[k][1];
     return "";
   }
