@@ -32,4 +32,15 @@
   <p><code>https://dataworke.com.br/?utm_source=instagram&amp;utm_medium=cpc&amp;utm_campaign=escala</code></p>
   <p class="suave pequeno">{{ _('A origem fica guardada por 90 dias e aparece no lead do CRM, na empresa e no relatório de canais. Sem marcação, o sistema usa o site que mandou o visitante (Google, Instagram etc.) e as marcas de clique dos anúncios.') }}</p>
 </section>
+<section class="cartao">
+  <h2>{{ _('Direct do Instagram no CRM') }}</h2>
+  {% if ig_ligado %}
+  <p><span class="etiqueta ok">{{ _('Ligado') }}</span> {{ _('Cada mensagem nova no direct cria ou atualiza um lead (origem Instagram) na fila do CRM. O sistema não responde: a resposta automática continua no Meta Business Suite.') }}</p>
+  {% if not ig_token %}<p class="suave pequeno">{{ _('Sem o token de acesso (META_IG_TOKEN), o lead chega sem o @; complete na ficha.') }}</p>{% endif %}
+  {% else %}
+  <p><span class="etiqueta">{{ _('Desligado') }}</span> {{ _('Falta colocar META_APP_SECRET e META_VERIFY_TOKEN no arquivo .env do servidor e reiniciar o sistema.') }}</p>
+  {% endif %}
+  <p class="suave pequeno">{{ _('Endereço para colar no painel da Meta (URL de retorno de chamada):') }}</p>
+  <p><code>{{ ig_url }}</code></p>
+</section>
 {% endblock %}
