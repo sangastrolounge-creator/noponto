@@ -124,6 +124,22 @@ def main():
     # Master -> Rastreamento mostra que está ligado e o endereço do webhook
     r = m.get("/master/rastreamento").text
     assert "Ligado" in r and "/webhooks/instagram" in r
+
+    # FASE 4: quem pega o lead da fila herda o retorno de 24h
+    m.post("/master/crm/pegar", data={"csrf": csrf(m, "/master/crm")})
+    with SessionLocal() as db:
+        ld = db.get(Lead, lid)
+        t = db.scalar(select(LeadTarefa).where(LeadTarefa.lead_id == lid))
+        assert ld.dono_id and t.dono_id == ld.dono_id
+    assert "Responder o lead do Instagram" in m.get("/master/crm/tarefas").text
+
+    # quadro semanal: 3 leads do Instagram nesta semana, nenhum virou conta de teste ainda
+    tela = m.get("/master/crm/canais").text
+    assert "Instagram por semana" in tela
+    bloco = tela[tela.index("Instagram por semana"):]
+    primeira = re.search(r"<tbody>\s*<tr><td>[^<]+</td>(.*?)</tr>", bloco, re.S).group(1)
+    nums = re.findall(r'class="num">([^<]*)<', primeira)
+    assert nums == ["3", "0", "0%", "0", "0%"], nums
     print("ok: direct do Instagram no CRM")
 
 

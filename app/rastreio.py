@@ -248,6 +248,25 @@ def _mes(txt: str) -> date:
         return h.replace(day=1)
 
 
+def semanas_instagram(db: Session, semanas: int = 8) -> list[dict]:
+    """Leads do Instagram por semana (segunda a domingo) e quantos viraram conta de teste e cliente."""
+    hoje = banco.agora().date()
+    seg = hoje - timedelta(days=hoje.weekday())
+    inicio = seg - timedelta(weeks=semanas - 1)
+    linhas = [{"de": inicio + timedelta(weeks=i), "ate": inicio + timedelta(weeks=i, days=6),
+               "leads": 0, "testes": 0, "clientes": 0} for i in range(semanas)]
+    q = select(Lead.origem, Lead.utm, Lead.empresa_id, Lead.etapa, Lead.criado_em).where(
+        Lead.criado_em >= datetime.combine(inicio, datetime.min.time()))
+    for origem, utm, eid, etapa, criado in db.execute(q):
+        if origem != "instagram" and not canal(utm).startswith("Instagram ·"):
+            continue
+        li = linhas[min((criado.date() - inicio).days // 7, semanas - 1)]
+        li["leads"] += 1
+        li["testes"] += 1 if eid else 0
+        li["clientes"] += 1 if etapa == "cliente" else 0
+    return list(reversed(linhas))
+
+
 @rota.get("/master/crm/canais")
 def canais(request: Request, mes: str = "", u: Usuario = Depends(admin_logado), db: Session = Depends(get_db)):
     from . import crm
@@ -302,5 +321,5 @@ def canais(request: Request, mes: str = "", u: Usuario = Depends(admin_logado), 
         meses.append(m)
         m = (m - timedelta(days=1)).replace(day=1)
     return render(request, "master/crm_canais.html", u=u, e=u.empresa, aba="master", sub="canais",
-                  tabela=tabela, por_campanha=por_campanha, ini=ini, meses=meses, configurado=ligado(),
+                  tabela=tabela, por_campanha=por_campanha, ig_semanas=semanas_instagram(db), ini=ini, meses=meses, configurado=ligado(),
                   total={k: sum(r[k] for r in tabela) for k in ("visitas", "leads", "testes", "pagantes", "receita")})
