@@ -37,5 +37,19 @@
 </table></div>
 </section>
 {% endif %}
+<section class="cartao">
+<h2>{{ _('Instagram por semana') }}</h2>
+<p class="suave pequeno" style="margin-top:0">{{ _('Leads do Instagram (direct, link da bio, anúncios e cadastro à mão) das últimas 8 semanas, e quantos já viraram conta de teste e cliente.') }}</p>
+<div class="tabela-rolagem"><table class="tabela">
+  <thead><tr><th>{{ _('Semana') }}</th><th class="num">{{ _('Leads') }}</th><th class="num">{{ _('Contas de teste') }}</th><th class="num">%</th><th class="num">{{ _('Clientes') }}</th><th class="num">%</th></tr></thead>
+  <tbody>
+  {% for w in ig_semanas %}
+    <tr><td>{{ w.de.strftime('%d/%m') }} – {{ w.ate.strftime('%d/%m') }}</td><td class="num">{{ w.leads }}</td>
+      <td class="num">{{ w.testes }}</td><td class="num">{{ ((w.testes * 100 / w.leads)|round|int ~ '%') if w.leads else '—' }}</td>
+      <td class="num">{{ w.clientes }}</td><td class="num">{{ ((w.clientes * 100 / w.leads)|round|int ~ '%') if w.leads else '—' }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+</section>
 <p class="suave pequeno">{{ _('Para saber o custo por cliente, divida o que gastou no canal pelo número de pagantes. Contas criadas antes do rastreamento aparecem como Direto. Visitas contam cada navegador uma vez por campanha.') }}</p>
 {% endblock %}

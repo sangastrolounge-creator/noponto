@@ -107,6 +107,21 @@ def _achar(db: Session, telefone: str = "", email: str = "", instagram: str = ""
     return db.scalar(select(Lead).where(or_(*conds)).order_by(Lead.id.desc()).limit(1))
 
 
+def retorno_24h(db: Session, ld: Lead) -> None:
+    """Lead novo do Instagram, sem dono: tarefa de retorno em até 24h (aparece em Tarefas para quem pegar)."""
+    if ld.dono_id is None:
+        db.add(LeadTarefa(lead_id=ld.id, dono_id=None, titulo="Responder o lead do Instagram",
+                          quando=_agora() + timedelta(hours=24), criado_em=_agora()))
+
+
+def tarefas_sem_dono_para(db: Session, ld: Lead) -> None:
+    """Quando o lead ganha dono, os retornos que estavam sem dono passam para ele."""
+    if ld.dono_id:
+        for t in db.scalars(select(LeadTarefa).where(LeadTarefa.lead_id == ld.id, LeadTarefa.dono_id.is_(None),
+                                                     LeadTarefa.feita_em.is_(None))):
+            t.dono_id = ld.dono_id
+
+
 # ------------------------------------------------------------------ leads automáticos
 def lead_da_conversa(db: Session, conv: ConversaVenda) -> Lead | None:
     """Quem deixou o WhatsApp no chat do site vira lead (ou atualiza o lead que já existia)."""
@@ -137,7 +152,8 @@ def lead_do_cadastro(db: Session, e: Empresa, gestor: Usuario) -> None:
             return
         tel = celular_limpo(gestor.celular or "")
         ld = db.scalar(select(Lead).where(Lead.empresa_id == e.id)) or _achar(db, tel, gestor.email or "")
-        if not ld:
+        novo = ld is None
+        if novo:
             from .rastreio import canal
             veio_do_ig = canal(e.origem or "").startswith("Instagram ·")
             ld = Lead(origem="instagram" if veio_do_ig else "teste", etapa="novo", criado_em=_agora(),
@@ -153,6 +169,8 @@ def lead_do_cadastro(db: Session, e: Empresa, gestor: Usuario) -> None:
         registrar(db, ld, f"Criou a conta de teste \"{e.nome}\".")
         if ld.etapa in ("novo", "contato", "proposta"):
             mudar_etapa(db, ld, "teste")
+        if novo and ld.origem == "instagram":
+            retorno_24h(db, ld)
         db.commit()
     except Exception:
         db.rollback()
@@ -256,6 +274,7 @@ def pegar_proximo(request: Request, u: Usuario = Depends(admin_logado), db: Sess
         avisar(request, "A fila está vazia.")
         return ir("/master/crm")
     ld.dono_id = u.id
+    tarefas_sem_dono_para(db, ld)
     registrar(db, ld, f"{u.nome} pegou o lead da fila.", "sistema", u)
     db.commit()
     return ir(f"/master/crm/{ld.id}")
@@ -272,6 +291,7 @@ async def etapa(lid: int, request: Request, u: Usuario = Depends(admin_logado), 
         return JSONResponse({"erro": "Lead não encontrado."}, status_code=404)
     if ld.dono_id is None:
         ld.dono_id = u.id
+        tarefas_sem_dono_para(db, ld)
     mudar_etapa(db, ld, str(dados.get("etapa", "")), u, str(dados.get("motivo", "")))
     db.commit()
     if "application/json" in request.headers.get("content-type", ""):
@@ -451,6 +471,7 @@ def salvar(lid: int, request: Request, nome: str = Form(""), empresa_nome: str =
         novo_dono = int(dono_id) if dono_id.isdigit() else None
         if novo_dono != ld.dono_id:
             ld.dono_id = novo_dono
+            tarefas_sem_dono_para(db, ld)
             nome_dono = db.get(Usuario, novo_dono).nome if novo_dono else "a fila"
             registrar(db, ld, f"Passado para {nome_dono} por {u.nome}.", "sistema", u)
     ld.atualizado_em = _agora()

@@ -19,7 +19,6 @@ import hmac
 import json
 import logging
 import os
-from datetime import timedelta
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -142,14 +141,8 @@ def processar(msgs: list[dict]) -> None:
                 if novo:
                     crm.registrar(db, ld, "Chegou pelo direct do Instagram." if ig else
                                   "Chegou pelo direct do Instagram. Complete o @ na ficha.")
-                    tarefa_de_retorno(db, ld)
+                    crm.retorno_24h(db, ld)
             db.add(LeadAtividade(lead_id=ld.id, tipo="instagram", texto=m["texto"], ref=m["mid"], criado_em=agora))
             ld.atualizado_em = agora
         db.commit()
 
-
-def tarefa_de_retorno(db, ld: Lead) -> None:
-    """Lead novo do Instagram sem dono: retorno em até 24h (Fase 4 do cronograma)."""
-    from .db import LeadTarefa
-    db.add(LeadTarefa(lead_id=ld.id, dono_id=None, titulo="Responder o lead do Instagram",
-                      quando=banco.agora() + timedelta(hours=24), criado_em=banco.agora()))

@@ -19,7 +19,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
 from app import crm, rastreio  # noqa: E402
-from app.db import Empresa, Lead, LeadAtividade, SessionLocal, VisitaCanal  # noqa: E402
+from app.db import Empresa, Lead, LeadAtividade, LeadTarefa, SessionLocal, VisitaCanal  # noqa: E402
 from app.main import app  # noqa: E402
 
 BIO = "/?utm_source=instagram&utm_medium=social&utm_campaign=escala6x1"
@@ -115,13 +115,16 @@ def main():
         ld = db.scalar(select(Lead).where(Lead.empresa_id == e.id))
         assert ld.origem == "instagram" and json.loads(ld.utm)["campaign"] == "escala6x1"
         nid = ld.id
+        t = db.scalar(select(LeadTarefa).where(LeadTarefa.lead_id == nid))
+        assert t and t.dono_id is None and t.titulo == "Responder o lead do Instagram"   # Fase 4: retorno em 24h
     assert "Instagram · orgânico · escala6x1" in m.get(f"/master/crm/{nid}").text
     # conta sem origem continua "Conta de teste"
     w = TestClient(app, follow_redirects=False)
     cadastrar(w, "Café Azul", "Rui", "rui@azul.com")
     with SessionLocal() as db:
         e = db.scalar(select(Empresa).where(Empresa.nome == "Café Azul"))
-        assert db.scalar(select(Lead).where(Lead.empresa_id == e.id)).origem == "teste"
+        lc = db.scalar(select(Lead).where(Lead.empresa_id == e.id))
+        assert lc.origem == "teste" and not db.scalar(select(LeadTarefa).where(LeadTarefa.lead_id == lc.id))
 
     # Canais: visitas, leads e contas de teste do Instagram por campanha
     tela = m.get("/master/crm/canais").text
