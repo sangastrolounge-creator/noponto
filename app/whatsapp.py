@@ -164,6 +164,7 @@ def _lead_do_numero(db: Session, wa: str, nome: str = "", criar: bool = True) ->
 
 def processar(eventos: dict) -> None:
     agora = banco.agora()
+    novos: list[int] = []
     with SessionLocal() as db:
         for m in eventos["recebidas"] + eventos["ecos"]:
             if m["mid"] and db.scalar(select(WhatsMensagem.id).where(WhatsMensagem.mid == m["mid"])):
@@ -178,6 +179,11 @@ def processar(eventos: dict) -> None:
             ld.atualizado_em = agora
             if entrada and not ld.nome and m.get("nome"):
                 ld.nome = m["nome"]
+            if entrada and ld.id not in novos:
+                novos.append(ld.id)
+            if not entrada:
+                from .whatsapp_robo import pausar
+                pausar(db, ld, "alguém do time respondeu pelo celular")
         db.flush()
         for s in eventos["status"]:
             if s["mid"] and s["status"]:
@@ -187,6 +193,12 @@ def processar(eventos: dict) -> None:
                     if s["status"] == "falhou" or ordem.index(s["status"]) > ordem.index(x.status if x.status in ordem else ""):
                         x.status, x.erro = s["status"], s["erro"] or x.erro
         db.commit()
+    from . import whatsapp_robo
+    for lid in novos:
+        try:
+            whatsapp_robo.responder(lid)
+        except Exception as e:   # o robô nunca derruba o recebimento
+            log.warning("Robô do WhatsApp falhou no lead %s: %s", lid, e)
 
 
 # ------------------------------------------------------------------ envio
@@ -237,9 +249,11 @@ def conversa(lid: int, u: Usuario = Depends(admin_logado), db: Session = Depends
     db.commit()
     nomes = {x.id: x.nome for x in db.scalars(select(Usuario).where(
         Usuario.id.in_({m.autor_id for m in msgs if m.autor_id} or {0})))}
+    from . import whatsapp_robo
     return {"envia": envia(), "janela": janela_aberta(db, ld), "modelo": bool(modelo()),
+            "robo": whatsapp_robo.ligado(db), "robo_pausado": ld.robo_pausado,
             "mensagens": [{"id": m.id, "entrada": m.entrada, "texto": m.texto, "status": m.status, "erro": m.erro,
-                           "quem": "celular" if m.pelo_celular else nomes.get(m.autor_id, ""),
+                           "quem": "celular" if m.pelo_celular else "robô" if m.robo else nomes.get(m.autor_id, ""),
                            "hora": m.criado_em.strftime("%d/%m %H:%M")} for m in msgs]}
 
 
@@ -277,9 +291,28 @@ async def responder(lid: int, request: Request, u: Usuario = Depends(admin_logad
     if ld.dono_id is None:
         ld.dono_id = u.id
         crm.tarefas_sem_dono_para(db, ld)
+    from .whatsapp_robo import pausar
+    pausar(db, ld, f"{u.nome} assumiu a conversa")
     ld.atualizado_em = banco.agora()
     db.commit()
     return {"ok": True}
+
+
+@rota.post("/master/crm/{lid}/whatsapp/robo", dependencies=[Depends(exigir_csrf)])
+async def robo_do_lead(lid: int, request: Request, u: Usuario = Depends(admin_logado),
+                       db: Session = Depends(get_db)):
+    """Pausa ou devolve a conversa para o robô."""
+    from . import crm
+    ld = _lead(db, u, lid)
+    if not ld:
+        return JSONResponse({"erro": "Lead não encontrado."}, status_code=404)
+    ligar = bool((await request.json()).get("ligar"))
+    if ligar == ld.robo_pausado:
+        ld.robo_pausado = not ligar
+        crm.registrar(db, ld, f"{u.nome} {'devolveu a conversa para o robô' if ligar else 'pausou o robô'}.",
+                      "sistema", u)
+        db.commit()
+    return {"ok": True, "robo_pausado": ld.robo_pausado}
 
 
 def nao_lidas(db: Session, ids: list[int]) -> set[int]:

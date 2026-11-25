@@ -47,7 +47,14 @@
   <h2>{{ _('WhatsApp no CRM') }}</h2>
   <p>{% if wa_recebe %}<span class="etiqueta ok">{{ _('Recebendo') }}</span>{% else %}<span class="etiqueta">{{ _('Não recebe') }}</span>{% endif %}
      {% if wa_envia %}<span class="etiqueta ok">{{ _('Enviando') }}</span>{% else %}<span class="etiqueta">{{ _('Não envia') }}</span>{% endif %}
-     {% if wa_modelo %}<span class="etiqueta azul">{{ _('Modelo: {v1}', v1=wa_modelo) }}</span>{% endif %}</p>
+     {% if wa_modelo %}<span class="etiqueta azul">{{ _('Modelo: {v1}', v1=wa_modelo) }}</span>{% endif %}
+     {% if wa_robo %}<span class="etiqueta ok">{{ _('Robô ligado') }}</span>{% else %}<span class="etiqueta">{{ _('Robô desligado') }}</span>{% endif %}</p>
+  <form method="post" action="/master/rastreamento/whatsapp-robo" style="margin:10px 0">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="ligar" value="{{ '' if wa_robo else '1' }}">
+    <button class="botao {{ 'claro' if wa_robo }}" type="submit" {{ 'disabled' if not wa_robo and not (wa_envia and ia_ok) }}>{{ _('Desligar o robô do WhatsApp') if wa_robo else _('Ligar o robô do WhatsApp') }}</button>
+  </form>
+  <p class="suave pequeno">{{ _('O robô usa o mesmo assistente do chat do site (Claude) para responder quem escreve no WhatsApp: tira dúvidas, mostra os planos e manda o link do teste grátis. Ele para sozinho naquela conversa quando alguém do time responde ou quando a pessoa pede para falar com alguém, e deixa uma tarefa no CRM.') }}{% if not ia_ok %} <strong>{{ _('Falta a chave do Claude em Master → Claude.') }}</strong>{% endif %}</p>
   <p class="suave pequeno">{{ _('As mensagens do WhatsApp da plataforma aparecem na ficha do lead, e a equipe responde por lá. Receber precisa de META_APP_SECRET e META_VERIFY_TOKEN (ou WA_APP_SECRET e WA_VERIFY_TOKEN); enviar precisa de WA_TOKEN e WA_PHONE_ID no .env do servidor.') }}</p>
   <p class="suave pequeno">{{ _('Endereço para colar no painel da Meta (URL de retorno de chamada):') }}</p>
   <p><code>{{ wa_url }}</code></p>
