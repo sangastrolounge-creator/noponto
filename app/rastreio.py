@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import core, instagram
+from . import core, instagram, whatsapp
 from . import db as banco
 from .core import admin_logado, avisar, exigir_csrf, ir, render
 from .db import Config, Empresa, Lead, Pagamento, SessionLocal, Usuario, VisitaCanal, get_db
@@ -211,7 +211,9 @@ def tela(request: Request, u: Usuario = Depends(admin_logado)):
     return render(request, "master/rastreamento.html", u=u, e=u.empresa, aba="master", sub="rastreamento",
                   d=ids(), CAMPOS=CAMPOS, ig_ligado=instagram.ligado(),
                   ig_token=bool(os.environ.get("META_IG_TOKEN", "").strip()),
-                  ig_url=(core.PUBLIC_URL or str(request.base_url).rstrip("/")) + "/webhooks/instagram")
+                  ig_url=(core.PUBLIC_URL or str(request.base_url).rstrip("/")) + "/webhooks/instagram",
+                  wa_recebe=whatsapp.recebe(), wa_envia=whatsapp.envia(), wa_modelo=whatsapp.modelo(),
+                  wa_url=(core.PUBLIC_URL or str(request.base_url).rstrip("/")) + "/webhooks/whatsapp")
 
 
 @rota.post("/master/rastreamento", dependencies=[Depends(exigir_csrf)])

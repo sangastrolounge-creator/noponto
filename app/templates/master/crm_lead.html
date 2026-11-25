@@ -9,6 +9,15 @@
   .crm-hist li.ligacao,.crm-hist li.whatsapp,.crm-hist li.email{border-color:#2e9e5b}
   .crm-chat p{margin:6px 0}
   .atrasada{color:#c0392b;font-weight:600}
+  .wa-caixa{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto;padding:10px;border-radius:10px;
+    background:var(--fundo-suave,#f4f5fa);margin-bottom:10px}
+  .wa-msg{max-width:80%;padding:7px 10px;border-radius:10px;white-space:pre-wrap;word-wrap:break-word;font-size:14px;line-height:1.35}
+  .wa-msg.ent{align-self:flex-start;background:var(--fundo,#fff);border:1px solid var(--borda,#e3e6f2)}
+  .wa-msg.sai{align-self:flex-end;background:#d9fdd3;color:#111}
+  .wa-msg .wa-info{display:block;font-size:11px;opacity:.7;margin-top:3px}
+  .wa-msg.falhou{outline:2px solid #c0392b}
+  .wa-form{display:flex;gap:8px;align-items:flex-end}
+  .wa-form textarea{flex:1;min-height:44px}
 </style>
 <p><a href="/master/crm">← {{ _('Voltar ao funil') }}</a></p>
 <div class="cabecalho"><div><h1>{{ ld.nome or ld.telefone or _('Sem nome') }}</h1>
@@ -36,6 +45,19 @@
 
 <div class="crm-2">
 <div>
+  {% if wa_envia or wa_tem %}
+  <section class="cartao" id="whatsapp">
+    <h2>{{ _('Conversa no WhatsApp') }}</h2>
+    <div class="wa-caixa" id="wa-caixa" aria-live="polite"><p class="suave pequeno" style="margin:0">{{ _('Carregando…') }}</p></div>
+    <p class="suave pequeno" id="wa-aviso" hidden></p>
+    <form class="wa-form" id="wa-form" {{ 'hidden' if not wa_envia }}>
+      <textarea id="wa-texto" rows="2" maxlength="4096" placeholder="{{ _('Escreva a resposta… (Enter envia, Shift+Enter quebra a linha)') }}" aria-label="{{ _('Mensagem') }}"></textarea>
+      <button class="botao" type="submit" id="wa-enviar">{{ _('Enviar') }}</button>
+    </form>
+    <button class="botao claro" type="button" id="wa-modelo" hidden style="margin-top:8px">{{ _('Enviar a mensagem modelo de retomada') }}</button>
+    {% if not wa_envia %}<p class="suave pequeno">{{ _('O envio pelo CRM ainda não está ligado. Responda pelo celular.') }}</p>{% endif %}
+  </section>
+  {% endif %}
   <section class="cartao" id="historico">
     <h2>{{ _('Registrar contato') }}</h2>
     <form method="post" action="/master/crm/{{ ld.id }}/atividade">
@@ -116,4 +138,73 @@
   </section>
 </div>
 </div>
+{% if wa_envia or wa_tem %}
+<script>
+(function () {
+  var CSRF = {{ csrf|tojson }}, URL = "/master/crm/{{ ld.id }}/whatsapp", caixa = document.getElementById("wa-caixa");
+  var form = document.getElementById("wa-form"), txt = document.getElementById("wa-texto");
+  var aviso = document.getElementById("wa-aviso"), btModelo = document.getElementById("wa-modelo");
+  var ST = {enviada: "✓", entregue: "✓✓", lida: "✓✓ " + {{ _('lida')|tojson }}, falhou: {{ _('não entregue')|tojson }}};
+  var ultimo = "";
+  function mostrar(d) {
+    var chave = JSON.stringify(d.mensagens);
+    if (chave !== ultimo) {
+      var embaixo = caixa.scrollHeight - caixa.scrollTop - caixa.clientHeight < 40;
+      caixa.innerHTML = "";
+      if (!d.mensagens.length) {
+        var p = document.createElement("p"); p.className = "suave pequeno"; p.style.margin = "0";
+        p.textContent = {{ _('Nenhuma mensagem ainda. Quando a pessoa escrever no WhatsApp da plataforma, aparece aqui.')|tojson }};
+        caixa.appendChild(p);
+      }
+      d.mensagens.forEach(function (m) {
+        var b = document.createElement("div");
+        b.className = "wa-msg " + (m.entrada ? "ent" : "sai") + (m.status === "falhou" ? " falhou" : "");
+        b.textContent = m.texto;
+        var i = document.createElement("span"); i.className = "wa-info";
+        var quem = m.entrada ? "" : (m.quem === "celular" ? {{ _('pelo celular')|tojson }} : m.quem);
+        i.textContent = m.hora + (quem ? " · " + quem : "") + (m.entrada ? "" : " " + (ST[m.status] || "")) + (m.erro ? " · " + m.erro : "");
+        b.appendChild(i); caixa.appendChild(b);
+      });
+      if (embaixo || !ultimo) caixa.scrollTop = caixa.scrollHeight;
+      ultimo = chave;
+    }
+    var pode = d.envia && d.janela;
+    form.hidden = !pode;
+    btModelo.hidden = !(d.envia && !d.janela && d.modelo);
+    aviso.hidden = !(d.envia && !d.janela);
+    aviso.textContent = d.modelo
+      ? {{ _('Passaram 24 horas da última mensagem da pessoa. Pela regra do WhatsApp, agora só dá para mandar a mensagem modelo (cobrada pela Meta).')|tojson }}
+      : {{ _('Passaram 24 horas da última mensagem da pessoa (ou ela ainda não escreveu). Pela regra do WhatsApp, só dá para responder depois que ela mandar uma mensagem.')|tojson }};
+  }
+  function carregar() {
+    fetch(URL + ".json", {credentials: "same-origin"}).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d) mostrar(d); }).catch(function () {});
+  }
+  function mandar(corpo, botao) {
+    botao.disabled = true;
+    return fetch(URL, {method: "POST", credentials: "same-origin",
+      headers: {"Content-Type": "application/json", "X-CSRF": CSRF}, body: JSON.stringify(corpo)})
+      .then(function (r) { return r.json().then(function (d) { return [r.ok, d]; }); })
+      .then(function (res) {
+        if (!res[0]) { alert(res[1].erro || {{ _('Não foi possível enviar.')|tojson }}); return false; }
+        carregar(); return true;
+      }).catch(function () { alert({{ _('Sem conexão. Tente de novo.')|tojson }}); return false; })
+      .finally(function () { botao.disabled = false; });
+  }
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var t = txt.value.trim(); if (!t) return;
+    mandar({texto: t}, document.getElementById("wa-enviar")).then(function (ok) { if (ok) txt.value = ""; });
+  });
+  txt.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+  });
+  btModelo.addEventListener("click", function () {
+    if (confirm({{ _('Enviar a mensagem modelo? A Meta cobra por esse envio.')|tojson }})) mandar({modelo: true}, btModelo);
+  });
+  carregar();
+  setInterval(function () { if (!document.hidden) carregar(); }, 5000);
+})();
+</script>
+{% endif %}
 {% endblock %}

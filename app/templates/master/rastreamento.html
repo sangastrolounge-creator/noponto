@@ -43,4 +43,13 @@
   <p class="suave pequeno">{{ _('Endereço para colar no painel da Meta (URL de retorno de chamada):') }}</p>
   <p><code>{{ ig_url }}</code></p>
 </section>
+<section class="cartao">
+  <h2>{{ _('WhatsApp no CRM') }}</h2>
+  <p>{% if wa_recebe %}<span class="etiqueta ok">{{ _('Recebendo') }}</span>{% else %}<span class="etiqueta">{{ _('Não recebe') }}</span>{% endif %}
+     {% if wa_envia %}<span class="etiqueta ok">{{ _('Enviando') }}</span>{% else %}<span class="etiqueta">{{ _('Não envia') }}</span>{% endif %}
+     {% if wa_modelo %}<span class="etiqueta azul">{{ _('Modelo: {v1}', v1=wa_modelo) }}</span>{% endif %}</p>
+  <p class="suave pequeno">{{ _('As mensagens do WhatsApp da plataforma aparecem na ficha do lead, e a equipe responde por lá. Receber precisa de META_APP_SECRET e META_VERIFY_TOKEN (ou WA_APP_SECRET e WA_VERIFY_TOKEN); enviar precisa de WA_TOKEN e WA_PHONE_ID no .env do servidor.') }}</p>
+  <p class="suave pequeno">{{ _('Endereço para colar no painel da Meta (URL de retorno de chamada):') }}</p>
+  <p><code>{{ wa_url }}</code></p>
+</section>
 {% endblock %}

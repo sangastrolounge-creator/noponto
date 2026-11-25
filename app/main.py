@@ -24,7 +24,7 @@ from . import core
 from . import db as banco
 from . import crescimento, entrada, parceiros, rep
 from . import setores as setores_mod
-from . import (apuracao, asaas, caixa, instagram, cobranca, conta, crm, rastreio, desligamento, lojas, vendedor, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
+from . import (apuracao, asaas, caixa, instagram, whatsapp, cobranca, conta, crm, rastreio, desligamento, lojas, vendedor, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
                ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
@@ -143,7 +143,8 @@ app.include_router(lojas.rota)
 app.include_router(vendedor.rota)
 app.include_router(rastreio.rota)   # antes do CRM: /master/crm/canais não é um lead
 app.include_router(crm.rota)
-app.include_router(instagram.rota)   # /webhooks/instagram: direct do Instagram vira lead
+app.include_router(instagram.rota)
+app.include_router(whatsapp.rota)    # /webhooks/whatsapp e a conversa do WhatsApp na ficha do lead   # /webhooks/instagram: direct do Instagram vira lead
 app.include_router(caixa.rota)
 app.mount("/midia", StaticFiles(directory=vendas.MIDIA_DIR), name="midia")
 

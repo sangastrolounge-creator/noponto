@@ -125,6 +125,23 @@ class LeadAtividade(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime, index=True)
 
 
+class WhatsMensagem(Base):
+    """Mensagem do WhatsApp da plataforma (API oficial da Meta), ligada ao lead do CRM."""
+    __tablename__ = "crm_whatsapp"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lead_id: Mapped[int] = mapped_column(Integer, index=True)
+    wa_id: Mapped[str] = mapped_column(String(20), default="")          # número da pessoa no WhatsApp (com 55)
+    entrada: Mapped[bool] = mapped_column(Boolean, default=True)        # True = a pessoa mandou
+    texto: Mapped[str] = mapped_column(Text, default="")
+    mid: Mapped[str] = mapped_column(String(120), default="", index=True)   # id da mensagem na Meta
+    status: Mapped[str] = mapped_column(String(20), default="")         # enviada | entregue | lida | falhou
+    erro: Mapped[str] = mapped_column(String(200), default="")
+    autor_id: Mapped[int | None] = mapped_column(Integer, nullable=True)   # quem respondeu pelo CRM
+    pelo_celular: Mapped[bool] = mapped_column(Boolean, default=False)     # resposta dada no app do celular
+    lida: Mapped[bool] = mapped_column(Boolean, default=False)           # a equipe já viu (só entrada)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, index=True)
+
+
 class LeadTarefa(Base):
     """Lembrete de retorno: ligar, mandar proposta, conferir o teste."""
     __tablename__ = "crm_tarefas"

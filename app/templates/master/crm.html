@@ -62,7 +62,7 @@
     <h3><span>{{ _(nome) }}</span><span class="suave">{{ itens|length }}</span></h3>
     {% for ld in itens %}{% set t = pend.get(ld.id) %}
     <a class="crm-card" href="/master/crm/{{ ld.id }}" draggable="true" data-id="{{ ld.id }}">
-      <strong>{{ ld.nome or ld.telefone or _('Sem nome') }}</strong>
+      <strong>{{ ld.nome or ld.telefone or _('Sem nome') }}</strong>{% if ld.id in zap_novas %} <span class="etiqueta ok">{{ _('WhatsApp novo') }}</span>{% endif %}
       {% if ld.empresa_nome %}<br><span class="pequeno">{{ ld.empresa_nome }}</span>{% endif %}
       {% if ld.instagram and ld.nome != '@' ~ ld.instagram %}<br><span class="pequeno">@{{ ld.instagram }}</span>{% endif %}
       {% if ld.funcionarios %}<br><span class="pequeno">{{ _('{v1} funcionário(s)', v1=ld.funcionarios) }}</span>{% endif %}
