@@ -26,13 +26,16 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <h2>{{ _('Novo lead') }}</h2>
   <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
-    <div class="campo"><label>{{ _('Nome') }}</label><input type="text" name="nome" maxlength="80" required></div>
+    <div class="campo"><label>{{ _('Nome') }}</label><input type="text" name="nome" maxlength="80"></div>
     <div class="campo"><label>{{ _('Empresa') }}</label><input type="text" name="empresa_nome" maxlength="80"></div>
     <div class="campo"><label>{{ _('WhatsApp com DDD') }}</label><input type="tel" name="telefone" maxlength="20"></div>
     <div class="campo"><label>{{ _('E-mail') }}</label><input type="email" name="email" maxlength="120"></div>
+    <div class="campo"><label>{{ _('@ do Instagram') }}</label><input type="text" name="instagram" maxlength="80" placeholder="@perfil" autocapitalize="none" spellcheck="false"></div>
+    <div class="campo"><label>{{ _('Funcionários') }}</label><input type="number" name="funcionarios" min="0" max="100000"></div>
     <div class="campo"><label>{{ _('Origem') }}</label><select name="origem">
-      {% for k in ['manual', 'indicacao', 'whatsapp'] %}<option value="{{ k }}">{{ _(ORIGENS[k]) }}</option>{% endfor %}</select></div>
+      {% for k in MANUAIS %}<option value="{{ k }}">{{ _(ORIGENS[k]) }}</option>{% endfor %}</select></div>
   </div>
+  <p class="suave pequeno" style="margin:6px 0 0">{{ _('Informe o nome ou o @ do Instagram. Se escolher Instagram e deixar o nome em branco, o lead fica com o @ como nome.') }}</p>
   <button class="botao" type="submit" style="margin-top:10px">{{ _('Cadastrar') }}</button>
 </form>
 
@@ -44,7 +47,11 @@
     <option value="fila" {{ 'selected' if ver == 'fila' }}>{{ _('Só a fila (sem dono)') }}</option>
     {% if supervisor %}{% for p in time %}<option value="{{ p.id }}" {{ 'selected' if ver == p.id|string }}>{{ _('De {v1}', v1=p.nome) }}</option>{% endfor %}{% endif %}
   </select>
-  <input type="search" name="q" value="{{ q }}" placeholder="{{ _('Nome, empresa, telefone ou e-mail') }}">
+  <select name="origem" onchange="this.form.submit()" aria-label="{{ _('Origem') }}">
+    <option value="">{{ _('Todas as origens') }}</option>
+    {% for k, v in ORIGENS.items() %}<option value="{{ k }}" {{ 'selected' if origem == k }}>{{ _(v) }}</option>{% endfor %}
+  </select>
+  <input type="search" name="q" value="{{ q }}" placeholder="{{ _('Nome, empresa, telefone, e-mail ou @') }}">
   <button class="botao claro" type="submit">{{ _('Buscar') }}</button>
   <span class="suave pequeno">{{ _('{v1} lead(s)', v1=total) }}{% if valor %} · {{ _('previsão {v1}/mês', v1=valor|dinheiro) }}{% endif %}</span>
 </form>
@@ -57,6 +64,8 @@
     <a class="crm-card" href="/master/crm/{{ ld.id }}" draggable="true" data-id="{{ ld.id }}">
       <strong>{{ ld.nome or ld.telefone or _('Sem nome') }}</strong>
       {% if ld.empresa_nome %}<br><span class="pequeno">{{ ld.empresa_nome }}</span>{% endif %}
+      {% if ld.instagram and ld.nome != '@' ~ ld.instagram %}<br><span class="pequeno">@{{ ld.instagram }}</span>{% endif %}
+      {% if ld.funcionarios %}<br><span class="pequeno">{{ _('{v1} funcionário(s)', v1=ld.funcionarios) }}</span>{% endif %}
       <br><span class="dono">{{ nomes.get(ld.dono_id, _('Na fila')) if ld.dono_id else _('Na fila') }} · {{ _(ORIGENS.get(ld.origem, ld.origem)) }}</span>
       {% if t %}<br>{% if t < agora %}<span class="atr">{{ _('Retorno atrasado') }}</span>{% else %}<span class="tar">{{ _('Retorno') }} {{ local(u.empresa, t, '%d/%m %H:%M') }}</span>{% endif %}{% endif %}
     </a>

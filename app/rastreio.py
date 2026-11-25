@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from . import db as banco
 from .core import admin_logado, avisar, exigir_csrf, ir, render
-from .db import Config, Empresa, Lead, Pagamento, SessionLocal, Usuario, get_db
+from .db import Config, Empresa, Lead, Pagamento, SessionLocal, Usuario, VisitaCanal, get_db
 
 rota = APIRouter()
 COOKIE = "dw_origem"
@@ -102,8 +102,11 @@ def gravar_cookie(request: Request, resposta) -> None:
     o = origem_da_visita(request)
     if not o:
         return
-    if request.cookies.get(COOKIE) and not ({"source", "clique"} & o.keys()):
+    antes = ler(request) if request.cookies.get(COOKIE) else {}
+    if antes and not ({"source", "clique"} & o.keys()):
         return
+    if {"source", "clique"} & o.keys() and (canal(antes), antes.get("campaign", "")) != (canal(o), o.get("campaign", "")):
+        contar_visita(o)
     valor = base64.urlsafe_b64encode(json.dumps(o, separators=(",", ":")).encode()).decode().rstrip("=")
     resposta.set_cookie(COOKIE, valor,
                         max_age=DIAS_COOKIE * 86400, httponly=True, samesite="lax",
@@ -128,6 +131,22 @@ REDES = [("google", "Google"), ("instagram", "Instagram"), ("facebook", "Faceboo
          ("ig", "Instagram"), ("meta", "Instagram/Facebook"), ("tiktok", "TikTok"), ("youtube", "YouTube"),
          ("linkedin", "LinkedIn"), ("whatsapp", "WhatsApp"), ("bing", "Bing")]
 PAGOS = {"cpc", "ppc", "paid", "pago", "ads", "paid_social", "cpm", "anuncio", "anúncio"}
+
+
+def contar_visita(o: dict) -> None:
+    """Soma 1 no contador do dia para o canal e a campanha (só quando o navegador ainda não tinha essa origem)."""
+    nome, camp = canal(o)[:60], (o.get("campaign") or "")[:60].lower()
+    try:
+        with SessionLocal() as db:
+            v = db.scalar(select(VisitaCanal).where(VisitaCanal.dia == date.today(), VisitaCanal.canal == nome,
+                                                    VisitaCanal.campanha == camp))
+            if v:
+                v.visitas += 1
+            else:
+                db.add(VisitaCanal(dia=date.today(), canal=nome, campanha=camp, visitas=1))
+            db.commit()
+    except Exception:
+        pass
 
 
 def canal(o: dict | str | None) -> str:
@@ -155,6 +174,20 @@ def canal(o: dict | str | None) -> str:
         return "Outros sites" if ref else "Direto"
     pago = bool(clique) or meio in PAGOS or any(p in meio for p in ("cpc", "paid", "ads"))
     return f"{nome} · {'anúncio' if pago else 'orgânico'}"
+
+
+def _dic(o: dict | str | None) -> dict:
+    if isinstance(o, str):
+        try:
+            o = json.loads(o) if o else {}
+        except ValueError:
+            o = {}
+    return o if isinstance(o, dict) else {}
+
+
+def campanha(o: dict | str | None) -> str:
+    """Nome da campanha (utm_campaign), em minúsculas, ou ""."""
+    return (_dic(o).get("campaign") or "")[:60].lower()
 
 
 def resumo(o: dict | str | None) -> str:
@@ -219,11 +252,26 @@ def canais(request: Request, mes: str = "", u: Usuario = Depends(admin_logado), 
     di, df = datetime.combine(ini, datetime.min.time()), datetime.combine(fim, datetime.min.time())
     pid = crm.empresa_plataforma_id(db)
     linhas: dict[str, dict] = {}
+    camps: dict[tuple, dict] = {}
+    zero = {"visitas": 0, "leads": 0, "testes": 0, "pagantes": 0, "receita": 0}
 
     def linha(nome):
-        return linhas.setdefault(nome, {"canal": nome, "leads": 0, "testes": 0, "pagantes": 0, "receita": 0})
+        return linhas.setdefault(nome, {"canal": nome, **zero})
+
+    def camp(nome, c):
+        return camps.setdefault((nome, c), {"canal": nome, "campanha": c, **zero})
+
+    for nome, c, n in db.execute(select(VisitaCanal.canal, VisitaCanal.campanha, func.sum(VisitaCanal.visitas))
+                                 .where(VisitaCanal.dia >= ini, VisitaCanal.dia < fim)
+                                 .group_by(VisitaCanal.canal, VisitaCanal.campanha)):
+        linha(nome)["visitas"] += n or 0
+        if c:
+            camp(nome, c)["visitas"] += n or 0
     for o, in db.execute(select(Lead.utm).where(Lead.criado_em >= di, Lead.criado_em < df)):
-        linha(canal(o))["leads"] += 1
+        nome = canal(o)
+        linha(nome)["leads"] += 1
+        if campanha(o):
+            camp(nome, campanha(o))["leads"] += 1
     empresas = list(db.scalars(select(Empresa).where(Empresa.criado_em >= di, Empresa.criado_em < df,
                                                      Empresa.id != (pid or 0))))
     pagas = {}
@@ -233,17 +281,22 @@ def canais(request: Request, mes: str = "", u: Usuario = Depends(admin_logado), 
                                        Pagamento.status == "pago")
                                 .group_by(Pagamento.empresa_id)).all())
     for x in empresas:
-        li = linha(canal(x.origem))
-        li["testes"] += 1
-        if pagas.get(x.id):
-            li["pagantes"] += 1
-            li["receita"] += pagas[x.id] or 0
-    tabela = sorted(linhas.values(), key=lambda r: (-r["pagantes"], -r["testes"], -r["leads"], r["canal"]))
+        nome, c = canal(x.origem), campanha(x.origem)
+        alvos = [linha(nome)] + ([camp(nome, c)] if c else [])
+        for li in alvos:
+            li["testes"] += 1
+            if pagas.get(x.id):
+                li["pagantes"] += 1
+                li["receita"] += pagas[x.id] or 0
+    ordem = lambda r: (-r["pagantes"], -r["testes"], -r["leads"], -r["visitas"], r["canal"])  # noqa: E731
+    tabela = sorted(linhas.values(), key=ordem)
+    por_campanha = sorted(camps.values(), key=lambda r: (r["canal"], -r["pagantes"], -r["testes"], -r["visitas"],
+                                                         r["campanha"]))
     meses = []
     m = date.today().replace(day=1)
     for _ in range(12):
         meses.append(m)
         m = (m - timedelta(days=1)).replace(day=1)
     return render(request, "master/crm_canais.html", u=u, e=u.empresa, aba="master", sub="canais",
-                  tabela=tabela, ini=ini, meses=meses, configurado=ligado(),
-                  total={k: sum(r[k] for r in tabela) for k in ("leads", "testes", "pagantes", "receita")})
+                  tabela=tabela, por_campanha=por_campanha, ini=ini, meses=meses, configurado=ligado(),
+                  total={k: sum(r[k] for r in tabela) for k in ("visitas", "leads", "testes", "pagantes", "receita")})

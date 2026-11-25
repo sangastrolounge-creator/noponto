@@ -1,7 +1,7 @@
 {% extends "master/base.html" %}
 {% block master %}
 <div class="cabecalho"><div><h1>{{ _('Clientes por canal') }}</h1>
-<p class="suave" style="margin:0">{{ _('De onde vieram os leads, as contas de teste e os pagantes do mês. Pagante é a conta criada no mês que já tem pagamento confirmado.') }}</p></div>
+<p class="suave" style="margin:0">{{ _('De onde vieram as visitas, os leads, as contas de teste e os pagantes do mês. Pagante é a conta criada no mês que já tem pagamento confirmado.') }}</p></div>
 {% if 'config' in u.areas_master %}<div class="acoes"><a class="botao claro" href="/master/rastreamento">{{ _('Rastreamento de anúncios') }}</a></div>{% endif %}</div>
 {% if not configurado %}<p class="alerta">{{ _('Nenhum código de anúncio ligado ainda. A origem pelos links marcados e pelos sites já é registrada.') }}</p>{% endif %}
 <form method="get" style="margin:12px 0"><select name="mes" onchange="this.form.submit()" aria-label="{{ _('Mês') }}" style="width:auto;min-width:180px">
@@ -10,17 +10,32 @@
 <section class="cartao">
 {% if tabela %}
 <div class="tabela-rolagem"><table class="tabela">
-  <thead><tr><th>{{ _('Canal') }}</th><th class="num">{{ _('Leads') }}</th><th class="num">{{ _('Contas de teste') }}</th><th class="num">{{ _('Pagantes') }}</th><th class="num">{{ _('Recebido') }}</th><th class="num">{{ _('Teste que virou pagante') }}</th></tr></thead>
+  <thead><tr><th>{{ _('Canal') }}</th><th class="num">{{ _('Visitas') }}</th><th class="num">{{ _('Leads') }}</th><th class="num">{{ _('Contas de teste') }}</th><th class="num">{{ _('Pagantes') }}</th><th class="num">{{ _('Recebido') }}</th><th class="num">{{ _('Teste que virou pagante') }}</th></tr></thead>
   <tbody>
   {% for r in tabela %}
-    <tr><td>{{ r.canal }}</td><td class="num">{{ r.leads }}</td><td class="num">{{ r.testes }}</td><td class="num">{{ r.pagantes }}</td>
+    <tr><td>{{ r.canal }}</td><td class="num">{{ r.visitas or '—' }}</td><td class="num">{{ r.leads }}</td><td class="num">{{ r.testes }}</td><td class="num">{{ r.pagantes }}</td>
       <td class="num">{{ r.receita|dinheiro }}</td><td class="num">{{ ((r.pagantes * 100 / r.testes)|round|int ~ '%') if r.testes else '—' }}</td></tr>
   {% endfor %}
   </tbody>
-  <tfoot><tr><th>{{ _('Total') }}</th><th class="num">{{ total.leads }}</th><th class="num">{{ total.testes }}</th><th class="num">{{ total.pagantes }}</th><th class="num">{{ total.receita|dinheiro }}</th>
+  <tfoot><tr><th>{{ _('Total') }}</th><th class="num">{{ total.visitas }}</th><th class="num">{{ total.leads }}</th><th class="num">{{ total.testes }}</th><th class="num">{{ total.pagantes }}</th><th class="num">{{ total.receita|dinheiro }}</th>
     <th class="num">{{ ((total.pagantes * 100 / total.testes)|round|int ~ '%') if total.testes else '—' }}</th></tr></tfoot>
 </table></div>
 {% else %}<p class="suave">{{ _('Nada registrado neste mês.') }}</p>{% endif %}
 </section>
-<p class="suave pequeno">{{ _('Para saber o custo por cliente, divida o que gastou no canal pelo número de pagantes. Contas criadas antes do rastreamento aparecem como Direto.') }}</p>
+{% if por_campanha %}
+<section class="cartao">
+<h2>{{ _('Por campanha') }}</h2>
+<p class="suave pequeno" style="margin-top:0">{{ _('Só os links com utm_campaign. Ex.: dataworke.com.br/?utm_source=instagram&utm_medium=social&utm_campaign=escala6x1') }}</p>
+<div class="tabela-rolagem"><table class="tabela">
+  <thead><tr><th>{{ _('Canal') }}</th><th>{{ _('Campanha') }}</th><th class="num">{{ _('Visitas') }}</th><th class="num">{{ _('Leads') }}</th><th class="num">{{ _('Contas de teste') }}</th><th class="num">{{ _('Pagantes') }}</th><th class="num">{{ _('Recebido') }}</th></tr></thead>
+  <tbody>
+  {% for r in por_campanha %}
+    <tr><td>{{ r.canal }}</td><td>{{ r.campanha }}</td><td class="num">{{ r.visitas or '—' }}</td><td class="num">{{ r.leads }}</td>
+      <td class="num">{{ r.testes }}</td><td class="num">{{ r.pagantes }}</td><td class="num">{{ r.receita|dinheiro }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+</section>
+{% endif %}
+<p class="suave pequeno">{{ _('Para saber o custo por cliente, divida o que gastou no canal pelo número de pagantes. Contas criadas antes do rastreamento aparecem como Direto. Visitas contam cada navegador uma vez por campanha.') }}</p>
 {% endblock %}
