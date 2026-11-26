@@ -74,7 +74,8 @@ def main():
 
     # configuração: a tela americana aparece só para a empresa americana
     tb = csrf(br, "/painel/config")
-    assert "California ★" not in br.get("/painel/config").text
+    tela_br = br.get("/painel/config").text
+    assert "California ★" not in tela_br and "anco de horas" in tela_br
     tg = csrf(us, "/painel/config")
     tela = us.get("/painel/config").text
     assert 'value="FL" selected' in tela and "California ★" in tela and "Eastern (ET)" in tela
@@ -113,11 +114,7 @@ def main():
         db.commit()
     as_("08:00", DOM + timedelta(days=8))
     sab = DOM + timedelta(days=6)
-    resp = us.get(f"/painel/fechamento?de={DOM}&ate={sab}")
-    tela = resp.text
-    if "Extra 1,5x" not in tela:
-        corpo = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", tela))
-        print("DIAG", resp.status_code, resp.headers.get("location"), corpo[:3000])
+    tela = us.get(f"/painel/fechamento?de={DOM}&ate={sab}").text
     assert "Extra 1,5x" in tela and "Dobro 2x" in tela and "Meal premium" in tela
     assert "22h00" in tela and "40h00" in tela
 
@@ -146,9 +143,10 @@ def main():
     with SessionLocal() as db:
         assert db.get(Empresa, eid).pais == "US"
 
-    # a empresa brasileira continua com a tela e as regras do Brasil
-    tela = br.get("/painel/config").text
-    assert "Banco de horas" in tela or "banco de horas" in tela
+    # a empresa brasileira continua no Brasil, com as regras de lá
+    with SessionLocal() as db:
+        b = db.scalar(select(Empresa).where(Empresa.nome == "Bar do Brasil"))
+        assert (b.pais, b.estado, b.controle) == ("BR", "", "banco")
     print("OK: telas dos EUA passou")
 
 
