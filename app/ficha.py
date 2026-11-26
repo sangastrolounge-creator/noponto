@@ -248,7 +248,7 @@ async def novo(request: Request, u: Usuario = Depends(gestor_logado), db: Sessio
     encaixar_no_alcance(u, alvo)
     _registrar_rh(db, e, u, alvo, dr)
     regras.registrar(db, e.id, u.nome, "pessoa cadastrada",
-                     f"{alvo.nome}: {NIVEIS[d['nivel']]}, {CLASSIFICACOES[d['classificacao']][1]}"
+                     f"{alvo.nome}: {NIVEIS[d['nivel']]}, {classificacoes(e)[d['classificacao']][1]}"
                      + (f", {alvo.cargo}" if alvo.cargo else "") + ".")
     db.commit()
     avisar(request, f"{alvo.nome} cadastrado(a). Envie o link de acesso para criar a senha.")
