@@ -1,6 +1,9 @@
 {# Códigos de medição de anúncios (Meta, Google, TikTok). Só na página de vendas e no cadastro, e só depois
    do aceite no aviso de cookies (LGPD). Depois do cadastro, a primeira tela do painel envia a conversão. #}
-{% if rastreio %}
+{% if rastreio and rastreio.rast_meta_dominio and rastreio.publica %}
+<meta name="facebook-domain-verification" content="{{ rastreio.rast_meta_dominio }}">
+{% endif %}
+{% if rastreio and not rastreio.so_dominio %}
 <script>
 (function () {
   var R = {{ {"meta": rastreio.rast_meta_pixel, "ga4": rastreio.rast_ga4, "ads": rastreio.rast_google_ads,

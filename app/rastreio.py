@@ -32,6 +32,7 @@ CAMPOS = {
     "rast_google_ads": (r"AW-\d{6,14}", "ID da conta do Google Ads"),
     "rast_google_ads_rotulo": (r"[A-Za-z0-9_\-]{6,40}", "Rótulo da conversão do Google Ads"),
     "rast_tiktok_pixel": (r"[A-Z0-9]{10,30}", "ID do Pixel do TikTok"),
+    "rast_meta_dominio": (r"[a-z0-9]{16,40}", "Verificação de domínio do Meta"),
 }
 UTM = ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term")
 CLIQUES = {"gclid": "google", "gbraid": "google", "wbraid": "google", "fbclid": "meta", "ttclid": "tiktok",
@@ -62,6 +63,9 @@ def contexto(request: Request) -> dict | None:
     """O que o template precisa: os IDs, se esta página pode carregar os códigos e se há uma conversão
     a enviar (cadastro recém-feito)."""
     if not ligado():
+        dom = ids().get("rast_meta_dominio")
+        if dom and request.url.path == "/":
+            return {**ids(), "publica": True, "evento": False, "so_dominio": True}
         return None
     evento = request.session.pop("evento_cadastro", None) if "evento_cadastro" in request.session else None
     publica = bool(_PUBLICAS.match(request.url.path))
@@ -224,6 +228,9 @@ async def salvar(request: Request, u: Usuario = Depends(admin_logado), db: Sessi
     erros = []
     for k, (padrao, nome) in CAMPOS.items():
         v = re.sub(r"\s+", "", str(form.get(k, "")))
+        if k == "rast_meta_dominio":   # aceita a tag inteira copiada do Meta
+            m = re.search(r'content=["\']?([A-Za-z0-9]+)', v)
+            v = (m.group(1) if m else v).lower()
         if k == "rast_tiktok_pixel":
             v = v.upper()
         if v and not re.fullmatch(padrao, v):

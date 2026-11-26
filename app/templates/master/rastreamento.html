@@ -9,6 +9,9 @@
   <div class="campo"><label for="rast_meta_pixel">{{ _('ID do Pixel do Meta') }}</label>
     <input type="text" id="rast_meta_pixel" name="rast_meta_pixel" inputmode="numeric" value="{{ d.rast_meta_pixel }}" placeholder="1234567890123456">
     <div class="ajuda">{{ _('No Gerenciador de Eventos do Meta: Fontes de dados → seu Pixel → o número embaixo do nome. O evento enviado no cadastro é CompleteRegistration.') }}</div></div>
+  <div class="campo"><label for="rast_meta_dominio">{{ _('Verificação de domínio do Meta') }}</label>
+    <input type="text" id="rast_meta_dominio" name="rast_meta_dominio" value="{{ d.rast_meta_dominio }}" placeholder="ywktbj3d8kp8t2zbcuju6rgepotbwf" autocapitalize="none" spellcheck="false">
+    <div class="ajuda">{{ _('No portfólio do Meta: Segurança da marca → Domínios → dataworke.com.br → Adicionar uma metatag. Cole a tag inteira ou só o código; ela vai para o cabeçalho da página inicial. Depois clique em Verificar domínio no Meta.') }}</div></div>
   <h2 style="margin-top:18px">{{ _('Google') }}</h2>
   <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
     <div class="campo"><label for="rast_ga4">{{ _('ID de medição do Google Analytics 4') }}</label>
