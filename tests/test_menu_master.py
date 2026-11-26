@@ -1,4 +1,4 @@
-"""Menu do Master à direita, por categoria, sem o menu da empresa. Rodar da raiz: python tests/test_menu_master.py"""
+"""Menu do Master na barra lateral esquerda, por categoria, no lugar do menu da empresa. Rodar da raiz: python tests/test_menu_master.py"""
 import os
 import re
 import sys
@@ -28,19 +28,19 @@ def main():
     for caminho, ativo in (("/master", "Empresas"), ("/master/crm", "CRM (funil)"),
                            ("/master/plataforma", "Plataforma")):
         tela = m.get(caminho).text
-        assert 'class="master-menu"' in tela, caminho
-        for grupo in ("Vendas", "Clientes", "Financeiro", "Marketing e site", "Sistema"):
-            assert f"<span>{grupo}</span>" in tela, (caminho, grupo)
-        # o grupo da tela atual abre e o item fica marcado
-        assert re.search(r'class="ativa" aria-current="page">' + re.escape(ativo), tela), caminho
-        # o menu da empresa some; fica só o caminho de volta
         menu = tela[tela.index('class="abas"'):tela.index("</nav>", tela.index('class="abas"'))]
+        for grupo in ("Vendas", "Clientes", "Financeiro", "Marketing e site", "Sistema"):
+            assert f"<span>{grupo}</span>" in menu, (caminho, grupo)
+        # o grupo da tela atual abre e o item fica marcado
+        assert re.search(r'class="atual" aria-current="page">' + re.escape(ativo), menu), caminho
+        assert menu.count("grupo com-sub aberto") == 1, caminho
+        # o menu da empresa some; fica só o caminho de volta
         assert "/painel/escala" not in menu and "/painel/fechamento" not in menu and 'href="/painel"' in menu
-        assert 'class="subabas"' not in tela
+        assert 'class="subabas"' not in tela and 'class="master-menu"' not in tela
     # fora do Master o menu da empresa continua igual
     tela = m.get("/painel").text
     menu = tela[tela.index('class="abas"'):tela.index("</nav>", tela.index('class="abas"'))]
-    assert "/painel/escala" in menu and 'class="master-menu"' not in tela
+    assert "/painel/escala" in menu and "/master/crm/canais" not in menu
     print("OK: menu do Master passou")
 
 
