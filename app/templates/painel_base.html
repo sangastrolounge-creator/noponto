@@ -3,14 +3,22 @@
 {% block corpo %}
 {% from "_marca.html" import logo_nome %}
 {% from "_idioma.html" import seletor %}
-<header class="topo"><div class="topo-dentro">
+<header class="topo com-gaveta"><div class="topo-dentro">
   <div class="marca-linha">
+    {# Celular e tablet: o menu abre como uma gaveta pela esquerda (só no painel do gestor e no Master). #}
+    <button type="button" class="abrir-gaveta" id="abrir-gaveta" aria-controls="menu-gaveta" aria-expanded="false" aria-label="{{ _('Abrir o menu') }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
     <a class="marca" href="/painel" aria-label="{{ app_nome }}"><img class="marca-icone" src="/static/icone-512.png?v=4" alt="">{{ logo_nome("na-lateral") }}</a>
     <button type="button" class="recolher-lateral" id="recolher-lateral" onclick="recolherLateral()" title="{{ _('Recolher ou expandir o menu') }}" aria-label="{{ _('Recolher ou expandir o menu') }}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M9.5 4v16"/><path class="seta" d="M15.5 10l-2 2 2 2"/></svg>
     </button>
   </div>
   {% set selos = contadores_menu(u) %}
+  {% macro fechar_gaveta() -%}
+    <div class="gaveta-topo"><span class="marca marca-nome">{{ logo_nome() }}</span>
+      <button type="button" class="fechar-gaveta" data-fechar-gaveta aria-label="{{ _('Fechar o menu') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  {%- endmacro %}
   {% macro item(href, chave, rotulo, desenho, subs=[]) -%}
     {%- set ativo = aba == chave -%}
     <div class="grupo {{ 'com-sub' if subs }} {{ 'aberto' if ativo and subs }}" data-grupo="{{ chave }}">
@@ -57,7 +65,8 @@
       ('/master/folha', 'folha', _('Claude'), 'config'),
       ('/master/email', 'email', _('Envio de e-mails'), 'config')]),
   ] %}
-  <nav class="abas" aria-label="{{ _('Menu do Master') }}">
+  <nav class="abas" id="menu-gaveta" aria-label="{{ _('Menu do Master') }}">
+    {{ fechar_gaveta() }}
     <span class="menu-titulo">{{ _('Master') }}</span>
     {% for chave_g, titulo, desenho, itens in grupos_master %}
       {% set meus = itens|selectattr(3, 'in', ar)|list %}
@@ -79,7 +88,8 @@
     {% if not u.is_admin and u.na_escala %}{{ item('/app', 'meu', _('Meu ponto'), '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/>') }}{% endif %}
   </nav>
   {% else %}
-  <nav class="abas" aria-label="{{ _('Menu do painel') }}">
+  <nav class="abas" id="menu-gaveta" aria-label="{{ _('Menu do painel') }}">
+    {{ fechar_gaveta() }}
     <span class="menu-titulo">{{ _('Dia a dia') }}</span>
     {{ item('/painel', 'hoje', _('Hoje'), '<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>') }}
     {% if pode(u, 'escala') %}{{ item('/painel/escala', 'escala', _('Escala'), '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>') }}{% endif %}
@@ -133,6 +143,7 @@
     </div>
   </div>
 </div></header>
+<div class="gaveta-fundo" data-fechar-gaveta hidden></div>
 <main class="pagina">
   {% if suporte %}
   <form method="post" action="/master/voltar" class="alerta" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
@@ -179,6 +190,33 @@
       var abrir = !g.classList.contains("aberto");
       grupos.forEach(function (o) { marcar(o, o === g ? abrir : false); });
     });
+  });
+})();
+</script>
+<script>
+/* Celular e tablet: gaveta do menu pela esquerda, por cima da tela. Fecha no fundo, no X,
+   na tecla Esc e ao escolher uma tela. */
+(function () {
+  var botao = document.getElementById("abrir-gaveta"), fundo = document.querySelector(".gaveta-fundo"),
+      menu = document.getElementById("menu-gaveta"), raiz = document.documentElement;
+  if (!botao || !menu) return;
+  function mudar(abrir) {
+    raiz.classList.toggle("gaveta-aberta", abrir);
+    botao.setAttribute("aria-expanded", abrir ? "true" : "false");
+    fundo.hidden = !abrir;
+    if (abrir) { var a = menu.querySelector("a.ativa, a.atual") || menu.querySelector("a"); if (a) a.focus({ preventScroll: true }); }
+    else botao.focus({ preventScroll: true });
+  }
+  botao.addEventListener("click", function () { mudar(!raiz.classList.contains("gaveta-aberta")); });
+  document.querySelectorAll("[data-fechar-gaveta]").forEach(function (el) {
+    el.addEventListener("click", function () { mudar(false); });
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && raiz.classList.contains("gaveta-aberta")) mudar(false);
+  });
+  menu.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest("a[href]");
+    if (a && raiz.classList.contains("gaveta-aberta")) raiz.classList.remove("gaveta-aberta");
   });
 })();
 </script>

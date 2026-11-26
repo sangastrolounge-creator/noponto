@@ -37,10 +37,16 @@ def main():
         # o menu da empresa some; fica só o caminho de volta
         assert "/painel/escala" not in menu and "/painel/fechamento" not in menu and 'href="/painel"' in menu
         assert 'class="subabas"' not in tela and 'class="master-menu"' not in tela
+        # celular: o mesmo menu abre como gaveta pelo botão do topo
+        assert 'id="abrir-gaveta"' in tela and 'id="menu-gaveta"' in tela and 'class="gaveta-fundo"' in tela
     # fora do Master o menu da empresa continua igual
     tela = m.get("/painel").text
     menu = tela[tela.index('class="abas"'):tela.index("</nav>", tela.index('class="abas"'))]
     assert "/painel/escala" in menu and "/master/crm/canais" not in menu
+    assert 'id="abrir-gaveta"' in tela and 'class="topo com-gaveta"' in tela
+    # o app do funcionário não tem a gaveta (continua com a barra dele)
+    base_app = (Path(__file__).resolve().parent.parent / "app" / "templates" / "app_base.html").read_text(encoding="utf-8")
+    assert "abrir-gaveta" not in base_app and "com-gaveta" not in base_app
     print("OK: menu do Master passou")
 
 
