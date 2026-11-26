@@ -383,6 +383,11 @@ def app_ios(request: Request) -> bool:
     return APP_IOS in request.headers.get("user-agent", "")
 
 
+def caminho_da_tela(request: Request) -> str:
+    """Endereço que o usuário pediu (o middleware de telas por país pode ter trocado o interno)."""
+    return request.scope.get("caminho_pedido") or request.url.path
+
+
 def render(request: Request, nome: str, status_code: int = 200, **ctx):
     from . import parceiros
     plat = plataforma()
@@ -494,7 +499,7 @@ def gestor_logado(request: Request, u: Usuario = Depends(usuario_logado),
                            .where(Usuario.empresa_id == u.empresa_id)
                            .execution_options(alcance_livre=True)).all()
         db.info["alcance"] = (u.empresa_id, {p.id for p in todos if ve_pessoa(u, p)})
-        caminho = request.url.path
+        caminho = caminho_da_tela(request)
         bloqueado = request.method == "POST" and (
             any(caminho == r or caminho.startswith(r + "/") for r in SO_SEM_ALCANCE[1:])
             or caminho == "/painel/fechamento" or caminho.endswith("/reabrir"))
@@ -507,14 +512,14 @@ def gestor_logado(request: Request, u: Usuario = Depends(usuario_logado),
                                if ref.netloc == request.url.netloc and ref.path.startswith("/painel") else "/painel")
     # Assinatura vencida: o gestor só enxerga a tela Assinatura (o suporte entra mesmo assim).
     if (not pode_usar(u.empresa) and not request.session.get("master_uid")
-            and not request.url.path.startswith("/painel/assinatura")):
+            and not caminho_da_tela(request).startswith("/painel/assinatura")):
         raise Redirecionar("/painel/assinatura")
-    recurso = recurso_da_rota(request.url.path)
+    recurso = recurso_da_rota(caminho_da_tela(request))
     if recurso and not recurso_liberado(u.empresa, recurso) and not request.session.get("master_uid"):
         avisar(request, f"Seu plano {u.empresa.plano.nome} não inclui {RECURSOS[recurso]}. "
                         "Veja os planos abaixo para liberar.", "erro")
         raise Redirecionar("/painel/assinatura")
-    chave = permissao_da_rota(request.url.path, request.method)
+    chave = permissao_da_rota(caminho_da_tela(request), request.method)
     if chave and not pode(u, chave) and not request.session.get("master_uid"):
         avisar(request, "Você não tem acesso a esta parte do painel. Fale com o dono da conta.", "erro")
         raise Redirecionar("/painel")
@@ -615,9 +620,9 @@ def destino_inicial(u: Usuario) -> str:
 def admin_logado(request: Request, u: Usuario = Depends(usuario_logado)) -> Usuario:
     if not u.acesso_master:
         raise Redirecionar("/painel" if u.gestor else "/app")
-    area = area_do_caminho(request.url.path)
+    area = area_do_caminho(caminho_da_tela(request))
     if area not in u.areas_master:
-        if request.url.path.rstrip("/") == "/master":
+        if caminho_da_tela(request).rstrip("/") == "/master":
             raise Redirecionar(inicio_master(u))
         avisar(request, "Você não tem acesso a esta área do Master.", "erro")
         raise Redirecionar(inicio_master(u))

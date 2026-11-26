@@ -97,6 +97,9 @@ async def _vida(_: FastAPI):
 
 app = FastAPI(title=APP_NOME, docs_url=None, redoc_url=None, openapi_url=None,
               lifespan=_vida)
+# Telas com versão por país (ex.: pagamento dos EUA). Fica por dentro da sessão para ler o login.
+from .paises.rotas import RotasPorPais  # noqa: E402
+app.add_middleware(RotasPorPais)
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY,
                    session_cookie="turno_sessao", same_site="lax",
                    https_only=COOKIE_SECURE, max_age=60 * 60 * 24 * 90)
@@ -146,6 +149,8 @@ from .paises.us import descanso as _us_descanso, escala_justa as _us_fw  # noqa:
 from .paises.us import pto as _us_pto, salario_minimo as _us_sm, telas as _us_telas  # noqa: E402
 for _r in (_us_descanso.rota, _us_fw.rota, _us_pto.rota, _us_sm.rota):
     app.include_router(_r, dependencies=[Depends(_us_telas.so_eua)])
+from .paises.us import pagamento as _us_pagamento  # noqa: E402
+app.include_router(_us_pagamento.rota, prefix="/eua", dependencies=[Depends(_us_telas.so_eua)])
 app.include_router(rastreio.rota)   # antes do CRM: /master/crm/canais não é um lead
 app.include_router(crm.rota)
 app.include_router(instagram.rota)
