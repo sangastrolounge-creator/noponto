@@ -394,10 +394,7 @@ def app_ios(request: Request) -> bool:
 
 def nome_eua(nome: str) -> str:
     """Nome da plataforma no site e nas telas dos EUA: sem o "Brasil" do fim."""
-    for fim in (" Brasil", " brasil", " BR"):
-        if nome.endswith(fim):
-            return nome[: -len(fim)].strip()
-    return nome
+    return re.sub(r"\s+(brasil|br)$", "", nome.strip(), flags=re.IGNORECASE) or nome
 
 
 def caminho_da_tela(request: Request) -> str:
