@@ -3,13 +3,13 @@
 O país pertence à empresa (Empresa.pais, escolhido no cadastro) e decide as regras
 trabalhistas, os feriados, os períodos, a folha e a cobrança. As telas pedem as regras com
 regras_de(empresa) e chamam as funções do contrato abaixo, nunca um módulo de regra direto.
-Cada país é um módulo deste pacote (br.py, e depois us.py) que cumpre o mesmo contrato.
+Cada país é um módulo deste pacote (br.py, us/) que cumpre o mesmo contrato.
 
 Idioma é outra coisa: português, inglês e espanhol valem para qualquer país."""
 from importlib import import_module
 
 PADRAO = "BR"
-PAISES = {"BR": "Brasil"}
+PAISES = {"BR": "Brasil", "US": "Estados Unidos"}
 
 # O que todo país precisa oferecer (conferido pelos testes).
 CONTRATO = (

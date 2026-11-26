@@ -301,6 +301,26 @@ class Empresa(Base):
     # País da empresa (BR, US): decide leis, feriados, folha, moeda e cobrança. Escolhido no
     # cadastro, nunca pelo IP; o idioma é separado. Ver app/paises.
     pais: Mapped[str] = mapped_column(String(2), default="BR")
+    # --- EUA (só valem para empresas com pais == "US"; ver app/paises/us) ---
+    estado: Mapped[str] = mapped_column(String(2), default="")         # sigla do estado americano
+    ot_semana_min: Mapped[int] = mapped_column(Integer, default=2400)  # extra acima de 40 h/semana
+    ot_dia_min: Mapped[int] = mapped_column(Integer, default=0)        # extra 1,5x acima disso no dia (0 = não)
+    dt_dia_min: Mapped[int] = mapped_column(Integer, default=0)        # dobro (2x) acima disso no dia (0 = não)
+    setimo_dia: Mapped[bool] = mapped_column(Boolean, default=False)   # 7º dia seguido na semana (CA)
+    meal_premium: Mapped[bool] = mapped_column(Boolean, default=False) # 1 h extra paga sem refeição (CA)
+    semana_inicio: Mapped[int] = mapped_column(Integer, default=6)     # 0 = segunda ... 6 = domingo
+    frequencia: Mapped[str] = mapped_column(String(12), default="biweekly")  # weekly|biweekly|semimonthly|monthly
+    periodo_ancora: Mapped[date | None] = mapped_column(Date, nullable=True)  # início de um período
+    pct_feriado: Mapped[int] = mapped_column(Integer, default=0)
+    cidade_minimo: Mapped[str] = mapped_column(String(40), default="")
+    descanso_premium: Mapped[bool] = mapped_column(Boolean, default=True)
+    escala_justa: Mapped[str] = mapped_column(String(20), default="")
+    minimo_gorjeta_proprio_centavos: Mapped[int] = mapped_column(Integer, default=0)
+    sick_por_horas: Mapped[int] = mapped_column(Integer, default=0)
+    sick_limite_min: Mapped[int] = mapped_column(Integer, default=0)
+    pto_por_horas: Mapped[int] = mapped_column(Integer, default=0)
+    pto_limite_min: Mapped[int] = mapped_column(Integer, default=0)
+    ein: Mapped[str] = mapped_column(String(20), default="")  # Employer Identification Number
     endereco: Mapped[str] = mapped_column(String(300), default="")
     logo: Mapped[str] = mapped_column(String(60), default="")  # arquivo em dados/logos (impressos)
     facial_ativo: Mapped[bool] = mapped_column(Boolean, default=False)  # reconhecimento facial no ponto
@@ -427,6 +447,10 @@ class Empresa(Base):
 class Usuario(Base):
     __tablename__ = "usuarios"
     id: Mapped[int] = mapped_column(primary_key=True)
+    # EUA: valor da hora, isento de hora extra (exempt) e salário por período (só isentos)
+    taxa_hora_centavos: Mapped[int] = mapped_column(Integer, default=0)
+    isento: Mapped[bool] = mapped_column(Boolean, default=False)
+    salario_periodo_centavos: Mapped[int] = mapped_column(Integer, default=0)
     empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
     nome: Mapped[str] = mapped_column(String(120))
     cargo: Mapped[str] = mapped_column(String(80), default="")
@@ -945,6 +969,8 @@ class Fechamento(Base):
     """Período de ponto fechado: nada dentro dele pode mais ser alterado."""
     __tablename__ = "fechamentos"
     id: Mapped[int] = mapped_column(primary_key=True)
+    estado: Mapped[str] = mapped_column(String(2), default="")   # EUA: estado no fechamento
+    pct_feriado: Mapped[int] = mapped_column(Integer, default=0)  # EUA
     empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
     inicio: Mapped[date] = mapped_column(Date)
     fim: Mapped[date] = mapped_column(Date)
@@ -962,6 +988,16 @@ class FechamentoLinha(Base):
     """Totais de um funcionário num período fechado (tudo em minutos) e o aceite dele."""
     __tablename__ = "fechamento_linhas"
     id: Mapped[int] = mapped_column(primary_key=True)
+    # EUA (FLSA e estados)
+    regular: Mapped[int] = mapped_column(Integer, default=0)         # horas normais
+    ot: Mapped[int] = mapped_column(Integer, default=0)              # overtime 1,5x
+    dt: Mapped[int] = mapped_column(Integer, default=0)              # double time 2x
+    meal_premios: Mapped[int] = mapped_column(Integer, default=0)    # horas de meal premium (CA)
+    descanso_premios: Mapped[int] = mapped_column(Integer, default=0)  # horas de rest premium (CA)
+    previsibilidade_min: Mapped[int] = mapped_column(Integer, default=0)       # minutos pagos ao valor da hora
+    previsibilidade_centavos: Mapped[int] = mapped_column(Integer, default=0)  # valores fixos (ex.: US$ 40)
+    feriado_min: Mapped[int] = mapped_column(Integer, default=0)     # horas trabalhadas em feriado
+    pto_min: Mapped[int] = mapped_column(Integer, default=0)         # licença remunerada (sick/PTO)
     fechamento_id: Mapped[int] = mapped_column(ForeignKey("fechamentos.id", ondelete="CASCADE"), index=True)
     empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
     usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), index=True)
@@ -1017,6 +1053,9 @@ class FolhaItem(Base):
     """Holerite de um funcionário dentro da folha de pagamento."""
     __tablename__ = "folha_itens"
     id: Mapped[int] = mapped_column(primary_key=True)
+    taxa_hora_centavos: Mapped[int] = mapped_column(Integer, default=0)  # EUA
+    isento: Mapped[bool] = mapped_column(Boolean, default=False)          # EUA
+    salario_periodo_centavos: Mapped[int] = mapped_column(Integer, default=0)  # EUA
     folha_id: Mapped[int] = mapped_column(ForeignKey("folhas_pagamento.id", ondelete="CASCADE"), index=True)
     empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
     usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), index=True)
@@ -1173,6 +1212,59 @@ class EscalaPublicada(Base):
     assinaturas: Mapped[str] = mapped_column(Text, default="{}")
     publicado_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     publicado_por: Mapped[str] = mapped_column(String(120), default="")
+
+
+class DescansoDia(Base):
+    """EUA (Califórnia): resposta sobre as pausas de descanso de 10 min do dia de trabalho.
+    resposta: "sim" (fez todas) | "escolhi" (preferiu não fazer) | "nao_liberado" (não foi liberado:
+    o empregador deve 1 h de rest premium no dia)."""
+    __tablename__ = "descansos_dia"
+    __table_args__ = (UniqueConstraint("usuario_id", "dia"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id", ondelete="CASCADE"), index=True)
+    dia: Mapped[date] = mapped_column(Date, index=True)
+    resposta: Mapped[str] = mapped_column(String(14))
+    origem: Mapped[str] = mapped_column(String(12), default="funcionario")  # funcionario | gestor
+    por: Mapped[str] = mapped_column(String(120), default="")
+    em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    usuario: Mapped[Usuario] = relationship()
+
+
+class MovimentoPTO(Base):
+    """EUA: extrato dos saldos de sick leave e PTO: ganho no fechamento, uso nas ausências pagas
+    e ajustes do gestor. Saldo = soma dos minutos."""
+    __tablename__ = "movimentos_pto"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), index=True)
+    banco: Mapped[str] = mapped_column(String(6))     # sick | pto
+    minutos: Mapped[int] = mapped_column(Integer)     # positivo = ganhou; negativo = usou
+    motivo: Mapped[str] = mapped_column(String(10))   # acumulo | uso | ajuste
+    fechamento_id: Mapped[int | None] = mapped_column(
+        ForeignKey("fechamentos.id", ondelete="CASCADE"), nullable=True, index=True)
+    obs: Mapped[str] = mapped_column(String(200), default="")
+    criado_por: Mapped[str] = mapped_column(String(120), default="")
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    usuario: Mapped[Usuario] = relationship()
+
+
+class PremioEscala(Base):
+    """EUA (Fair Workweek): adicional devido porque o gestor mudou um dia já publicado dentro do
+    prazo de aviso. Um registro por pessoa e dia, comparando com a versão publicada."""
+    __tablename__ = "premios_escala"
+    __table_args__ = (UniqueConstraint("usuario_id", "data"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id", ondelete="CASCADE"), index=True)
+    data: Mapped[date] = mapped_column(Date, index=True)
+    minutos: Mapped[int] = mapped_column(Integer, default=0)   # minutos pagos ao valor da hora
+    antes: Mapped[str] = mapped_column(String(20), default="")
+    depois: Mapped[str] = mapped_column(String(20), default="")
+    detalhe: Mapped[str] = mapped_column(String(200), default="")
+    criado_por: Mapped[str] = mapped_column(String(120), default="")
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
+    usuario: Mapped[Usuario] = relationship()
 
 
 class Mensagem(Base):
