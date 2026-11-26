@@ -113,7 +113,11 @@ def main():
         db.commit()
     as_("08:00", DOM + timedelta(days=8))
     sab = DOM + timedelta(days=6)
-    tela = us.get(f"/painel/fechamento?de={DOM}&ate={sab}").text
+    resp = us.get(f"/painel/fechamento?de={DOM}&ate={sab}")
+    tela = resp.text
+    if "Extra 1,5x" not in tela:
+        corpo = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", tela))
+        print("DIAG", resp.status_code, resp.headers.get("location"), corpo[:3000])
     assert "Extra 1,5x" in tela and "Dobro 2x" in tela and "Meal premium" in tela
     assert "22h00" in tela and "40h00" in tela
 
