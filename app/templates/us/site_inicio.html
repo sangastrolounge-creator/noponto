@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('{v1} — escala, ponto e tarefas da equipe', v1=(app_nome)) }}{% endblock %}
+{% block corpo %}
+{# Página inicial do site americano (dataworke.com): regras dos EUA, preços em dólar. #}
+{% from "_marca.html" import logo_nome %}
+{% from "_idioma.html" import seletor %}
+<div class="barra-site">
+  <span class="marca marca-nome">{{ logo_nome() }}</span>
+  <div class="acoes" style="align-items:center">{{ seletor() }}<a class="botao claro" href="/entrar">{{ _('Entrar') }}</a></div>
+</div>
+<section class="heroi">
+  <h1>{{ _('Escala, ponto e tarefas da sua equipe, no celular de cada um') }}</h1>
+  <p>{{ _('Monte a escala da semana em minutos. O funcionário bate o ponto pelo celular e o sistema confere se ele está mesmo na empresa. Hora extra pela lei federal e pelas regras do seu estado, calculada sozinha.') }}</p>
+  <div class="acoes">
+    {% if cadastro_eua %}<a class="botao" href="/cadastro">{{ _('Testar {v1} dias grátis', v1=plat.dias_teste) if plat.dias_teste else _('Criar conta da empresa') }}</a>
+    {% else %}<a class="botao" href="/cadastro">{{ _('Entrar na lista de espera') }}</a>{% endif %}
+    <a class="botao claro" href="/entrar">{{ _('Já tenho conta') }}</a>
+  </div>
+</section>
+<section class="passos">
+  <div class="cartao"><div class="n">1</div><h2>{{ _('Monte a escala') }}</h2><p class="suave">{{ _('Horários e folgas da semana numa grade só. Copie a semana anterior com um toque.') }}</p></div>
+  <div class="cartao"><div class="n">2</div><h2>{{ _('Ponto pelo celular') }}</h2><p class="suave">{{ _('O funcionário toca em “Bater ponto”. A hora é registrada e a localização é conferida com o endereço da empresa.') }}</p></div>
+  <div class="cartao"><div class="n">3</div><h2>{{ _('Hora extra certa') }}</h2><p class="suave">{{ _('Lei federal (40 horas na semana) e regras por dia dos estados, como a Califórnia: extra, dobro, 7º dia e meal premium.') }}</p></div>
+  <div class="cartao"><div class="n">4</div><h2>{{ _('Pagamento sem retrabalho') }}</h2><p class="suave">{{ _('Bruto com gorjetas e uma planilha pronta para o seu provedor de folha (Gusto, ADP, QuickBooks).') }}</p></div>
+</section>
+{% if planos %}
+{% from "_planos.html" import cartoes %}
+<section class="vitrine">
+  <h2>{{ _('Planos') }}</h2>
+  <p class="suave">{{ _('Assinatura mensal, sem fidelidade.') }}{% if plat.dias_teste and cadastro_eua %} {{ _('Teste {v1} dias grátis, sem cartão.', v1=(plat.dias_teste)) }}{% endif %}</p>
+  {{ cartoes(planos, 'venda' if cadastro_eua else 'mostra', None, plat.dias_teste) }}
+</section>
+{% endif %}
+<p class="suave pequeno legal-links"><a href="/terms">{{ _('Termos de Uso') }}</a> · <a href="/privacy">{{ _('Política de Privacidade') }}</a></p>
+{% endblock %}

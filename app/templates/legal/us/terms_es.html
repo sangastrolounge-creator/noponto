@@ -1,0 +1,86 @@
+{% extends "legal/_base.html" %}
+{% block nome_doc %}Términos de Uso{% endblock %}
+{% block texto %}
+<h1>Términos de Uso</h1>
+<p class="suave">Última actualización: {{ L.versao.strftime('%m/%d/%Y') }}</p>
+<p class="aviso">Esta es una traducción de cortesía. Si hay alguna diferencia, vale la <a href="/idioma/en?volta=/terms">versión en inglés</a>.</p>
+
+<p>Estos Términos de Uso (los “Términos”) son un acuerdo entre {{ L.empresa }} (“{{ L.marca }}”, “nosotros”) y la empresa que crea una cuenta (el “Cliente”, “usted”). Regulan el uso del sitio, la aplicación web y la aplicación móvil de {{ L.marca }} (el “Servicio”) por el Cliente y por todas las personas que el Cliente invite, incluidos gerentes y empleados (“Usuarios”). Al crear una cuenta o usar el Servicio, usted acepta estos Términos y nuestra <a href="/privacy">Política de Privacidad</a>. Si acepta en nombre de una empresa, confirma que tiene autoridad para obligarla.</p>
+
+<h2>1. El Servicio</h2>
+<p>{{ L.marca }} ayuda a las empresas a gestionar a su personal por horas. Incluye horarios, reloj de asistencia (por celular con ubicación o en un quiosco compartido con PIN), descansos, solicitudes y saldos de tiempo libre, cambios de turno, mensajes del equipo, tareas, estimaciones de costo laboral, avisos de horas extra, resúmenes del período de pago y archivos para su proveedor de nómina. Las funciones disponibles dependen de su plan.</p>
+<p>{{ L.marca }} es una herramienta. <strong>No somos su procesador de nómina, contador, preparador de impuestos ni abogado.</strong> No pagamos a los empleados, no retenemos ni declaramos impuestos y no damos asesoría legal, fiscal ni de recursos humanos.</p>
+
+<h2>2. Cuentas</h2>
+<ul>
+  <li>Quien crea la cuenta es el titular. El titular puede invitar a gerentes con permisos limitados y es responsable de todo lo que se haga en la cuenta del Cliente.</li>
+  <li>Mantenga en secreto las contraseñas y los PIN del quiosco. Avísenos de inmediato si sospecha de un acceso no autorizado.</li>
+  <li>Debe dar información correcta y mantenerla al día, incluidos el nombre, la ubicación y la zona horaria de la empresa.</li>
+  <li>Los empleados usan el Servicio por invitación del Cliente. Su relación es con el Cliente, no con nosotros.</li>
+</ul>
+
+<h2>3. Prueba gratis, planes y cobros</h2>
+<ul>
+  <li>Las cuentas nuevas pueden tener una prueba gratis, sin tarjeta. Al terminar, la cuenta queda limitada hasta que elija un plan.</li>
+  <li>Los planes pagados se cobran por adelantado, cada mes o como se indique al pagar, mediante nuestro procesador de pagos, Stripe. Las suscripciones se renuevan solas hasta que se cancelen.</li>
+  <li>Puede cancelar en cualquier momento en la página de Suscripción o escribiéndonos. La cancelación vale al final del período pagado. Lo ya pagado no se reembolsa, salvo que la ley diga otra cosa.</li>
+  <li>Si un pago falla, podemos mantener la cuenta abierta por un breve período de gracia mientras se reintenta el cobro, y luego limitarla hasta que se pague.</li>
+  <li>Podemos cambiar los precios avisando con al menos 30 días. El nuevo precio vale desde su siguiente período de cobro después del aviso.</li>
+  <li>Los precios no incluyen impuestos, salvo que se indique. Usted es responsable de los impuestos sobre ventas o uso que correspondan.</li>
+</ul>
+
+<h2>4. Sus responsabilidades como empleador</h2>
+<p>Usted es el único responsable de sus decisiones laborales y de cumplir todas las leyes que le aplican, incluida la Fair Labor Standards Act y las leyes estatales y locales de salarios y horas. En especial, usted es responsable de:</p>
+<ul>
+  <li>pagar a su personal de forma correcta y a tiempo, incluidos el salario mínimo, las horas extra, las primas por comida y descanso, las propinas y la licencia pagada por enfermedad;</li>
+  <li>clasificar correctamente a cada trabajador (por ejemplo, empleado W-2 o contratista 1099, exento o no exento) y registrar las tarifas correctas;</li>
+  <li>revisar y aprobar los registros de horas antes de usarlos en la nómina;</li>
+  <li>dar a sus empleados los avisos que exija la ley y obtener el consentimiento necesario para recolectar la ubicación o fotos al marcar, incluso por escrito donde la ley estatal lo exija;</li>
+  <li>las reglas de aviso previo de horarios (“predictive scheduling”), de trabajo de menores y de conservación de registros de su estado o ciudad.</li>
+</ul>
+<p>Los cálculos que muestra el Servicio son ayudas basadas en los datos y ajustes que usted ingresa. Esto incluye horas, horas extra, primas, costo laboral, saldos de PTO y pago bruto estimado. Es posible que no reflejen todas las reglas que le aplican. <strong>Debe revisarlos antes de usarlos.</strong></p>
+
+<h2>5. Revisión con inteligencia artificial</h2>
+<p>Algunos planes permiten que un gerente pida una revisión automática de un período de pago. La genera un proveedor externo de inteligencia artificial. Puede estar incompleta o equivocada, no es asesoría legal ni fiscal y no reemplaza su propia revisión ni la de un profesional. Solo se ejecuta cuando un gerente la pide. Solo se envían los datos necesarios: nombres, horas, tarifas y ajustes de ese período.</p>
+
+<h2>6. Datos del Cliente</h2>
+<ul>
+  <li>Los datos que usted y sus Usuarios ingresan al Servicio (“Datos del Cliente”) son suyos. Usted nos autoriza a guardarlos, procesarlos y mostrarlos solo para prestar, proteger y dar soporte al Servicio, y según la Política de Privacidad.</li>
+  <li>Para la información personal de sus empleados, actuamos como su proveedor de servicios (o encargado del tratamiento). No vendemos los Datos del Cliente ni los usamos para publicidad.</li>
+  <li>Usted confirma que tiene derecho a darnos los Datos del Cliente y que recolectarlos cumple la ley.</li>
+  <li>Puede exportar los registros de horas y los resúmenes de pago en cualquier momento mientras la cuenta esté activa. Al cerrar la cuenta, guardamos los Datos del Cliente por 90 días para que pueda pedir una copia, y luego los borramos, como indica la Política de Privacidad.</li>
+</ul>
+
+<h2>7. Uso aceptable</h2>
+<p>Usted y sus Usuarios no deben: usar el Servicio para algo ilegal; falsificar registros de horas ni ayudar a otros a hacerlo; intentar evadir los controles de ubicación, quiosco o dispositivo; entrar a cuentas o datos que no les corresponden; probar, escanear, sobrecargar o interrumpir el Servicio; copiar, revender o hacer ingeniería inversa del Servicio; ni subir código malicioso. Podemos suspender el acceso que ponga en riesgo el Servicio, a otros clientes o a personas.</p>
+
+<h2>8. Disponibilidad y cambios</h2>
+<p>Trabajamos para que el Servicio esté disponible y sus datos seguros, pero no garantizamos que funcione sin interrupciones ni errores. Los controles de ubicación y foto dependen del dispositivo, el navegador y la red del Usuario. Guarde los registros que necesite. Podemos mejorar, cambiar o quitar funciones. Si un cambio reduce de forma importante una función pagada de la que usted depende, puede cancelar y le devolveremos la parte no usada del período ya pagado.</p>
+
+<h2>9. Propiedad intelectual</h2>
+<p>Somos dueños del Servicio, incluidos su software, diseño y contenido, excepto los Datos del Cliente. Mientras esté suscrito, tiene un derecho limitado, no exclusivo e intransferible de usarlo para su negocio. Si nos envía sugerencias, podemos usarlas sin ninguna obligación con usted.</p>
+
+<h2>10. Suspensión y terminación</h2>
+<p>Puede dejar de usar el Servicio y cerrar su cuenta cuando quiera. Podemos suspender o cerrar una cuenta por falta de pago, por un incumplimiento grave o repetido de estos Términos, o cuando la ley lo exija. Cuando sea razonable, avisaremos antes. Las secciones 4, 6, 11, 12, 13 y 14 siguen vigentes después de la terminación.</p>
+
+<h2>11. Exclusión de garantías</h2>
+<p>SALVO LO QUE ESTOS TÉRMINOS DIGAN EXPRESAMENTE, EL SERVICIO SE OFRECE “TAL CUAL” Y “SEGÚN DISPONIBILIDAD”. EN LA MEDIDA QUE LA LEY LO PERMITA, NO DAMOS GARANTÍAS IMPLÍCITAS, INCLUIDAS LAS DE COMERCIABILIDAD, IDONEIDAD PARA UN FIN DETERMINADO Y NO INFRACCIÓN, NI GARANTIZAMOS QUE LOS CÁLCULOS O LAS REVISIONES DE IA SEAN EXACTOS O CUMPLAN LA LEY.</p>
+
+<h2>12. Limitación de responsabilidad</h2>
+<p>EN LA MEDIDA QUE LA LEY LO PERMITA: (a) NINGUNA DE LAS PARTES RESPONDE POR DAÑOS INDIRECTOS, INCIDENTALES, ESPECIALES, CONSECUENTES O PUNITIVOS, NI POR PÉRDIDA DE GANANCIAS, INGRESOS O DATOS; Y (b) NUESTRA RESPONSABILIDAD TOTAL POR TODOS LOS RECLAMOS RELACIONADOS CON EL SERVICIO SE LIMITA A LO QUE USTED NOS PAGÓ EN LOS 12 MESES ANTERIORES AL HECHO QUE ORIGINA EL RECLAMO. LOS SALARIOS, HORAS EXTRA, MULTAS O IMPUESTOS QUE USTED DEBA A SUS TRABAJADORES O A CUALQUIER GOBIERNO SON RESPONSABILIDAD SUYA Y NO SON DAÑOS CAUSADOS POR NOSOTROS. Algunas jurisdicciones no permiten estos límites, por lo que pueden no aplicarse por completo.</p>
+
+<h2>13. Indemnización</h2>
+<p>Usted nos defenderá y mantendrá indemnes frente a reclamos de terceros que surjan de sus prácticas laborales, sus decisiones de pago, sus Datos del Cliente o su incumplimiento de estos Términos o de la ley. Esto incluye reclamos de sus trabajadores o de autoridades. Le avisaremos pronto de cualquier reclamo así y colaboraremos de forma razonable.</p>
+
+<h2>14. Ley aplicable y disputas</h2>
+<p>Estos Términos se rigen por las leyes del Estado de {{ L.estado }} y por la ley federal de EE. UU. que corresponda, sin aplicar normas de conflicto de leyes. Antes de presentar un reclamo, cada parte intentará resolver la disputa de manera informal durante 30 días, por escrito. Todo reclamo no resuelto se presentará solo ante los tribunales estatales o federales ubicados en {{ L.estado }}, y ambas partes aceptan su jurisdicción. Cualquiera de las partes puede, además, presentar un reclamo individual en un tribunal de menor cuantía (“small claims”).</p>
+
+<h2>15. Cambios en estos Términos</h2>
+<p>Podemos actualizar estos Términos. Si un cambio es importante, avisaremos a los titulares de cuenta por correo o en la aplicación al menos 15 días antes de que entre en vigor. Seguir usando el Servicio después de esa fecha significa que acepta los Términos actualizados.</p>
+
+<h2>16. Otros términos</h2>
+<p>Estos Términos y la Política de Privacidad son todo el acuerdo entre usted y nosotros sobre el Servicio. Si una cláusula no es válida, el resto sigue vigente. No puede transferir estos Términos sin nuestro consentimiento. Nosotros podemos transferirlos en una fusión, adquisición o venta de activos. Ninguna de las partes responde por demoras causadas por hechos fuera de su control razonable. Las traducciones son solo de cortesía. Vale la versión en inglés.</p>
+
+<h2>17. Contacto</h2>
+{% include "legal/_contato.html" %}
+{% endblock %}

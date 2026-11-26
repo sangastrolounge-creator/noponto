@@ -6,6 +6,7 @@ regras_de(empresa) e chamam as funções do contrato abaixo, nunca um módulo de
 Cada país é um módulo deste pacote (br.py, us/) que cumpre o mesmo contrato.
 
 Idioma é outra coisa: português, inglês e espanhol valem para qualquer país."""
+import os
 from importlib import import_module
 
 PADRAO = "BR"
@@ -31,3 +32,29 @@ def codigo(valor) -> str:
 def regras_de(valor):
     """Módulo de regras do país da empresa (ou do código de país informado)."""
     return import_module(f"{__name__}.{codigo(valor).lower()}")
+
+
+# Domínios que abrem a versão americana do site (página de vendas, cadastro e textos legais).
+DOMINIOS_EUA = {d.strip().lower() for d in os.environ.get(
+    "DOMINIOS_EUA", "dataworke.com,www.dataworke.com").split(",") if d.strip()}
+
+
+def pais_do_host(request) -> str:
+    """País padrão das páginas públicas pelo endereço do site. Depois do cadastro vale o país
+    da empresa, nunca o domínio."""
+    host = (request.headers.get("host", "") if request is not None else "").split(":")[0].lower()
+    return "US" if host in DOMINIOS_EUA else PADRAO
+
+
+def aplicar_padroes(e, pais: str) -> None:
+    """Valores iniciais da jornada no país (empresa nova ou trocada de país no Master)."""
+    e.pais = pais
+    if pais == "US":
+        from .us import apuracao as ap_us
+        if not e.estado:
+            ap_us.aplicar_estado(e, "FL")
+        e.fuso = "America/New_York"
+        e.intervalo_padrao_min, e.intervalo_auto, e.intervalo_obrigatorio = 30, False, True
+        e.pct_noturno, e.pct_feriado, e.tolerancia_dia_min = 0, 0, 7
+        e.semana_inicio, e.frequencia = 6, "biweekly"
+        e.facial_ativo = False

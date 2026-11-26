@@ -102,6 +102,7 @@ class Lead(Base):
     robo_pausado: Mapped[bool] = mapped_column(Boolean, default=False)  # robô do WhatsApp não responde este lead
     funcionarios: Mapped[int] = mapped_column(Integer, default=0)
     origem: Mapped[str] = mapped_column(String(20), default="manual")  # chat | teste | manual | indicacao | instagram
+    pais: Mapped[str] = mapped_column(String(2), default="BR", index=True)  # BR | US (de qual site veio)
     etapa: Mapped[str] = mapped_column(String(20), default="novo", index=True)
     dono_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)  # atendente; vazio = fila
     conversa_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -192,6 +193,13 @@ class Plataforma(Base):
     carencia_dias: Mapped[int] = mapped_column(Integer, default=3)
     carencia_teste_dias: Mapped[int] = mapped_column(Integer, default=0)
     cadastro_aberto: Mapped[bool] = mapped_column(Boolean, default=True)
+    # EUA (dataworke.com): cadastro aberto ao público (só depois da cobrança pelo Stripe) e os
+    # dados da empresa americana (LLC) para os Termos e a Privacidade de lá.
+    cadastro_eua_aberto: Mapped[bool] = mapped_column(Boolean, default=False)
+    eua_razao_social: Mapped[str] = mapped_column(String(160), default="")
+    eua_endereco: Mapped[str] = mapped_column(String(300), default="")
+    eua_email_legal: Mapped[str] = mapped_column(String(160), default="")
+    eua_estado_lei: Mapped[str] = mapped_column(String(60), default="")
     instrucoes_pagamento: Mapped[str] = mapped_column(Text, default="")
     titulo: Mapped[str] = mapped_column(String(200), default="")
     subtitulo: Mapped[str] = mapped_column(String(600), default="")

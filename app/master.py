@@ -23,8 +23,8 @@ FORMAS = ("pix", "boleto", "cartao", "dinheiro", "outro")
 
 
 # ------------------------------------------------------------------ apoio
-def planos_a_venda(db: Session) -> list[Plano]:
-    return list(db.scalars(select(Plano).where(Plano.ativo.is_(True))
+def planos_a_venda(db: Session, pais: str = "BR") -> list[Plano]:
+    return list(db.scalars(select(Plano).where(Plano.ativo.is_(True), Plano.pais == pais)
                            .order_by(Plano.ordem, Plano.preco_centavos)))
 
 
@@ -33,11 +33,15 @@ def _todos_os_planos(db: Session) -> list[Plano]:
 
 
 def criar_empresa(db: Session, empresa: str, nome: str, email: str, senha: str,
-                  plano_id: int = 0) -> Usuario:
+                  plano_id: int = 0, pais: str = "BR") -> Usuario:
     """Cria a empresa em período de teste e o gestor dela. Devolve o gestor."""
     plano = db.get(Plano, plano_id) if plano_id else None
+    if plano and plano.pais != pais:
+        plano = None
     e = Empresa(nome=empresa, plano_id=plano.id if plano else None,
                 teste_ate=banco.agora() + timedelta(days=plataforma()["dias_teste"]))
+    if pais != "BR":
+        paises.aplicar_padroes(e, pais)
     db.add(e)
     db.flush()
     u = Usuario(empresa_id=e.id, nome=nome, email=email, senha_hash=gerar_hash(senha),
@@ -167,16 +171,7 @@ def empresa_dados(empresa_id: int, request: Request, u: Usuario = Depends(admin_
             avisar(request, "O país só pode ser trocado antes do primeiro fechamento de ponto, "
                             "e a empresa do dono da plataforma fica no Brasil.", "erro")
             return ir(f"/master/empresas/{alvo.id}")
-        alvo.pais = pais
-        if pais == "US":   # padrões americanos (os brasileiros não valem lá)
-            from .paises.us import apuracao as ap_us
-            if not alvo.estado:
-                ap_us.aplicar_estado(alvo, "FL")
-            alvo.fuso = "America/New_York"
-            alvo.intervalo_padrao_min, alvo.intervalo_auto, alvo.intervalo_obrigatorio = 30, False, True
-            alvo.pct_noturno, alvo.pct_feriado, alvo.tolerancia_dia_min = 0, 0, 7
-            alvo.semana_inicio, alvo.frequencia = 6, "biweekly"
-            alvo.facial_ativo = False
+        paises.aplicar_padroes(alvo, pais)   # padrões do país (os brasileiros não valem lá)
     alvo.plano_id = plano if db.get(Plano, plano) else None
     alvo.isenta = bool(isenta) or alvo.id == u.empresa_id  # a do dono é sempre cortesia
     alvo.obs_master = obs.strip()[:2000]
@@ -279,7 +274,7 @@ def planos(request: Request, u: Usuario = Depends(admin_logado), db: Session = D
     em_uso = dict(db.execute(select(Empresa.plano_id, func.count()).where(
         Empresa.plano_id.is_not(None)).group_by(Empresa.plano_id)).all())
     return render(request, "master/planos.html", u=u, e=u.empresa, aba="master", sub="planos",
-                  planos=_todos_os_planos(db), em_uso=em_uso)
+                  planos=_todos_os_planos(db), em_uso=em_uso, PAISES=paises.PAISES)
 
 
 def _ler_plano(p: Plano, nome: str, preco: str, limite: int, descricao: str,
@@ -334,7 +329,7 @@ def plano_novo(request: Request, u: Usuario = Depends(admin_logado),
                grupo: str = Form(""), tolerancia: int = Form(0), descontos_volume: str = Form(""),
                com_escala: str = Form(""), com_fechamento: str = Form(""), com_rh: str = Form(""),
                com_totem: str = Form(""), com_gerentes: str = Form(""), com_cmo: str = Form(""),
-               recursos_v2: str = Form(""),
+               recursos_v2: str = Form(""), pais: str = Form("BR"),
                ):
     p = Plano()
     erro = _ler_plano(p, nome, preco, limite, descricao, destaque, ativo, ordem,
@@ -344,6 +339,7 @@ def plano_novo(request: Request, u: Usuario = Depends(admin_logado),
                                  com_escala=com_escala, com_fechamento=com_fechamento, com_rh=com_rh,
                                  com_totem=com_totem, com_gerentes=com_gerentes, com_cmo=com_cmo,
                                  v2=recursos_v2))
+    p.pais = pais if pais in paises.PAISES else "BR"
     if erro:
         avisar(request, erro, "erro")
     else:
@@ -365,7 +361,7 @@ def plano_salvar(plano_id: int, request: Request, u: Usuario = Depends(admin_log
                  grupo: str = Form(""), tolerancia: int = Form(0), descontos_volume: str = Form(""),
                  com_escala: str = Form(""), com_fechamento: str = Form(""), com_rh: str = Form(""),
                  com_totem: str = Form(""), com_gerentes: str = Form(""), com_cmo: str = Form(""),
-               recursos_v2: str = Form(""),
+               recursos_v2: str = Form(""), pais: str = Form("BR"),
                  ):
     p = db.get(Plano, plano_id)
     if not p:
@@ -377,6 +373,7 @@ def plano_salvar(plano_id: int, request: Request, u: Usuario = Depends(admin_log
                                  com_escala=com_escala, com_fechamento=com_fechamento, com_rh=com_rh,
                                  com_totem=com_totem, com_gerentes=com_gerentes, com_cmo=com_cmo,
                                  v2=recursos_v2))
+    p.pais = pais if pais in paises.PAISES else (p.pais or "BR")
     if erro:
         db.rollback()
         avisar(request, erro, "erro")
@@ -418,7 +415,10 @@ def plataforma_salvar(request: Request, u: Usuario = Depends(admin_logado),
                       cadastro_aberto: str = Form(""), instrucoes_pagamento: str = Form(""),
                       titulo: str = Form(""), subtitulo: str = Form(""),
                       razao_social: str = Form(""), endereco: str = Form(""), email_legal: str = Form(""),
-                      estado_lei: str = Form(""), pais_servidores: str = Form("")):
+                      estado_lei: str = Form(""), pais_servidores: str = Form(""),
+                      cadastro_eua_aberto: str = Form(""), eua_razao_social: str = Form(""),
+                      eua_endereco: str = Form(""), eua_email_legal: str = Form(""),
+                      eua_estado_lei: str = Form("")):
     p = db.get(Plataforma, 1)
     zap = celular_limpo(whatsapp)
     if not nome.strip():
@@ -431,6 +431,8 @@ def plataforma_salvar(request: Request, u: Usuario = Depends(admin_logado),
         avisar(request, "Carência: use um número de dias entre 0 e 30.", "erro")
     elif email_legal.strip() and not email_valido(email_legal.strip()):
         avisar(request, "E-mail de contato legal inválido.", "erro")
+    elif eua_email_legal.strip() and not email_valido(eua_email_legal.strip()):
+        avisar(request, "E-mail de privacidade nos EUA inválido.", "erro")
     else:
         p.nome, p.whatsapp, p.dias_teste = nome.strip()[:60], zap[:20], dias_teste
         p.nome_curto = nome_curto.strip()[:20]
@@ -442,6 +444,10 @@ def plataforma_salvar(request: Request, u: Usuario = Depends(admin_logado),
         p.email_legal = email_legal.strip().lower()[:200]
         p.estado_lei = estado_lei.strip()[:40]
         p.pais_servidores = pais_servidores.strip()[:60] or "Brasil"
+        p.cadastro_eua_aberto = bool(cadastro_eua_aberto)
+        p.eua_razao_social, p.eua_endereco = eua_razao_social.strip()[:160], eua_endereco.strip()[:300]
+        p.eua_email_legal = eua_email_legal.strip().lower()[:160]
+        p.eua_estado_lei = eua_estado_lei.strip()[:60]
         db.commit()
         plataforma_mudou()
         avisar(request, "Plataforma atualizada.")

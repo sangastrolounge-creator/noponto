@@ -37,6 +37,16 @@
     <div class="campo"><label for="pais_servidores">{{ _('País onde ficam os servidores') }}</label><input id="pais_servidores" type="text" name="pais_servidores" value="{{ p.pais_servidores }}" maxlength="60" placeholder="Brasil"><div class="ajuda">{{ _('Mude se trocar a hospedagem de lugar.') }}</div></div>
   </div>
   <div class="campo"><label for="endereco">{{ _('Endereço para correspondência') }}</label><input id="endereco" type="text" name="endereco" value="{{ p.endereco }}" maxlength="300" placeholder="Rua Exemplo, 100, Centro, São Luís/MA, 65000-000"></div>
+
+  <h2 style="margin-top:8px" id="eua">{{ _('Estados Unidos (dataworke.com)') }}</h2>
+  <p class="ajuda" style="margin-top:-4px">{{ _('O site americano mostra os planos marcados como Estados Unidos e os Termos e a Privacidade da empresa americana. Enquanto o cadastro estiver fechado, quem visita entra na lista de espera e vira lead no CRM.') }}</p>
+  <label class="marcar campo"><input type="checkbox" name="cadastro_eua_aberto" value="1" {{ 'checked' if p.cadastro_eua_aberto }}><span>{{ _('Cadastro público nos EUA') }}<br><span class="ajuda">{{ _('Ligue só depois que a cobrança pelo Stripe estiver pronta.') }}</span></span></label>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <div class="campo"><label for="eua_razao_social">{{ _('Nome da empresa americana (LLC)') }}</label><input id="eua_razao_social" type="text" name="eua_razao_social" value="{{ p.eua_razao_social }}" maxlength="160" placeholder="Data Worke LLC"></div>
+    <div class="campo"><label for="eua_email_legal">{{ _('E-mail de privacidade nos EUA') }}</label><input id="eua_email_legal" type="email" name="eua_email_legal" value="{{ p.eua_email_legal }}" maxlength="160" placeholder="privacy@dataworke.com"></div>
+    <div class="campo"><label for="eua_estado_lei">{{ _('Estado da lei aplicável') }}</label><input id="eua_estado_lei" type="text" name="eua_estado_lei" value="{{ p.eua_estado_lei }}" maxlength="60" placeholder="Wyoming"></div>
+  </div>
+  <div class="campo"><label for="eua_endereco">{{ _('Endereço da LLC') }}</label><input id="eua_endereco" type="text" name="eua_endereco" value="{{ p.eua_endereco }}" maxlength="300"></div>
   <button class="botao" type="submit">{{ _('Salvar') }}</button>
 </form>
 {% endblock %}

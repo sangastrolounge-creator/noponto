@@ -8,6 +8,7 @@ import csv
 import io
 import os
 import secrets
+import re
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from urllib.parse import quote
@@ -201,7 +202,8 @@ Data Worke, num computador ou no navegador. No aplicativo você entra e usa o po
 async def _cabecalhos(request: Request, call_next):
     caminho = request.url.path + (f"?{request.url.query}" if request.url.query else "")
     i18n.definir(i18n.escolher(request.cookies.get(i18n.COOKIE),
-                               request.headers.get("accept-language")), caminho)
+                               request.headers.get("accept-language"),
+                               paises.pais_do_host(request)), caminho)
     host = request.headers.get("host", "").split(":")[0].lower()
     publico = base_url_publica()
     if (publico and host in HOSTS_REDIRECIONAR and request.method in ("GET", "HEAD")
@@ -277,6 +279,10 @@ def inicio(request: Request, db: Session = Depends(get_db)):
     u = db.get(Usuario, request.session.get("uid") or 0)
     if u and u.ativo:
         return ir(destino_inicial(u))
+    if paises.pais_do_host(request) == "US":   # site americano (dataworke.com)
+        return render(request, "us/site_inicio.html", pais_tela="US",
+                      planos=master.planos_a_venda(db, "US"),
+                      cadastro_eua=master.plataforma()["cadastro_eua_aberto"])
     publicado = vendas.conteudo_publicado(db)
     if publicado:  # página de vendas longa, editada no Painel Master
         return render(request, "vendas.html", previa=False,
@@ -286,6 +292,12 @@ def inicio(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/cadastro")
 def cadastro_form(request: Request, plano: int = 0, google: int = 0, db: Session = Depends(get_db)):
+    if paises.pais_do_host(request) == "US":
+        if not master.plataforma()["cadastro_eua_aberto"]:   # antes da cobrança: lista de espera
+            return render(request, "us/lista_espera.html", pais_tela="US", erro=None, enviado=False, v={})
+        p = db.get(master.Plano, plano)
+        return render(request, "cadastro.html", pais_tela="US", erro=None, google=None, google_ok=False,
+                      plano=p if p and p.pais == "US" else None, v={})
     if not master.plataforma()["cadastro_aberto"]:
         return ir("/entrar")
     g = entrada.google_pendente(request) if google else None
@@ -300,8 +312,10 @@ def cadastro(request: Request, tarefas_bg: BackgroundTasks, empresa: str = Form(
              email: str = Form(""), senha: str = Form(""), plano: int = Form(0),
              aceito: str = Form(""), cupom: str = Form(""), contador: str = Form(""),
              db: Session = Depends(get_db)):
-    if not master.plataforma()["cadastro_aberto"]:
-        return ir("/entrar")
+    pais = paises.pais_do_host(request)
+    aberto = master.plataforma()["cadastro_eua_aberto" if pais == "US" else "cadastro_aberto"]
+    if not aberto:
+        return ir("/cadastro" if pais == "US" else "/entrar")
     empresa, nome, email = empresa.strip()[:120], nome.strip()[:120], email.strip().lower()
     erro = None
     if not dentro_do_limite(f"cad:{ip(request)}", 5, 3600):
@@ -318,15 +332,39 @@ def cadastro(request: Request, tarefas_bg: BackgroundTasks, empresa: str = Form(
         erro = "Para criar a conta, aceite os Termos de Uso e a Política de Privacidade."
     if erro:
         return render(request, "cadastro.html", 400, erro=erro, plano=db.get(master.Plano, plano),
-                      v={"empresa": empresa, "nome": nome, "email": email})
-    u = master.criar_empresa(db, empresa, nome, email, senha, plano)
-    legal.registrar_aceite(u)
+                      v={"empresa": empresa, "nome": nome, "email": email},
+                      **({"pais_tela": "US", "google_ok": False} if pais == "US" else {}))
+    u = master.criar_empresa(db, empresa, nome, email, senha, plano, pais)
+    legal.registrar_aceite(u, pais)
     db.commit()
     crescimento.ao_criar_empresa(request, db, u, cupom, bool(contador))
     tarefas_bg.add_task(avisos_master.nova_empresa, u.empresa_id)
     request.session["uid"] = u.id
     avisar(request, "Conta criada. Responda 7 perguntas rápidas e deixamos tudo pronto.")
     return ir("/painel/comecar")
+
+
+@app.post("/lista-de-espera", dependencies=CSRF)
+def lista_espera(request: Request, empresa: str = Form(""), nome: str = Form(""), email: str = Form(""),
+                 telefone: str = Form(""), funcionarios: str = Form(""), autorizo: str = Form(""),
+                 db: Session = Depends(get_db)):
+    """Site americano antes de abrir o cadastro: o interessado vira lead no CRM (país EUA)."""
+    v = {"empresa": empresa.strip()[:80], "nome": nome.strip()[:80], "email": email.strip().lower()[:120],
+         "telefone": re.sub(r"\D", "", telefone)[:20], "funcionarios": funcionarios.strip()}
+    erro = None
+    if not dentro_do_limite(f"espera:{ip(request)}", 5, 3600):
+        erro = "Muitas tentativas. Aguarde um pouco e tente de novo."
+    elif not v["empresa"] or not v["nome"]:
+        erro = "Informe o nome da empresa e o seu nome."
+    elif not email_valido(v["email"]):
+        erro = "E-mail inválido."
+    elif not autorizo:
+        erro = "Autorize o contato para entrar na lista."
+    if erro:
+        return render(request, "us/lista_espera.html", 400, pais_tela="US", erro=erro, enviado=False, v=v)
+    n = int(v["funcionarios"]) if v["funcionarios"].isdigit() else 0
+    crm.lead_da_lista_espera(db, v["nome"], v["empresa"], v["email"], v["telefone"], min(n, 100000))
+    return render(request, "us/lista_espera.html", pais_tela="US", erro=None, enviado=True, v={})
 
 
 @app.get("/entrar")

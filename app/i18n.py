@@ -51,10 +51,13 @@ def carregar():
 carregar()
 
 
-def escolher(cookie: str | None, aceita: str | None) -> str:
-    """Idioma da pessoa: o que ela escolheu ou, se nunca escolheu, o do navegador."""
+def escolher(cookie: str | None, aceita: str | None, pais_site: str = "BR") -> str:
+    """Idioma da pessoa: o que ela escolheu ou, se nunca escolheu, o do navegador. No site
+    americano, quem não escolheu nem usa espanhol no navegador começa em inglês."""
     if cookie in IDIOMAS:
         return cookie
+    if pais_site == "US":
+        return "es" if (aceita or "").strip().lower()[:2] == "es" else "en"
     for parte in (aceita or "").split(","):
         cod = parte.split(";")[0].strip().lower()[:2]
         if cod in IDIOMAS:
