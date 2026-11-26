@@ -417,7 +417,7 @@ def gerar_afd(db: Session, e: Empresa, ini: date, fim: date) -> tuple[str, bytes
 
 # ------------------------------------------------------------------ AEJ
 def gerar_aej(db: Session, e: Empresa, ini: date, fim: date) -> tuple[str, bytes]:
-    from . import apuracao
+    from . import paises
     c = config(db)
     doc = digitos(e.cpf_cnpj)
     fuso = ZoneInfo(e.fuso or "America/Sao_Paulo")
@@ -470,7 +470,7 @@ def gerar_aej(db: Session, e: Empresa, ini: date, fim: date) -> tuple[str, bytes
                       cod, motivo[:150].replace("|", "/")])
     reg07 = []
     if vinculos:
-        for ap in apuracao.apurar(db, e, ini, fim):
+        for ap in paises.regras_de(e).apurar(db, e, ini, fim):
             vid = vinculos.get(ap["u"].id)
             if not vid:
                 continue

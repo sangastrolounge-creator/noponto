@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import apuracao, custos, regras, setores
+from . import apuracao, custos, paises, regras, setores
 from .core import data_iso, gestor_logado, pode, render
 from .db import AvaliacaoTurno, Batida, Turno, Usuario, get_db
 from .i18n import _
@@ -72,7 +72,7 @@ def montar(db: Session, e, ini: date, fim: date, setor: int = 0) -> dict:
         d += timedelta(days=1)
     # Horas noturnas (22h às 5h, já com a hora reduzida quando a empresa usa) e o adicional.
     if fim_ef >= ini:
-        for ap in apuracao.apurar(db, e, ini, fim_ef):
+        for ap in paises.regras_de(e).apurar(db, e, ini, fim_ef):
             if ap["noturno"] and ap["u"].id in pessoas:
                 x = linha(ap["u"].id)
                 x["noturno"] = ap["noturno"]

@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, Form, Query, Request
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from . import apuracao, regras
+from . import apuracao, paises, regras
 from . import db as banco
 from .apuracao import MSG_FECHADO, TIPOS_AUSENCIA
 from .core import (HORA_RE, avisar, da_empresa, data_iso, exigir_csrf, gestor_logado, ir,
@@ -42,7 +42,7 @@ TIPOS_DIA = {k: v for k, v in TIPOS_AUSENCIA.items() if k != "ferias"}
 
 def periodo(db: Session, e, de: str, ate: str) -> tuple[date, date]:
     """Padrão: o período em aberto (desde o último fechamento). No máximo 62 dias."""
-    ini_p, fim_p = apuracao.periodo_aberto(db, e)
+    ini_p, fim_p = paises.regras_de(e).periodo_aberto(db, e)
     fim = data_iso(ate, fim_p)
     ini = data_iso(de, ini_p)
     if ini > fim:
@@ -73,7 +73,7 @@ def pagina(request: Request, de: str = "", ate: str = "", fid: int = Query(0, al
            u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     e = u.empresa
     ini, fim = periodo(db, e, de, ate)
-    resultado = apuracao.apurar(db, e, ini, fim)
+    resultado = paises.regras_de(e).apurar(db, e, ini, fim)
     atual = next((r for r in resultado if r["u"].id == fid), None)
     if atual is None and resultado and not fid:
         atual = resultado[0]

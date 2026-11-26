@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import apuracao, push, regras, setores
+from . import apuracao, paises, push, regras, setores
 from . import db as banco
 from .apuracao import MSG_FECHADO, TIPOS_AUSENCIA
 from .core import (avisar, conferir_senha, da_empresa, data_iso, exigir_csrf, gestor_logado,
@@ -182,7 +182,7 @@ def feriados_nacionais(request: Request, ano: int = Form(...),
         return ir("/painel/ausencias")
     ja = set(db.scalars(select(Feriado.data).where(Feriado.empresa_id == u.empresa_id)))
     n = 0
-    for d, nome in apuracao.feriados_nacionais(ano):
+    for d, nome in paises.regras_de(u.empresa).feriados(ano):
         if d not in ja and not apuracao.esta_fechado(db, u.empresa, d):
             db.add(Feriado(empresa_id=u.empresa_id, data=d, nome=nome))
             n += 1
@@ -207,7 +207,7 @@ def feriado_remover(request: Request, fid: int, u: Usuario = Depends(gestor_loga
 # ============================================================ fechamento e banco de horas
 def periodo_sugerido(db: Session, e) -> tuple[date, date]:
     """Do início do período aberto até o fim daquele mês (ou até hoje, se o mês não acabou)."""
-    ini, hoje = apuracao.periodo_aberto(db, e)
+    ini, hoje = paises.regras_de(e).periodo_aberto(db, e)
     fim_mes = (ini.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
     return ini, min(fim_mes, hoje)
 
@@ -228,7 +228,7 @@ def fechamento(request: Request, de: str = "", ate: str = "", setor: str = "",
     ini, fim = data_iso(de, sug[0]), data_iso(ate, sug[1])
     if ini > fim or (fim - ini).days > 100:
         ini, fim = sug
-    resultado, sid, _nome = _do_setor(db, e, apuracao.apurar(db, e, ini, fim), setor)
+    resultado, sid, _nome = _do_setor(db, e, paises.regras_de(e).apurar(db, e, ini, fim), setor)
     fechados = list(db.scalars(select(Fechamento).where(Fechamento.empresa_id == e.id)
                                .order_by(Fechamento.fim.desc()).limit(24)))
     limite = apuracao.fechado_ate(db, e)
@@ -266,7 +266,7 @@ def fechamento_criar(request: Request, tarefas_bg: BackgroundTasks, de: str = Fo
     elif limite and ini <= limite:
         avisar(request, f"O período começa antes de {limite:%d/%m/%Y}, que já está fechado.", "erro")
     else:
-        f = apuracao.fechar(db, e, ini, fim, u.nome)
+        f = paises.regras_de(e).fechar(db, e, ini, fim, u.nome)
         regras.registrar(db, e.id, u.nome, "período fechado",
                          f"Ponto de {ini:%d/%m/%Y} a {fim:%d/%m/%Y} fechado, "
                          f"{len(f.linhas)} funcionário(s).")
@@ -348,7 +348,7 @@ def fechamento_resumo(request: Request, de: str = "", ate: str = "", setor: str 
     ini, fim = data_iso(de, sug[0]), data_iso(ate, sug[1])
     if ini > fim or (fim - ini).days > 100:
         ini, fim = sug
-    resultado, sid, nome_setor = _do_setor(db, e, apuracao.apurar(db, e, ini, fim), setor)
+    resultado, sid, nome_setor = _do_setor(db, e, paises.regras_de(e).apurar(db, e, ini, fim), setor)
     fechado = db.scalar(select(Fechamento).where(
         Fechamento.empresa_id == e.id, Fechamento.inicio == ini, Fechamento.fim == fim))
     chaves = ("trabalhado", "noturno", "extra_normal", "extra_especial", "falta_min", "faltas",
@@ -372,7 +372,7 @@ def fechamento_horas(request: Request, de: str = "", ate: str = "", setor: str =
     ini, fim = data_iso(de, sug[0]), data_iso(ate, sug[1])
     if ini > fim or (fim - ini).days > 100:
         ini, fim = sug
-    resultado, sid, nome_setor = _do_setor(db, e, apuracao.apurar(db, e, ini, fim), setor)
+    resultado, sid, nome_setor = _do_setor(db, e, paises.regras_de(e).apurar(db, e, ini, fim), setor)
     fechado = db.scalar(select(Fechamento).where(
         Fechamento.empresa_id == e.id, Fechamento.inicio == ini, Fechamento.fim == fim))
     total = {k: sum(r[k] for r in resultado) for k in ("extra_normal", "extra_especial", "noturno", "falta_min")}
@@ -399,7 +399,7 @@ def folha(request: Request, fid: int = Query(0, alias="func"), de: str = "", ate
     ini, fim = data_iso(de, sug[0]), data_iso(ate, sug[1])
     if ini > fim or (fim - ini).days > 100:
         ini, fim = sug
-    r = apuracao.apurar(db, e, ini, fim, f.id)
+    r = paises.regras_de(e).apurar(db, e, ini, fim, f.id)
     if not r:
         avisar(request, f"{f.primeiro_nome} não tem escala nem batidas nesse período.", "erro")
         return ir(f"/painel/fechamento?de={ini}&ate={fim}")
@@ -442,8 +442,8 @@ def banco_ajuste(request: Request, usuario_id: int = Form(...), data: str = Form
 def app_folha(request: Request, u: Usuario = Depends(usuario_logado),
               db: Session = Depends(get_db)):
     e = u.empresa
-    ini, fim = apuracao.periodo_aberto(db, e)
-    r = apuracao.apurar(db, e, ini, fim, u.id)
+    ini, fim = paises.regras_de(e).periodo_aberto(db, e)
+    r = paises.regras_de(e).apurar(db, e, ini, fim, u.id)
     linhas = list(db.scalars(select(FechamentoLinha).join(Fechamento).where(
         FechamentoLinha.usuario_id == u.id).order_by(Fechamento.fim.desc()).limit(24)))
     from . import pagamento
@@ -465,7 +465,7 @@ def app_folha_ver(request: Request, lid: int, u: Usuario = Depends(usuario_logad
                   db: Session = Depends(get_db)):
     linha = _minha_linha(db, lid, u)
     f = linha.fechamento
-    r = apuracao.apurar(db, u.empresa, f.inicio, f.fim, u.id)
+    r = paises.regras_de(u.empresa).apurar(db, u.empresa, f.inicio, f.fim, u.id)
     if not r:
         return ir("/app/folha")
     return render(request, "folha.html", u=u, e=u.empresa, r=r[0], ini=f.inicio, fim=f.fim,
