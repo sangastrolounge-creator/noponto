@@ -1,0 +1,181 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho"><div><h1>{{ _('Configurações') }}</h1><p class="suave" style="margin:0">{{ _('Onde fica a empresa e as regras do ponto.') }}</p></div>
+  <div class="acoes"><button class="botao claro" type="button" onclick="iniciarGuia()">{{ _('Ver o guia de primeiros passos') }}</button>
+  <a class="botao claro" href="/painel/assinatura">{{ _('Assinatura e plano') }}</a></div></div>
+
+<form method="post" action="/painel/config">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="duas">
+    <div class="cartao">
+      <h2>{{ _('Empresa e local do ponto') }}</h2>
+      <div class="campo"><label for="nome">{{ _('Nome da empresa') }}</label><input id="nome" type="text" name="nome" value="{{ e.nome }}" required maxlength="120"></div>
+      <div class="campo"><label for="endereco">{{ _('Endereço (só para referência)') }}</label><input id="endereco" type="text" name="endereco" value="{{ e.endereco }}" maxlength="300"></div>
+      <div class="campo">
+        <label>{{ _('Localização') }}</label>
+        <button class="botao claro" type="button" id="usar-local">{{ _('Usar minha localização atual') }}</button>
+        <div class="ajuda" id="local-estado">{{ _('Toque no botão estando dentro da empresa, de preferência pelo celular (o GPS é mais preciso que o do computador).') }}</div>
+      </div>
+      <div class="linha-form" style="grid-template-columns:1fr 1fr">
+        <div class="campo"><label for="lat">{{ _('Latitude') }}</label><input id="lat" type="text" name="lat" value="{{ e.lat if e.lat is not none }}" inputmode="decimal" placeholder="25.7617"></div>
+        <div class="campo"><label for="lng">{{ _('Longitude') }}</label><input id="lng" type="text" name="lng" value="{{ e.lng if e.lng is not none }}" inputmode="decimal" placeholder="-80.1918"></div>
+      </div>
+      <p class="ajuda" style="margin-top:-6px">{{ _('Também dá para copiar do Google Maps: toque e segure no ponto da empresa e copie os dois números.') }}
+        <a id="ver-mapa" href="#" target="_blank" rel="noopener" {{ 'hidden' if e.lat is none }}>{{ _('Conferir no mapa') }}</a></p>
+    </div>
+
+    <div class="cartao">
+      <h2>{{ _('Regras do ponto') }}</h2>
+      {% if not gps_liberado(e) %}<p class="alerta">{{ _('O ponto pelo celular com GPS não está no seu plano: a equipe bate o ponto no totem (em Locais → Totens).') }} <a href="/painel/assinatura">{{ _('Ver planos') }}</a></p>{% endif %}
+      <div class="campo"><label for="raio_m">{{ _('Raio aceito (metros)') }}</label><input id="raio_m" type="number" name="raio_m" value="{{ e.raio_m }}" min="30" max="5000" required>
+        <div class="ajuda">{{ _('Distância máxima da empresa para o ponto valer. 150 m cobre a imprecisão normal do GPS.') }}</div></div>
+      <label class="marcar campo"><input type="checkbox" name="bloquear_fora" value="1" {{ 'checked' if e.bloquear_fora }}>
+        <span>{{ _('Bloquear o ponto fora do raio') }}<br><span class="ajuda">{{ _('Desmarcado, o ponto é aceito e marcado como “fora da área”. Nos dois casos você é avisado.') }}</span></span></label>
+      <div class="campo"><label for="tolerancia_min">{{ _('Tolerância de atraso (minutos)') }}</label><input id="tolerancia_min" type="number" name="tolerancia_min" value="{{ e.tolerancia_min }}" min="0" max="120" required>
+        <div class="ajuda">{{ _('Depois disso sem bater a entrada, você recebe o aviso.') }}</div></div>
+      <div class="campo"><label for="fuso">{{ _('Fuso horário') }}</label><select id="fuso" name="fuso">
+        {% for cod, nome in fusos %}<option value="{{ cod }}" {{ 'selected' if e.fuso == cod }}>{{ _(nome) }}</option>{% endfor %}</select></div>
+    </div>
+  </div>
+  <div class="cartao">
+    <h2>{{ _('Confiança no ponto') }}</h2>
+    <div class="duas" style="grid-template-columns:1fr 1fr">
+      <div>
+        <label class="marcar campo"><input type="checkbox" name="exigir_foto" value="1" {{ 'checked' if e.exigir_foto }}>
+          <span>{{ _('Exigir foto ao bater o ponto') }}{% if not foto_liberada(e) %} <span class="etiqueta">{{ _('Fora do seu plano') }}</span>{% endif %}<br><span class="ajuda">{{ _('O funcionário tira uma selfie na hora. Você vê a foto ao lado da batida. Avise a equipe antes de ligar: a foto é um dado pessoal.') }}</span></span></label>
+        <label class="marcar campo"><input type="checkbox" name="aparelho_unico" value="1" {{ 'checked' if e.aparelho_unico }}>
+          <span>{{ _('Um aparelho por funcionário') }}<br><span class="ajuda">{{ _('O primeiro celular em que ele bater o ponto fica autorizado. Em outro aparelho, ou no celular de um colega, o ponto é bloqueado e você decide se libera.') }}</span></span></label>
+      </div>
+      <div>
+        <div class="campo"><label for="ajuste_dias">{{ _('Pedido de ajuste: até quantos dias atrás') }}</label><input id="ajuste_dias" type="number" name="ajuste_dias" value="{{ e.ajuste_dias }}" min="0" max="60" required>
+          <div class="ajuda">{{ _('O funcionário pede o ajuste com justificativa e você aprova ou recusa. 0 desliga os pedidos.') }}</div></div>
+        <div class="campo"><label for="fotos_dias">{{ _('Guardar as fotos por (dias)') }}</label><input id="fotos_dias" type="number" name="fotos_dias" value="{{ e.fotos_dias }}" min="1" max="45" required>
+          <div class="ajuda">{{ _('Depois desse prazo a foto é apagada sozinha; a batida continua registrada. O máximo é 45 dias.') }}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="cartao">
+    <h2>{{ _('Jornada, hora extra e pagamento') }}</h2>
+    <div class="duas" style="grid-template-columns:1fr 1fr">
+      <div>
+        <div class="campo"><label for="estado">{{ _('Estado onde a equipe trabalha') }}</label><select id="estado" name="estado">
+          {% for sigla, nome in estados.items() %}<option value="{{ sigla }}" {{ 'selected' if e.estado == sigla }}>{{ nome }}{{ ' ★' if sigla in regras_estado }}</option>{% endfor %}</select>
+          <div class="ajuda">{{ _('Todos seguem a lei federal: hora extra a 1,5x acima de 40 horas na semana. Os marcados com ★ têm também regra por dia, aplicada sozinha (Califórnia: acima de 8 h a 1,5x, acima de 12 h em dobro, 7º dia seguido e meal premium).') }}</div></div>
+        {% if e.ot_dia_min or e.setimo_dia or e.meal_premium %}
+        <div class="aviso">{{ _('Regras de {v1} em uso: extra no dia acima de {v2}{v3}{v4}{v5}.', v1=(e.estado), v2=(fmt_min(e.ot_dia_min)), v3=(_(', dobro acima de {v1}', v1=(fmt_min(e.dt_dia_min))) if e.dt_dia_min else ''), v4=(_(', 7º dia seguido') if e.setimo_dia else ''), v5=(_(', meal premium') if e.meal_premium else '')) }}</div>
+        {% endif %}
+        <div class="campo"><label for="semana_inicio">{{ _('A semana de trabalho começa') }}</label><select id="semana_inicio" name="semana_inicio">
+          {% for i in [6, 0, 1, 2, 3, 4, 5] %}<option value="{{ i }}" {{ 'selected' if e.semana_inicio == i }}>{{ DIAS[i] }}</option>{% endfor %}</select>
+          <div class="ajuda">{{ _('As 40 horas são contadas dentro desta semana fixa de 7 dias. Não mude no meio de um período.') }}</div></div>
+        <div class="linha-form" style="grid-template-columns:1fr 1fr">
+          <div class="campo"><label for="frequencia">{{ _('Frequência de pagamento') }}</label><select id="frequencia" name="frequencia">
+            {% for v, r in [('weekly', _('Semanal')), ('biweekly', _('A cada duas semanas')), ('semimonthly', _('Duas vezes por mês (1–15 e 16–fim)')), ('monthly', _('Mensal'))] %}<option value="{{ v }}" {{ 'selected' if e.frequencia == v }}>{{ r }}</option>{% endfor %}</select></div>
+          <div class="campo"><label for="periodo_ancora">{{ _('Início de um período') }}</label><input id="periodo_ancora" type="date" name="periodo_ancora" value="{{ e.periodo_ancora.isoformat() if e.periodo_ancora }}"></div>
+        </div>
+        <div class="ajuda">{{ _('Semanal e a cada duas semanas: informe o primeiro dia de qualquer período (ex.: um domingo de pagamento). O fechamento sugere o período sozinho.') }}</div>
+      </div>
+      <div>
+        <div class="campo"><label for="intervalo_padrao_min">{{ _('Refeição padrão (minutos, sem pagamento)') }}</label><input id="intervalo_padrao_min" type="number" name="intervalo_padrao_min" value="{{ e.intervalo_padrao_min }}" min="0" max="240" required>
+          <div class="ajuda">{{ _('Já vem preenchido ao criar um turno na escala; dá para mudar em cada turno.') }}</div></div>
+        <label class="marcar campo"><input type="checkbox" name="intervalo_obrigatorio" value="1" {{ 'checked' if e.intervalo_obrigatorio }}>
+          <span>{{ _('O funcionário precisa bater a refeição') }}<br><span class="ajuda">{{ _('Saída ao parar e entrada ao voltar. Quem trabalhar mais de 6 horas direto gera um aviso para você.') }}</span></span></label>
+        <label class="marcar campo"><input type="checkbox" name="intervalo_auto" value="1" {{ 'checked' if e.intervalo_auto }}>
+          <span>{{ _('Descontar a refeição sozinho') }}<br><span class="ajuda">{{ _('Não recomendado: descontar uma refeição que não foi feita gera processos por horas não pagas. Prefira exigir a batida.') }}</span></span></label>
+        <div class="campo"><label for="tolerancia_dia_min">{{ _('Tolerância de atraso no dia (minutos)') }}</label><input id="tolerancia_dia_min" type="number" name="tolerancia_dia_min" value="{{ e.tolerancia_dia_min }}" min="0" max="60" required>
+          <div class="ajuda">{{ _('Só para o aviso de atraso. As horas pagas são sempre as batidas.') }}</div></div>
+        <div class="linha-form" style="grid-template-columns:1fr 1fr">
+          <div class="campo"><label for="pct_noturno">{{ _('Diferencial noturno (%)') }}</label><input id="pct_noturno" type="number" name="pct_noturno" value="{{ e.pct_noturno }}" min="0" max="300" required></div>
+          <div class="campo"><label for="pct_feriado">{{ _('Prêmio em feriado (%)') }}</label><input id="pct_feriado" type="number" name="pct_feriado" value="{{ e.pct_feriado }}" min="0" max="300" required></div>
+        </div>
+        <div class="ajuda">{{ _('Políticas da empresa, não obrigações da lei federal: acréscimo sobre a hora entre 22h e 5h e nas horas trabalhadas em feriado. 0 desliga.') }}</div>
+      </div>
+    </div>
+  </div>
+  <button class="botao" type="submit">{{ _('Salvar configurações') }}</button>
+</form>
+
+<form method="post" action="/painel/config/escala-regras" class="cartao" id="escala-regras">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Regras da escala') }}</h2>
+  <label class="marcar campo"><input type="checkbox" name="confirmar_turno" value="1" {{ 'checked' if e.confirmar_turno }}>
+    <span>{{ _('Pedir para a equipe confirmar os turnos publicados') }}<br><span class="ajuda">{{ _('O funcionário toca em “Vou estar lá” no app. Quem não confirmar recebe um lembrete, e você um aviso.') }}</span></span></label>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <div class="campo"><label for="conf-h">{{ _('Cobrar a confirmação quantas horas antes do turno') }}</label><input id="conf-h" type="number" name="confirmar_antes_h" min="1" max="168" value="{{ e.confirmar_antes_h }}"></div>
+    <div class="campo"><label for="trava">{{ _('Travar a escala depois de quantos dias') }}</label><input id="trava" type="number" name="travar" min="0" max="60" value="{{ e.travar_escala_dias }}">
+      <div class="ajuda">{{ _('Dias que já passaram há mais tempo que isso não podem mais ser mudados na escala. 0 = sem trava.') }}</div></div>
+  </div>
+  <label class="marcar campo"><input type="checkbox" name="oferecer" value="1" {{ 'checked' if e.oferecer_sem_confirmacao }}>
+    <span>{{ _('Oferecer à equipe o turno que não for confirmado') }}<br><span class="ajuda">{{ _('Na metade do prazo, o turno vai para “Turnos abertos e trocas”. Ele continua da pessoa até alguém pegar e você aprovar.') }}</span></span></label>
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+
+<form method="post" action="/painel/config/escala-justa" class="cartao" id="escala-justa">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Escala justa (Fair Workweek)') }}</h2>
+  <p class="suave pequeno" style="margin-top:-4px">{{ _('Algumas cidades exigem que redes maiores publiquem a escala com antecedência, paguem um adicional quando mudam um turno em cima da hora e deem um descanso mínimo entre um turno e outro. Ligue só se a lei vale para a sua empresa.') }}</p>
+  {% if fw_opcoes %}
+  <div class="campo"><label for="regra_fw">{{ _('Regra que a sua empresa segue') }}</label><select id="regra_fw" name="regra_fw" style="max-width:420px">
+    <option value="">{{ _('Nenhuma: minha empresa não é coberta') }}</option>
+    {% for k, nome in fw_opcoes %}<option value="{{ k }}" {{ 'selected' if e.escala_justa == k }}>{{ nome }}</option>{% endfor %}
+  </select></div>
+  {% if fw_regra %}<div class="aviso pequeno">{{ _('Vale para: {v1}', v1=(fw_regra.cobertura|traduz)) }}<br>
+    {{ _('Aviso: {v1} dias antes.', v1=fw_regra.aviso) }}{% if fw_regra.descanso %} {{ _('Descanso mínimo entre turnos: {v1} h.', v1=fw_regra.descanso[0]) }}{% endif %}
+    {% if not fw_regra.muda %}<br>{{ _('Nesta cidade o adicional por mudança tem valores fixos por tipo: lance-o como pagamento extra.') }}{% endif %}</div>{% endif %}
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+  {% else %}<p class="pequeno">{{ _('Não há lei de escala justa no estado salvo acima.') }}</p>{% endif %}
+  <p class="ajuda">{{ _('Resumo das regras de 2026, não é orientação jurídica. Confira no site oficial da cidade.') }}</p>
+</form>
+
+<form method="post" action="/painel/config/faturamento" class="cartao" id="faturamento">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Faturamento e CMO') }}</h2>
+  <p class="suave pequeno">{{ _('Para empresas que vendem produtos ou serviços: você digita as vendas de cada dia (ou o total do mês) e a tela Hoje mostra o CMO, quanto a equipe representa do faturamento.') }}</p>
+  <label class="marcar campo"><input type="checkbox" name="usa" value="1" {{ 'checked' if e.usa_faturamento }}><span>{{ _('Acompanhar faturamento e CMO na tela Hoje') }}</span></label>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    <div><label for="meta_cmo">{{ _('Meta de CMO (% do faturamento)') }}</label><input id="meta_cmo" type="number" name="meta" min="5" max="80" value="{{ e.meta_cmo }}"></div>
+  </div>
+  <p class="ajuda">{{ _('O custo é estimado pelas horas trabalhadas e pelo valor da hora de cada um; hora extra, gorjeta e impostos do empregador não entram. Em bares e restaurantes, a referência é de 25% a 35% do faturamento.') }}</p>
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+
+<form method="post" action="/painel/config/salario-minimo-eua" class="cartao" id="salario-minimo">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Salário mínimo do local') }}</h2>
+  <p class="suave pequeno" style="margin-top:-4px">{{ _('O sistema avisa quando o valor da hora de alguém fica abaixo do mínimo federal, do estado ou da cidade. Tabela atualizada em {v1}.', v1=sm_atualizado.strftime('%m/%d/%Y')) }}</p>
+  <div class="aviso">{{ _('Em uso agora: {v1} por hora ({v2}); com gorjeta, {v3} em dinheiro.', v1=(sm.normal.centavos|dinheiro), v2=(sm.normal.fonte|traduz), v3=(sm.gorjeta.centavos|dinheiro)) }}{% if sm.proxima %}<br>{{ _('A partir de {v1}: {v2} por hora; com gorjeta, {v3}.', v1=sm.proxima.data.strftime('%m/%d/%Y'), v2=(sm.proxima.normal.centavos|dinheiro), v3=(sm.proxima.gorjeta.centavos|dinheiro)) }}{% endif %}</div>
+  <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    <div class="campo"><label for="sm-cidade">{{ _('Cidade ou região') }}</label><select id="sm-cidade" name="cidade">
+      <option value="">{{ _('Nenhuma: vale o mínimo do estado') }}</option>
+      {% for chave, nome in cidades %}<option value="{{ chave }}" {{ 'selected' if e.cidade_minimo == chave }}>{{ nome }}</option>{% endfor %}
+    </select><div class="ajuda">{% if cidades %}{{ _('Só aparecem as cidades do estado salvo acima com mínimo próprio.') }}{% else %}{{ _('Não conhecemos cidades com mínimo próprio neste estado.') }}{% endif %}</div></div>
+    <div class="campo"><label for="sm-proprio">{{ _('Mínimo próprio por hora (opcional)') }}</label><input type="text" inputmode="decimal" id="sm-proprio" name="proprio" value="{{ '%.2f'|format(e.minimo_proprio_centavos / 100) if e.minimo_proprio_centavos else '' }}" placeholder="0.00"><div class="ajuda">{{ _('Para uma cidade fora da lista ou uma regra do seu setor. Vale o maior valor.') }}</div></div>
+    <div class="campo"><label for="sm-proprio-g">{{ _('Mínimo próprio com gorjeta (opcional)') }}</label><input type="text" inputmode="decimal" id="sm-proprio-g" name="proprio_gorjeta" value="{{ '%.2f'|format(e.minimo_gorjeta_proprio_centavos / 100) if e.minimo_gorjeta_proprio_centavos else '' }}" placeholder="0.00"></div>
+  </div>
+  <p class="ajuda">{{ _('Quando a lei tem valores por tamanho de empresa, usamos o da empresa grande. Confira sempre no site oficial da cidade ou do estado.') }}</p>
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+
+<script>
+(function () {
+  var lat = document.getElementById("lat"), lng = document.getElementById("lng"),
+      estado = document.getElementById("local-estado"), mapa = document.getElementById("ver-mapa");
+  function link() {
+    var a = lat.value.replace(",", "."), b = lng.value.replace(",", ".");
+    mapa.hidden = !(a && b);
+    mapa.href = "https://www.google.com/maps?q=" + encodeURIComponent(a + "," + b);
+  }
+  lat.addEventListener("input", link); lng.addEventListener("input", link); link();
+  document.getElementById("usar-local").addEventListener("click", function () {
+    if (!navigator.geolocation) { estado.textContent = t("Este navegador não informa a localização."); return; }
+    estado.textContent = t("Obtendo a localização…");
+    navigator.geolocation.getCurrentPosition(function (p) {
+      lat.value = p.coords.latitude.toFixed(6); lng.value = p.coords.longitude.toFixed(6); link();
+      estado.textContent = t("Localização preenchida (precisão de cerca de ") + Math.round(p.coords.accuracy) + t(" m). Confira no mapa e salve.");
+    }, function (err) {
+      estado.textContent = err.code === 1 ? t("Permissão de localização negada. Libere nas configurações do navegador e tente de novo.")
+        : t("Não foi possível obter a localização. Tente de novo.");
+    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  });
+})();
+</script>
+{% endblock %}

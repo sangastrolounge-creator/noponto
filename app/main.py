@@ -141,6 +141,11 @@ app.include_router(rep.rota)
 app.include_router(conta.rota)
 app.include_router(lojas.rota)
 app.include_router(vendedor.rota)
+# Rotas só das empresas dos EUA (empresa de outro país recebe 404)
+from .paises.us import descanso as _us_descanso, escala_justa as _us_fw  # noqa: E402
+from .paises.us import pto as _us_pto, salario_minimo as _us_sm, telas as _us_telas  # noqa: E402
+for _r in (_us_descanso.rota, _us_fw.rota, _us_pto.rota, _us_sm.rota):
+    app.include_router(_r, dependencies=[Depends(_us_telas.so_eua)])
 app.include_router(rastreio.rota)   # antes do CRM: /master/crm/canais não é um lead
 app.include_router(crm.rota)
 app.include_router(instagram.rota)
@@ -1145,6 +1150,10 @@ def _numero(s: str) -> float | None:
 @app.get("/painel/config")
 def config(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     e = u.empresa
+    if e.pais == "US":   # tela americana (templates/us/painel_config.html)
+        from .paises.us import telas as telas_us
+        return render(request, "painel_config.html", u=u, e=e, aba="config",
+                      **telas_us.contexto_config(db, e))
     return render(request, "painel_config.html", u=u, e=e, aba="config", fusos=regras.FUSOS,
                   sm=salario_minimo.situacao(db, e, regras.hoje(e)),
                   sm_atualizado=salario_minimo.ATUALIZADO_EM, REGIMES=faturamento.REGIMES,
@@ -1165,11 +1174,31 @@ def config_salvar(request: Request, nome: str = Form(""), endereco: str = Form("
                   noturno_reduzida: str = Form(""), intervalo_obrigatorio: str = Form(""),
                   dsr_faltas: str = Form(""), dsr_extras: str = Form(""),
                   intervalo_minimo_min: str = Form("60"),
+                  estado: str = Form(""), semana_inicio: str = Form("6"),
+                  frequencia: str = Form("biweekly"), periodo_ancora: str = Form(""),
+                  pct_feriado: str = Form("0"),
                   u: Usuario = Depends(gestor_logado),
                   db: Session = Depends(get_db)):
     e = u.empresa
     antes = (e.lat, e.lng, e.raio_m, e.bloquear_fora, e.tolerancia_min, e.exigir_foto,
              e.aparelho_unico, e.ajuste_dias, e.fotos_dias, e.ponto_na_lotacao)
+    eua = e.pais == "US"
+    if eua:
+        from .paises.us import telas as telas_us
+        if not telas_us.salvar_jornada(request, db, e, u, dict(
+                estado=estado, semana_inicio=semana_inicio, frequencia=frequencia,
+                periodo_ancora=periodo_ancora, intervalo_padrao_min=intervalo_padrao_min,
+                intervalo_auto=intervalo_auto, tolerancia_dia_min=tolerancia_dia_min,
+                pct_noturno=pct_noturno, pct_feriado=pct_feriado,
+                intervalo_obrigatorio=intervalo_obrigatorio)):
+            db.rollback()
+            return ir("/painel/config")
+        # as regras brasileiras ficam como estão
+        intervalo_minimo_min, pct_extra_normal, pct_extra_especial = (
+            str(e.intervalo_minimo_min), str(e.pct_extra_normal), str(e.pct_extra_especial))
+        pct_noturno, controle = str(e.pct_noturno), e.controle
+        noturno_reduzida, dsr_faltas, dsr_extras = (
+            "1" if e.noturno_reduzida else "", "1" if e.dsr_faltas else "", "1" if e.dsr_extras else "")
     jornada_antes = (e.controle, e.intervalo_padrao_min, e.intervalo_auto, e.tolerancia_dia_min,
                      e.pct_extra_normal, e.pct_extra_especial, e.pct_noturno,
                      e.noturno_reduzida, e.intervalo_obrigatorio, e.dsr_faltas, e.dsr_extras,
@@ -1212,14 +1241,15 @@ def config_salvar(request: Request, nome: str = Form(""), endereco: str = Form("
     e.ponto_na_lotacao = bool(ponto_na_lotacao)
     e.exigir_foto, e.aparelho_unico = bool(exigir_foto), bool(aparelho_unico)
     e.ajuste_dias, e.fotos_dias = int(aj), int(fd)
-    e.controle = controle if controle in ("banco", "extra") else "banco"
-    e.intervalo_padrao_min, e.tolerancia_dia_min = int(ip_), int(td)
-    e.intervalo_auto = bool(intervalo_auto)
-    e.pct_extra_normal, e.pct_extra_especial, e.pct_noturno = int(pn), int(pe), int(pnot)
-    e.noturno_reduzida, e.intervalo_obrigatorio = bool(noturno_reduzida), bool(intervalo_obrigatorio)
-    e.dsr_faltas, e.dsr_extras = bool(dsr_faltas), bool(dsr_extras)
-    e.intervalo_minimo_min = int(im)
-    if jornada_antes != (e.controle, e.intervalo_padrao_min, e.intervalo_auto, e.tolerancia_dia_min,
+    if not eua:
+        e.controle = controle if controle in ("banco", "extra") else "banco"
+        e.intervalo_padrao_min, e.tolerancia_dia_min = int(ip_), int(td)
+        e.intervalo_auto = bool(intervalo_auto)
+        e.pct_extra_normal, e.pct_extra_especial, e.pct_noturno = int(pn), int(pe), int(pnot)
+        e.noturno_reduzida, e.intervalo_obrigatorio = bool(noturno_reduzida), bool(intervalo_obrigatorio)
+        e.dsr_faltas, e.dsr_extras = bool(dsr_faltas), bool(dsr_extras)
+        e.intervalo_minimo_min = int(im)
+    if not eua and jornada_antes != (e.controle, e.intervalo_padrao_min, e.intervalo_auto, e.tolerancia_dia_min,
                          e.pct_extra_normal, e.pct_extra_especial, e.pct_noturno,
                          e.noturno_reduzida, e.intervalo_obrigatorio, e.dsr_faltas, e.dsr_extras,
                          e.intervalo_minimo_min):
@@ -1235,7 +1265,7 @@ def config_salvar(request: Request, nome: str = Form(""), endereco: str = Form("
                          f"intervalo mínimo acima de 6 h: {e.intervalo_minimo_min} min; "
                          f"DSR: {'desconta' if e.dsr_faltas else 'não desconta'} na semana com falta, "
                          f"{'calcula' if e.dsr_extras else 'não calcula'} o reflexo das extras.")
-    if fuso in dict(regras.FUSOS):
+    if fuso in dict(telas_us.FUSOS if eua else regras.FUSOS):
         e.fuso = fuso
     depois = (e.lat, e.lng, e.raio_m, e.bloquear_fora, e.tolerancia_min, e.exigir_foto,
               e.aparelho_unico, e.ajuste_dias, e.fotos_dias, e.ponto_na_lotacao)

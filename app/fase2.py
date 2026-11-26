@@ -206,10 +206,9 @@ def feriado_remover(request: Request, fid: int, u: Usuario = Depends(gestor_loga
 
 # ============================================================ fechamento e banco de horas
 def periodo_sugerido(db: Session, e) -> tuple[date, date]:
-    """Do início do período aberto até o fim daquele mês (ou até hoje, se o mês não acabou)."""
-    ini, hoje = paises.regras_de(e).periodo_aberto(db, e)
-    fim_mes = (ini.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-    return ini, min(fim_mes, hoje)
+    """Do início do período aberto até o fim do período do país (mês no Brasil, período de
+    pagamento nos EUA), ou até hoje se ele ainda não acabou."""
+    return paises.regras_de(e).periodo_sugerido(db, e)
 
 
 def _do_setor(db: Session, e, resultado: list[dict], setor: str) -> tuple[list[dict], int, str]:
@@ -249,7 +248,7 @@ def fechamento(request: Request, de: str = "", ate: str = "", setor: str = "",
                   fim=fim, resultado=resultado, fechados=fechados, motivo=motivo, hoje=hoje,
                   pendentes=pendentes, equipe=equipe, setores=setores.setores_da(db, e.id), setor=sid,
                   incompletos=sum(r["incompletos"] for r in resultado),
-                  sem_escala=sum(r["sem_escala"] for r in resultado))
+                  sem_escala=sum(r.get("sem_escala", 0) for r in resultado))
 
 
 @rota.post("/painel/fechamento", dependencies=CSRF)
@@ -293,6 +292,7 @@ def fechamento_reabrir(request: Request, fid: int, u: Usuario = Depends(gestor_l
                         "finalização da folha (em Pagamento) antes de reabrir o ponto.", "erro")
         return ir("/painel/fechamento")
     pagamento.apagar_folhas_do_periodo(db, f.id)
+    paises.regras_de(u.empresa).ao_reabrir(db, f)
     assinadas = sum(1 for l in f.linhas if l.aceite_em)
     regras.registrar(db, u.empresa_id, u.nome, "período reaberto",
                      f"Ponto de {f.inicio:%d/%m/%Y} a {f.fim:%d/%m/%Y} reaberto. "
@@ -307,6 +307,9 @@ def fechamento_reabrir(request: Request, fid: int, u: Usuario = Depends(gestor_l
 @rota.get("/painel/fechamento/{fid}/planilha.csv")
 def fechamento_csv(fid: int, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     f = da_empresa(db, Fechamento, fid, u)
+    if u.empresa.pais == "US":   # horas para o provedor de folha americano
+        from .paises.us import telas as telas_us
+        return telas_us.planilha_fechamento(u, f)
     banco_h = u.empresa.controle == "banco"
     saida = io.StringIO()
     w = csv.writer(saida, delimiter=";")
@@ -351,9 +354,8 @@ def fechamento_resumo(request: Request, de: str = "", ate: str = "", setor: str 
     resultado, sid, nome_setor = _do_setor(db, e, paises.regras_de(e).apurar(db, e, ini, fim), setor)
     fechado = db.scalar(select(Fechamento).where(
         Fechamento.empresa_id == e.id, Fechamento.inicio == ini, Fechamento.fim == fim))
-    chaves = ("trabalhado", "noturno", "extra_normal", "extra_especial", "falta_min", "faltas",
-              "dsr_perdidos", "dsr_perdido_min", "dsr_extras", "intervalo_suprimido", "sobreaviso")
-    total = {k: sum(r[k] for r in resultado) for k in chaves}
+    chaves = paises.regras_de(e).CHAVES_RESUMO
+    total = {k: sum(r.get(k, 0) for r in resultado) for k in chaves}
     return render(request, "resumo.html", u=u, e=e, ini=ini, fim=fim, resultado=resultado,
                   total=total, fechado=fechado, emitido=regras.agora_local(e),
                   pn=fechado.pct_normal if fechado else e.pct_extra_normal,
@@ -368,6 +370,8 @@ def fechamento_horas(request: Request, de: str = "", ate: str = "", setor: str =
                      u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     """Tabela curta para imprimir: extras, extras em folga/feriado, noturnas e faltas em horas."""
     e = u.empresa
+    if e.pais != "BR":   # nos EUA o resumo já traz as horas no formato de lá
+        return ir(f"/painel/fechamento/resumo?de={de}&ate={ate}")
     sug = periodo_sugerido(db, e)
     ini, fim = data_iso(de, sug[0]), data_iso(ate, sug[1])
     if ini > fim or (fim - ini).days > 100:
@@ -509,7 +513,7 @@ async def app_ausencia(request: Request, tarefas_bg: BackgroundTasks, tipo: str 
     e = u.empresa
     datas = datas_da_ausencia(inicio, fim)
     erro = None
-    if tipo not in ("atestado", "abono", "outro") or not datas:
+    if tipo not in paises.regras_de(e).TIPOS_PEDIDO_AUSENCIA or not datas:
         erro = "Confira as datas (o último dia não pode ser antes do primeiro)."
     elif apuracao.esta_fechado(db, e, datas[0]):
         erro = "Esses dias já estão num período de ponto fechado. Fale com o gestor."
@@ -522,7 +526,7 @@ async def app_ausencia(request: Request, tarefas_bg: BackgroundTasks, tipo: str 
             arquivo = await guardar_anexo(e.id, anexo)
         except ValueError as ex:
             erro = str(ex)
-    if not erro and tipo == "atestado" and not arquivo:
+    if not erro and tipo == "atestado" and not arquivo and not (e.pais == "US" and e.sick_por_horas):
         erro = "Anexe a foto do atestado."
     if erro:
         avisar(request, erro, "erro")

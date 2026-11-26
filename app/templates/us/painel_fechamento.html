@@ -1,0 +1,94 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+{% set consulta = 'de=' ~ ini.isoformat() ~ '&ate=' ~ fim.isoformat() %}
+<div class="cabecalho">
+  <div><h1>{{ _('Fechamento') }}</h1><p class="suave" style="margin:0">{{ _('Horas do período de pagamento por funcionário, hora extra pelas regras de {v1} e folha de ponto para assinar.', v1=(e.estado)) }}</p></div>
+</div>
+
+<form class="cartao" method="get" action="/painel/fechamento">
+  <div class="linha-form">
+    <div><label for="de">{{ _('De') }}</label><input type="date" id="de" name="de" value="{{ ini.isoformat() }}"></div>
+    <div><label for="ate">{{ _('Até') }}</label><input type="date" id="ate" name="ate" value="{{ fim.isoformat() }}"></div>
+    <div><button class="botao claro" type="submit">{{ _('Calcular') }}</button></div>
+  </div>
+</form>
+
+{% set sem_intervalo = resultado|sum(attribute='sem_intervalo') %}
+{% if incompletos or pendentes or sem_intervalo %}
+<div class="alerta">
+  {% if incompletos %}{{ _('Há {v1} dia(s) com batida faltando neste período (contam como zero horas).', v1=(incompletos)) }} <a href="/painel/ponto?{{ consulta }}">{{ _('Corrigir no Ponto') }}</a>. {% endif %}
+  {% if sem_intervalo %}{{ _('Há {v1} dia(s) em que o intervalo não foi batido (veja na folha de cada um).', v1=(sem_intervalo)) }} {% endif %}
+  {% if pendentes %}{{ _('Há {v1} pedido(s) de ajuste ou atestado aguardando resposta neste período.', v1=(pendentes)) }}{% endif %}
+</div>
+{% endif %}
+
+<div class="cartao">
+  <h2>{{ _('{v1} a {v2}', v1=(ini.strftime('%m/%d/%Y')), v2=(fim.strftime('%m/%d/%Y'))) }}</h2>
+  {% if resultado %}
+  <div class="rolagem"><table class="tabela-valores">
+    <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Previsto') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Normais') }}</th><th>{{ _('Extra 1,5x') }}</th><th>{{ _('Dobro 2x') }}</th>{% if e.meal_premium %}<th>{{ _('Meal premium') }}</th>{% endif %}{% if e.estado == 'CA' and e.descanso_premium %}<th>{{ _('Rest premium') }}</th>{% endif %}<th>{{ _('PTO/sick') }}</th>{% if e.pct_noturno %}<th>{{ _('Noturnas') }}</th>{% endif %}<th>{{ _('Atrasos e saídas') }}</th><th>{{ _('Não compareceu') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for r in resultado %}
+    <tr>
+      <td class="nome-forte">{{ r.u.nome }}{% if r.ot + r.dt > 0 %}<br><span class="etiqueta alerta pequeno">{{ _('hora extra') }}</span>{% endif %}</td>
+      <td>{{ fmt_min(r.previsto) }}</td><td>{{ fmt_min(r.trabalhado) }}</td>
+      <td>{{ fmt_min(r.regular) }}</td>
+      <td>{{ fmt_min(r.ot) if r.ot else '—' }}</td>
+      <td>{{ fmt_min(r.dt) if r.dt else '—' }}</td>
+      {% if e.meal_premium %}<td>{{ fmt_min(r.meal_premios) if r.meal_premios else '—' }}</td>{% endif %}{% if e.estado == 'CA' and e.descanso_premium %}<td>{{ fmt_min(r.descanso_premios) if r.descanso_premios else '—' }}</td>{% endif %}
+      <td>{{ fmt_min(r.pto_min) if r.pto_min else '—' }}</td>
+      {% if e.pct_noturno %}<td>{{ fmt_min(r.noturno) if r.noturno else '—' }}</td>{% endif %}
+      <td>{{ fmt_min(r.debito) if r.debito else '—' }}</td>
+      <td>{% if r.faltas %}<span class="etiqueta erro">{{ _('{v1} dia(s)', v1=(r.faltas)) }}</span>{% else %}—{% endif %}</td>
+      <td class="direita"><a class="botao mini claro" href="/painel/folha?func={{ r.u.id }}&{{ consulta }}">{{ _('Folha') }}</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="ajuda">{{ _('Hora extra pela lei federal (FLSA): acima de 40 horas na semana de trabalho, a 1,5x. As regras por dia do estado entram sozinhas. Os dias da semana que ficaram no período anterior contam para as 40 horas. Não compareceu = dia de escala sem nenhuma batida. Confira com seu provedor de folha e seu advogado trabalhista.') }}</p>
+  <form method="post" action="/painel/fechamento" data-confirma="{{ _('Fechar o ponto de {v1} a {v2}? Depois disso as batidas, a escala e as ausências desse período não podem mais ser alteradas (a não ser reabrindo).', v1=(ini.strftime('%m/%d/%Y')), v2=(fim.strftime('%m/%d/%Y'))) }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="de" value="{{ ini.isoformat() }}"><input type="hidden" name="ate" value="{{ fim.isoformat() }}">
+    <button class="botao" type="submit" {{ 'disabled' if motivo }}>{{ _('Fechar este período') }}</button>
+    <a class="botao claro" href="/painel/fechamento/resumo?{{ consulta }}">{{ _('Resumo em PDF') }}</a>
+    {% if motivo %}<span class="suave pequeno" style="margin-left:8px">{{ _(motivo) }}</span>{% endif %}
+  </form>
+  {% else %}
+  <div class="vazio">{{ _('Ninguém tem escala ou batidas neste período.') }}</div>
+  {% endif %}
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Períodos fechados') }}</h2>
+  {% if fechados %}
+  <div class="rolagem"><table>
+    <thead><tr><th>{{ _('Período') }}</th><th>{{ _('Fechado por') }}</th><th>{{ _('Folhas assinadas') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for f in fechados %}
+    {% set assinadas = f.linhas|selectattr('aceite_em')|list|length %}
+    {% set contestadas = f.linhas|selectattr('contestacao')|list %}
+    <tr>
+      <td style="white-space:nowrap"><a href="/painel/fechamento?de={{ f.inicio.isoformat() }}&ate={{ f.fim.isoformat() }}">{{ _('{v1} a {v2}', v1=(f.inicio.strftime('%m/%d/%Y')), v2=(f.fim.strftime('%m/%d/%Y'))) }}</a></td>
+      <td>{{ f.criado_por }}<br><span class="suave pequeno">{{ local(e, f.criado_em, '%m/%d/%Y %H:%M') }}</span></td>
+      <td><span class="etiqueta {{ 'ok' if assinadas == f.linhas|length and assinadas else '' }}">{{ _('{v1} de {v2}', v1=(assinadas), v2=(f.linhas|length)) }}</span>
+        {% for l in contestadas %}<br><span class="pequeno"><span class="etiqueta erro">{{ _('contestou') }}</span> {{ l.usuario.primeiro_nome }}: {{ l.contestacao }}</span>{% endfor %}</td>
+      <td class="direita"><div class="acoes" style="justify-content:flex-end">
+        <a class="botao mini claro" href="/painel/fechamento/resumo?de={{ f.inicio.isoformat() }}&ate={{ f.fim.isoformat() }}">{{ _('Resumo em PDF') }}</a>
+        <a class="botao mini claro" href="/painel/fechamento/{{ f.id }}/planilha.csv">{{ _('Planilha para a folha (CSV)') }}</a>
+        {% if loop.first %}
+        <form method="post" action="/painel/fechamento/{{ f.id }}/reabrir" class="inline" data-confirma="{{ _('Reabrir este período? As assinaturas já feitas serão descartadas e será preciso fechar de novo.') }}">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="botao mini perigo" type="submit">{{ _('Reabrir') }}</button>
+        </form>
+        {% endif %}
+      </div></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="vazio">{{ _('Nenhum período fechado ainda.') }}</div>
+  {% endif %}
+</div>
+
+{% endblock %}

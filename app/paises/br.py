@@ -2,6 +2,8 @@
 reduzida, feriados nacionais, folha com INSS/IRRF/FGTS e cobrança pelo Asaas.
 
 Este módulo só aponta para o código que já existia; nada muda no resultado."""
+from datetime import timedelta
+
 from .. import apuracao, calculo_folha, calendario
 
 CODIGO = "BR"
@@ -29,6 +31,24 @@ def inicio_semana(e, d):
 
 def periodo_aberto(db, e):
     return apuracao.periodo_aberto(db, e)
+
+
+def periodo_sugerido(db, e):
+    """Do início do período aberto até o fim daquele mês (ou até hoje, se o mês não acabou)."""
+    ini, hoje = apuracao.periodo_aberto(db, e)
+    fim_mes = (ini.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+    return ini, min(fim_mes, hoje)
+
+
+# Totais do resumo da folha da equipe
+CHAVES_RESUMO = ("trabalhado", "noturno", "extra_normal", "extra_especial", "falta_min", "faltas",
+                 "dsr_perdidos", "dsr_perdido_min", "dsr_extras", "intervalo_suprimido", "sobreaviso")
+# Ausências que o próprio funcionário pode pedir pelo app
+TIPOS_PEDIDO_AUSENCIA = ("atestado", "abono", "outro")
+
+
+def ao_reabrir(db, f):
+    """Nada além do que o fechamento comum já desfaz."""
 
 
 def apurar(db, e, ini, fim, usuario_id=None):
