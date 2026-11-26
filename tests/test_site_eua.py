@@ -52,6 +52,13 @@ def main():
     tela = v.get("/").text
     assert 'lang="en"' in tela and "Starter US" in tela and "$29.00" in tela, tela[:1500]
     assert "Essencial BR" not in tela and "R$" not in tela
+    with SessionLocal() as db:   # o nome "... Brasil" vira só "Data Worke" no site americano
+        db.get(Plataforma, 1).nome = "Data Worke Brasil"
+        db.commit()
+    core.plataforma_mudou()
+    assert "Data Worke Brasil" not in v.get("/").text and "<title>Data Worke" in v.get("/").text
+    assert "Data Worke Brasil" not in v.get("/entrar").text
+    assert "Data Worke Brasil" in cli(BR).get("/entrar").text
     tela_br = cli(BR).get("/").text
     assert "Starter US" not in tela_br and 'lang="pt-BR"' in tela_br
     # quem escolheu um idioma continua nele

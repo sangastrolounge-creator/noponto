@@ -39,8 +39,9 @@ def dados() -> dict:
 
 
 def dados_eua() -> dict:
+    from .core import nome_eua
     p = plataforma()
-    marca = p["nome"]
+    marca = nome_eua(p["nome"])
     return {
         "marca": marca,
         "empresa": (p.get("eua_razao_social") or "").strip() or marca,

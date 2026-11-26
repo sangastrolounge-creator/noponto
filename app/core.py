@@ -392,6 +392,14 @@ def app_ios(request: Request) -> bool:
     return APP_IOS in request.headers.get("user-agent", "")
 
 
+def nome_eua(nome: str) -> str:
+    """Nome da plataforma no site e nas telas dos EUA: sem o "Brasil" do fim."""
+    for fim in (" Brasil", " brasil", " BR"):
+        if nome.endswith(fim):
+            return nome[: -len(fim)].strip()
+    return nome
+
+
 def caminho_da_tela(request: Request) -> str:
     """Endereço que o usuário pediu (o middleware de telas por país pode ter trocado o interno)."""
     return request.scope.get("caminho_pedido") or request.url.path
@@ -427,9 +435,14 @@ def render(request: Request, nome: str, status_code: int = 200, **ctx):
     # País da empresa da tela: moeda nos valores e, se existir, a versão da tela daquele país
     # (templates/us/<nome>). Sem empresa (master, páginas públicas) fica o Brasil.
     emp = ctx.get("e") or getattr(ctx.get("u"), "empresa", None)
-    pais = ctx.get("pais_tela") or getattr(emp, "pais", None) or "BR"
+    pais = ctx.get("pais_tela") or getattr(emp, "pais", None)
+    if not pais:   # página pública (entrar, cadastro...): o país do endereço do site
+        from . import paises
+        pais = paises.pais_do_host(request)
     _pais_tela.set(pais)
     tudo["pais"] = pais
+    if pais == "US" and not marca:   # nos EUA a marca é "Data Worke", sem o "Brasil"
+        tudo["app_nome"] = nome_eua(plat["nome"])
     if pais != "BR" and (AQUI / "templates" / pais.lower() / nome).exists():
         nome = f"{pais.lower()}/{nome}"
     if marca or base["app_ios"]:
