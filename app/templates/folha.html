@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titulo %}{{ _('Folha de ponto — {v1} — {v2} a {v3}', v1=(r.u.nome), v2=(ini.strftime('%d/%m/%Y')), v3=(fim.strftime('%d/%m/%Y'))) }}{% endblock %}
+{% block titulo %}{{ _('Folha de ponto — {v1} — {v2} a {v3}', v1=(r.u.nome), v2=(ini|fdata('%d/%m/%Y')), v3=(fim|fdata('%d/%m/%Y'))) }}{% endblock %}
 {% block corpo %}
 {% from "_idioma.html" import seletor %}
 {% set banco = e.controle == 'banco' %}
@@ -22,7 +22,7 @@
     </div>
     <div class="direita">
       <strong>{{ r.u.nome }}</strong>{% if r.u.cargo %} · {{ r.u.cargo }}{% endif %}<br>
-      {{ _('{v1} a {v2}', v1=(ini.strftime('%d/%m/%Y')), v2=(fim.strftime('%d/%m/%Y'))) }}
+      {{ _('{v1} a {v2}', v1=(ini|fdata('%d/%m/%Y')), v2=(fim|fdata('%d/%m/%Y'))) }}
       {% if not linha %}<br><span class="etiqueta alerta">{{ _('período ainda aberto') }}</span>{% endif %}
     </div>
   </header>
@@ -32,7 +32,7 @@
     <tbody>
     {% for d in r.dias %}
     <tr class="{{ 'dia-especial' if d.especial }}">
-      <td style="white-space:nowrap">{{ DIAS[d.dia.weekday()] }} {{ d.dia.strftime('%d/%m') }}</td>
+      <td style="white-space:nowrap">{{ DIAS[d.dia.weekday()] }} {{ d.dia|fdata('%d/%m') }}</td>
       <td style="white-space:nowrap">{% if d.turno and d.turno.folga %}{{ _('Folga') }}{% elif d.turno %}{{ d.turno.inicio }}–{{ d.turno.fim }}{% else %}—{% endif %}</td>
       <td>{% for a, b in d.pares %}<span style="white-space:nowrap">{{ local(e, a.momento) if a else '?' }}{{ '*' if a and a.manual }} → {{ local(e, b.momento) if b else '?' }}{{ '*' if b and b.manual }}</span>{{ ', ' if not loop.last }}{% endfor %}</td>
       <td>{{ fmt_min(d.trabalhado) if d.trabalhado else '' }}</td>
@@ -74,7 +74,7 @@
     {% endif %}
   </div>
   {% if r.ajustes %}
-  <p class="pequeno">{{ _('Ajustes manuais:') }} {% for a in r.ajustes_itens %}{{ a.data.strftime('%d/%m') }} {{ fmt_saldo(a.minutos) }} ({{ a.motivo }}){{ '; ' if not loop.last }}{% endfor %}</p>
+  <p class="pequeno">{{ _('Ajustes manuais:') }} {% for a in r.ajustes_itens %}{{ a.data|fdata('%d/%m') }} {{ fmt_saldo(a.minutos) }} ({{ a.motivo }}){{ '; ' if not loop.last }}{% endfor %}</p>
   {% endif %}
 
   <div class="folha-assinatura">

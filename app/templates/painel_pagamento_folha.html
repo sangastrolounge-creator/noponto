@@ -2,7 +2,7 @@
 {% block conteudo %}
 {% set rascunho = f.situacao == 'rascunho' %}
 <div class="cabecalho">
-  <div><h1>{{ _('Folha de {v1} a {v2}', v1=(f.inicio.strftime('%d/%m/%Y')), v2=(f.fim.strftime('%d/%m/%Y'))) }}</h1>
+  <div><h1>{{ _('Folha de {v1} a {v2}', v1=(f.inicio|fdata('%d/%m/%Y')), v2=(f.fim|fdata('%d/%m/%Y'))) }}</h1>
     <p class="suave" style="margin:0">{% if rascunho %}<span class="etiqueta">{{ _('Rascunho') }}</span> {{ _('Os funcionários ainda não veem os holerites.') }}{% else %}<span class="etiqueta ok">{{ _('Finalizada') }}</span> {{ _('em {v1}. Cada funcionário vê o próprio holerite no app.', v1=(local(e, f.finalizada_em, '%d/%m/%Y %H:%M'))) }}{% endif %}</p></div>
   <a class="botao claro" href="/painel/pagamento">{{ _('Voltar') }}</a>
 </div>

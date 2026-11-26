@@ -4,7 +4,7 @@
     <div>
       <p class="desl-rotulo">{{ _('Desligamento') }}</p>
       <h2 id="desl-t-{{ p.id }}">{{ p.nome }}</h2>
-      <p class="suave pequeno">{{ p.cargo ~ ' · ' if p.cargo }}{% if p.data_admissao %}{{ _('admitido(a) em {v1}', v1=p.data_admissao.strftime('%d/%m/%Y')) }}{% endif %}</p>
+      <p class="suave pequeno">{{ p.cargo ~ ' · ' if p.cargo }}{% if p.data_admissao %}{{ _('admitido(a) em {v1}', v1=p.data_admissao|fdata('%d/%m/%Y')) }}{% endif %}</p>
     </div>
     <button class="desl-fechar" type="button" data-fechar aria-label="{{ _('Fechar') }}">&times;</button>
   </header>
@@ -12,7 +12,7 @@
   {% if p.desligado_em %}
   <div class="desl-corpo">
     <div class="desl-resumo">
-      <div><span>{{ _('Último dia') }}</span><strong>{{ p.desligado_em.strftime('%d/%m/%Y') }}</strong></div>
+      <div><span>{{ _('Último dia') }}</span><strong>{{ p.desligado_em|fdata('%d/%m/%Y') }}</strong></div>
       <div><span>{{ _('Tipo') }}</span><strong>{{ _(TIPOS.get(p.desligamento_tipo, '—')) }}</strong></div>
       <div><span>{{ _('Aviso prévio') }}</span><strong>{{ _(AVISOS.get(p.aviso_previo, '—')) }}</strong></div>
     </div>

@@ -3,13 +3,14 @@ meal e rest premium da Califórnia, feriados federais, períodos semanal, quinze
 e mensal, sick leave e PTO, Fair Workweek. Sem banco de horas, DSR nem hora noturna reduzida.
 
 A folha americana é só o bruto (gross pay): os impostos ficam com o provedor de folha."""
-from . import apuracao, calendario
+from . import apuracao, calendario, escala_justa, menores, salario_minimo  # noqa: F401
 
 CODIGO = "US"
 NOME = "Estados Unidos"
 MOEDA = "USD"
 IDIOMA = "en"
 COBRANCA = "stripe"
+SEMANA_LIMITE_MIN = 2400   # FLSA: hora extra acima de 40 h na semana de trabalho
 
 
 def feriados(ano):

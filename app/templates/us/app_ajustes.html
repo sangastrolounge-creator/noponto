@@ -1,0 +1,79 @@
+{% extends "app_base.html" %}
+{% block saudacao %}{{ _('Ajustes de ponto') }}{% endblock %}
+{% block conteudo %}
+<section class="cartao">
+  <h2>{{ _('Esqueceu de bater o ponto?') }}</h2>
+  {% if e.ajuste_dias > 0 %}
+  <p class="suave pequeno">{{ _('Peça o ajuste ao gestor. A batida só entra depois que ele aprovar.') }}</p>
+  <form method="post" action="/app/ajustes">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="campo"><label for="tipo">{{ _('O que faltou') }}</label>
+      <select id="tipo" name="tipo"><option value="entrada">{{ _('Entrada') }}</option><option value="saida">{{ _('Saída') }}</option></select></div>
+    <div class="linha-form" style="grid-template-columns:1fr 1fr">
+      <div class="campo"><label for="data">{{ _('Dia') }}</label><input type="date" id="data" name="data" value="{{ hoje.isoformat() }}" min="{{ minimo.isoformat() }}" max="{{ hoje.isoformat() }}" required></div>
+      <div class="campo"><label for="hora">{{ _('Hora certa') }}</label><input type="time" id="hora" name="hora" required></div>
+    </div>
+    <div class="campo"><label for="motivo">{{ _('Motivo') }}</label><input type="text" id="motivo" name="motivo" required minlength="5" maxlength="300" placeholder="{{ _('Ex.: celular sem bateria') }}"></div>
+    <button class="botao" type="submit" style="width:100%">{{ _('Enviar pedido') }}</button>
+  </form>
+  {% else %}
+  <p class="suave" style="margin:0">{{ _('Sua empresa não aceita pedidos de ajuste pelo aplicativo. Fale com o gestor.') }}</p>
+  {% endif %}
+</section>
+
+<section class="cartao">
+  <h2>{{ _('Meus pedidos') }}</h2>
+  {% if pedidos %}
+  <ul class="lista-dias">
+    {% for a in pedidos %}
+    <li><span>{{ _('{v1} · {v2} às {v3}', v1=(_('Entrada') if a.tipo == 'entrada' else _('Saída')), v2=(a.data.strftime('%m/%d')), v3=(a.hora)) }}
+        <br><span class="suave pequeno">{{ a.motivo }}{% if a.resposta %}<br>{{ _('Resposta: {v1}', v1=(a.resposta)) }}{% endif %}</span></span>
+      <span><span class="etiqueta {{ 'ok' if a.situacao == 'aprovado' else 'erro' if a.situacao == 'recusado' else 'alerta' }}">{{ _('Aguardando') if a.situacao == 'pendente' else a.situacao|capitalize }}</span></span></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="suave" style="margin:0">{{ _('Você ainda não fez nenhum pedido.') }}</p>
+  {% endif %}
+</section>
+
+<section class="cartao">
+  <h2>{{ _('Pedir folga ou enviar atestado') }}</h2>
+  {% if e.sick_por_horas or e.pto_por_horas or saldos %}
+  <div class="folha-resumo" style="margin-bottom:12px">
+    {% for b, nome in (('sick', 'Sick leave'), ('pto', 'PTO')) %}{% set s = saldos.get((u.id, b), 0) %}
+    <div><span>{{ _('Saldo de {v1}', v1=nome) }}</span><strong>{{ fmt_min(s) if s >= 0 else '-' ~ fmt_min(-s) }}</strong></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <p class="suave pequeno">{{ _('Peça férias/PTO ou avise uma licença médica. O gestor confere e os dias deixam de contar como falta.') }}</p>
+  <form method="post" action="/app/ausencias" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="campo"><label for="at-tipo">{{ _('Tipo') }}</label>
+      <select id="at-tipo" name="tipo"><option value="ferias">{{ _('Férias / PTO') }}</option><option value="atestado">{{ _('Atestado médico') }}</option><option value="abono">{{ _('Pedido de abono de falta') }}</option><option value="outro">{{ _('Outro') }}</option></select></div>
+    <div class="linha-form" style="grid-template-columns:1fr 1fr">
+      <div class="campo"><label for="at-ini">{{ _('Primeiro dia') }}</label><input type="date" id="at-ini" name="inicio" value="{{ hoje.isoformat() }}" required></div>
+      <div class="campo"><label for="at-fim">{{ _('Último dia') }}</label><input type="date" id="at-fim" name="fim" value="{{ hoje.isoformat() }}" required></div>
+    </div>
+    <div class="campo"><label for="at-anexo">{{ _('Foto do atestado (opcional)') if e.sick_por_horas else _('Foto do atestado') }}</label><input type="file" id="at-anexo" name="anexo" accept="image/*,application/pdf"></div>
+    <div class="campo"><label for="at-obs">{{ _('Observação (opcional)') }}</label><input type="text" id="at-obs" name="obs" maxlength="300"></div>
+    <button class="botao" type="submit" style="width:100%">{{ _('Enviar ao gestor') }}</button>
+  </form>
+  {% if extrato %}
+  <details style="margin-top:12px"><summary class="pequeno">{{ _('Extrato dos saldos') }}</summary>
+    <ul class="lista-dias">{% for m in extrato %}
+      <li><span>{{ 'Sick leave' if m.banco == 'sick' else 'PTO' }} · {{ _(MOTIVOS_PTO[m.motivo]) }}<br><span class="suave pequeno">{{ m.obs }} · {{ local(e, m.criado_em, '%m/%d/%Y') }}</span></span>
+        <strong>{{ '+' if m.minutos > 0 else '-' }}{{ fmt_min(m.minutos|abs) }}</strong></li>
+    {% endfor %}</ul>
+  </details>
+  {% endif %}
+  {% if enviados %}
+  <ul class="lista-dias" style="margin-top:14px">
+    {% for a in enviados %}
+    <li><span>{{ TIPOS_AUSENCIA.get(a.tipo, a.tipo) }} · {{ a.inicio.strftime('%m/%d') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim.strftime('%m/%d'))) }}{% endif %}
+        {% if a.anexo %}<br><a class="pequeno" href="/anexo/{{ a.id }}" target="_blank" rel="noopener">{{ _('ver anexo') }}</a>{% endif %}</span>
+      <span><span class="etiqueta {{ 'ok' if a.situacao == 'aprovado' else 'erro' if a.situacao == 'recusado' else 'alerta' }}">{{ _('Aguardando') if a.situacao == 'pendente' else _('Aceito') if a.situacao == 'aprovado' else _('Recusado') }}</span></span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

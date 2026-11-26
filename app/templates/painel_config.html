@@ -194,8 +194,8 @@
 <form method="post" action="/painel/config/salario-minimo" class="cartao" id="salario-minimo">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <h2>{{ _('Salário mínimo e piso') }}</h2>
-  <p class="suave pequeno" style="margin-top:-4px">{{ _('O sistema avisa quando o salário de alguém fica abaixo do mínimo proporcional à jornada. Tabela atualizada em {v1}.', v1=sm_atualizado.strftime('%d/%m/%Y')) }}</p>
-  <div class="aviso">{{ _('Em uso agora: {v1} por mês para 220 horas ({v2}), ou {v3} por hora.', v1=(sm.normal.centavos|dinheiro), v2=(sm.normal.fonte|traduz), v3=(sm.normal.hora|dinheiro)) }}{% if sm.proxima %}<br>{{ _('A partir de {v1}: {v2} por mês.', v1=sm.proxima.data.strftime('%d/%m/%Y'), v2=(sm.proxima.normal.centavos|dinheiro)) }}{% endif %}</div>
+  <p class="suave pequeno" style="margin-top:-4px">{{ _('O sistema avisa quando o salário de alguém fica abaixo do mínimo proporcional à jornada. Tabela atualizada em {v1}.', v1=sm_atualizado|fdata('%d/%m/%Y')) }}</p>
+  <div class="aviso">{{ _('Em uso agora: {v1} por mês para 220 horas ({v2}), ou {v3} por hora.', v1=(sm.normal.centavos|dinheiro), v2=(sm.normal.fonte|traduz), v3=(sm.normal.hora|dinheiro)) }}{% if sm.proxima %}<br>{{ _('A partir de {v1}: {v2} por mês.', v1=sm.proxima.data|fdata('%d/%m/%Y'), v2=(sm.proxima.normal.centavos|dinheiro)) }}{% endif %}</div>
   <div class="campo"><label for="sm-proprio">{{ _('Piso salarial da categoria ou estadual (por mês, 220 h)') }}</label><input type="text" inputmode="decimal" id="sm-proprio" name="proprio" value="{{ ('%.2f'|format(e.minimo_proprio_centavos / 100)).replace('.', ',') if e.minimo_proprio_centavos else '' }}" placeholder="0,00" style="max-width:220px">
     <div class="ajuda">{{ _('Veja na convenção coletiva do seu sindicato ou na lei do piso do seu estado. Vale o maior valor. Em branco, vale o mínimo nacional.') }}</div></div>
   <button class="botao" type="submit">{{ _('Salvar') }}</button>

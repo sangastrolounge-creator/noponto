@@ -16,7 +16,7 @@ CONTRATO = (
     "CODIGO", "NOME", "MOEDA", "IDIOMA", "COBRANCA",
     "feriados", "facultativos", "comemorativas",
     "inicio_semana", "periodo_aberto", "periodo_sugerido", "apurar", "fechar", "ao_reabrir",
-    "CHAVES_RESUMO", "TIPOS_PEDIDO_AUSENCIA",
+    "CHAVES_RESUMO", "TIPOS_PEDIDO_AUSENCIA", "menores", "salario_minimo", "escala_justa", "SEMANA_LIMITE_MIN",
     "calcular_folha", "alertas_folha",
 )
 

@@ -133,7 +133,8 @@ def sugestoes(db: Session, e, d: date, inicio: str, fim: str, cargo: str = "") -
     disp = disponibilidade.da_empresa(db, e.id)
     falso = type("T", (), {})()
     falso.folga, falso.inicio, falso.fim, falso.intervalo_min, falso.data = False, inicio, fim, 0, d
-    feriados = menores.feriados_de(db, e, d - timedelta(days=1), d + timedelta(days=1))
+    rp = paises.regras_de(e)
+    feriados = rp.menores.feriados_de(db, e, d - timedelta(days=1), d + timedelta(days=1))
     lista = []
     for u in pessoas:
         if u.id in no_dia or u.id in ausentes:
@@ -143,12 +144,13 @@ def sugestoes(db: Session, e, d: date, inicio: str, fim: str, cargo: str = "") -
         if disponibilidade.fora(falso, dp):
             motivos.append("fora da disponibilidade")
             pontos += 100
-        r, faixa = menores.regra(e, u, d)
-        if faixa == "<14" or (r and menores.problemas_do_turno(r, falso, feriados)):
+        r, faixa = rp.menores.regra(e, u, d)
+        if faixa == "<14" or (r and rp.menores.problemas_do_turno(r, falso, feriados)):
             motivos.append("passa do limite de menor")
             pontos += 200
         total = horas.get(u.id, 0) + dur
-        extra = 0 if (u.classificacao or "clt") == "pj" else max(0, total - apuracao.SEMANA_CLT_MIN)
+        prestador = (u.classificacao or "") == "pj" or (u.classificacao or "").startswith("1099") or u.isento
+        extra = 0 if prestador else max(0, total - rp.SEMANA_LIMITE_MIN)
         if extra:
             motivos.append(f"{regras.fmt_min(extra)} de hora extra")
             pontos += 50

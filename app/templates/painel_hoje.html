@@ -18,7 +18,7 @@
 <div class="cabecalho hoje-topo">
   <div>
     <h1>{{ _('{v1}, {v2}!', v1=(saudacao|traduz), v2=u.primeiro_nome) }}</h1>
-    <p class="suave" style="margin:0">{{ _('Hoje, {v1} {v2}', v1=(DIAS[dia.weekday()]|lower), v2=(dia.strftime('%d/%m'))) }} · {{ _('Atualiza sozinho a cada minuto.') }}</p>
+    <p class="suave" style="margin:0">{{ _('Hoje, {v1} {v2}', v1=(DIAS[dia.weekday()]|lower), v2=(dia|fdata('%d/%m'))) }} · {{ _('Atualiza sozinho a cada minuto.') }}</p>
   </div>
   {% if push_chave %}
   <div>
@@ -55,7 +55,7 @@
   {% if sm.abaixo %}<strong>{{ _('{v1} valor(es) da hora abaixo do salário mínimo', v1=sm.abaixo|length) }}</strong> ({{ sm.normal.fonte|traduz }}: {{ sm.normal.centavos|dinheiro }}{% if sm.gorjeta.centavos != sm.normal.centavos %}, {{ _('com gorjeta') }} {{ sm.gorjeta.centavos|dinheiro }}{% endif %}):
     {% for x in sm.abaixo %}{{ x.u.nome }}{% if x.funcao %} · {{ x.funcao }}{% endif %} {{ x.valor|dinheiro }}{{ ', ' if not loop.last }}{% endfor %}.
     <a href="/painel/pagamento#dados">{{ _('Corrigir') }}</a>{% endif %}
-  {% if sm.abaixo_depois %}{% if sm.abaixo %}<br>{% endif %}{{ _('A partir de {v1}, o mínimo passa a {v2}', v1=sm.proxima.data.strftime('%d/%m/%Y'), v2=(sm.proxima.normal.centavos|dinheiro)) }}{% if sm.proxima.gorjeta.centavos != sm.proxima.normal.centavos %} ({{ _('com gorjeta') }} {{ sm.proxima.gorjeta.centavos|dinheiro }}){% endif %}: {% for x in sm.abaixo_depois %}{{ x.u.nome }} {{ x.valor|dinheiro }}{{ ', ' if not loop.last }}{% endfor %}.{% endif %}
+  {% if sm.abaixo_depois %}{% if sm.abaixo %}<br>{% endif %}{{ _('A partir de {v1}, o mínimo passa a {v2}', v1=sm.proxima.data|fdata('%d/%m/%Y'), v2=(sm.proxima.normal.centavos|dinheiro)) }}{% if sm.proxima.gorjeta.centavos != sm.proxima.normal.centavos %} ({{ _('com gorjeta') }} {{ sm.proxima.gorjeta.centavos|dinheiro }}){% endif %}: {% for x in sm.abaixo_depois %}{{ x.u.nome }} {{ x.valor|dinheiro }}{{ ', ' if not loop.last }}{% endfor %}.{% endif %}
 </div>
 {% endif %}
 
@@ -121,7 +121,7 @@
   <div class="cartao grafico-cartao">
     <h2>{{ _('Horas trabalhadas · 7 dias') }}</h2>
     <p class="suave pequeno grafico-sub">{{ _('{v1} no total · {v2} atraso(s)', v1=fmt_min(semana.total_min), v2=semana.atrasos) }}</p>
-    {% call(b) grafico_barras(semana.horas, _('Horas trabalhadas por dia'), '', 'h') %}{{ b.data.strftime('%d/%m') }} · {{ b.texto }} · {{ _('{v1} pessoa(s)', v1=b.pessoas) }}{% if b.atrasos %} · {{ _('{v1} atraso(s)', v1=b.atrasos) }}{% endif %}{% endcall %}
+    {% call(b) grafico_barras(semana.horas, _('Horas trabalhadas por dia'), '', 'h') %}{{ b.data|fdata('%d/%m') }} · {{ b.texto }} · {{ _('{v1} pessoa(s)', v1=b.pessoas) }}{% if b.atrasos %} · {{ _('{v1} atraso(s)', v1=b.atrasos) }}{% endif %}{% endcall %}
   </div>
   {% endif %}
   {% if cmo %}

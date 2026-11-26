@@ -6,7 +6,7 @@
   <h2>{{ _('Turnos disponíveis') }}</h2>
   <ul class="lista-dias">
     {% for o in of.disponiveis %}
-    <li><span>{{ DIAS[o.data.weekday()] }} {{ o.data.strftime('%d/%m') }} · {{ _('{v1} às {v2}', v1=(o.inicio), v2=(o.fim)) }}
+    <li><span>{{ DIAS[o.data.weekday()] }} {{ o.data|fdata('%d/%m') }} · {{ _('{v1} às {v2}', v1=(o.inicio), v2=(o.fim)) }}
         <br><span class="suave pequeno">{% if o.tipo == 'repasse' %}{{ _('Cobrir {v1}', v1=(o.de.primeiro_nome)) }}{% else %}{{ _('Turno aberto') }}{% endif %}{% if o.cargo %} · {{ o.cargo }}{% endif %}{% if o.local %} · {{ o.local.nome }}{% endif %}{% if o.obs %} · {{ o.obs }}{% endif %}</span></span>
       <form method="post" action="/app/ofertas/{{ o.id }}" class="inline" data-confirma="{{ _('Pedir este turno?') }}">
         <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="pedir">
@@ -22,7 +22,7 @@
   <h2>{{ _('Meus pedidos de turno') }}</h2>
   <ul class="lista-dias">
     {% for o in of.meus_pedidos %}
-    <li><span>{{ DIAS[o.data.weekday()] }} {{ o.data.strftime('%d/%m') }} · {{ _('{v1} às {v2}', v1=(o.inicio), v2=(o.fim)) }}<br><span class="etiqueta alerta">{{ _('Aguardando o gestor') }}</span></span>
+    <li><span>{{ DIAS[o.data.weekday()] }} {{ o.data|fdata('%d/%m') }} · {{ _('{v1} às {v2}', v1=(o.inicio), v2=(o.fim)) }}<br><span class="etiqueta alerta">{{ _('Aguardando o gestor') }}</span></span>
       <form method="post" action="/app/ofertas/{{ o.id }}" class="inline">
         <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="desistir">
         <button class="botao mini claro" type="submit">{{ _('Desistir') }}</button>
@@ -41,12 +41,12 @@
 {% endif %}
 {% for bloco in dias|batch(7) %}
 <section class="cartao">
-  <h2>{{ _('Esta semana') if loop.first else _('Próxima semana') }} <span class="suave pequeno" style="font-weight:400">{{ _('· {v1} a {v2}', v1=(bloco[0].strftime('%d/%m')), v2=(bloco[-1].strftime('%d/%m'))) }}</span></h2>
+  <h2>{{ _('Esta semana') if loop.first else _('Próxima semana') }} <span class="suave pequeno" style="font-weight:400">{{ _('· {v1} a {v2}', v1=(bloco[0]|fdata('%d/%m')), v2=(bloco[-1]|fdata('%d/%m'))) }}</span></h2>
   <ul class="lista-dias">
     {% for d in bloco %}
     {% set t = turnos.get(d) %}
     {% set minha = of.minhas.get(t.id) if t else none %}
-    <li class="{{ 'hoje' if d == hoje }}"><span>{{ DIAS[d.weekday()] }} {{ d.strftime('%d/%m') }}{{ _(' · hoje') if d == hoje }}</span>
+    <li class="{{ 'hoje' if d == hoje }}"><span>{{ DIAS[d.weekday()] }} {{ d|fdata('%d/%m') }}{{ _(' · hoje') if d == hoje }}</span>
       <span style="text-align:right">{% if t and t.folga %}<span class="etiqueta">{{ _('Folga') }}</span>{% if t.obs %}<br><span class="suave pequeno">{{ t.obs }}</span>{% endif %}{% elif t %}{{ _('{v1} às {v2}', v1=(t.inicio), v2=(t.fim)) }}{% if t.local %} · {{ t.local.nome }}{% endif %}{% if t.intervalo_inicio %}<br><span class="suave pequeno">{{ _('intervalo às {v1}', v1=(t.intervalo_inicio)) }}</span>{% endif %}
         {% if precisa_confirmar(t) %}<br><form method="post" action="/app/turnos/{{ t.id }}/confirmar" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="botao mini" type="submit">{{ _('Vou estar lá') }}</button></form>{% elif t.confirmado_em and e.confirmar_turno %}<br><span class="conf-sim pequeno">{{ _('✓ confirmado') }}</span>{% endif %}
         {% if minha %}

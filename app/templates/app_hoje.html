@@ -1,10 +1,23 @@
 {% extends "app_base.html" %}
 {% block saudacao %}{{ _('Olá, {v1}', v1=(u.primeiro_nome)) }}{% endblock %}
 {% block conteudo %}
+{# EUA (Califórnia): pergunta das pausas de 10 min do dia anterior #}
+{% if pausas %}
+<section class="cartao avaliar-turno" id="pausas">
+  <h2>{{ _('Você fez suas pausas de 10 minutos?') }}</h2>
+  <p class="suave pequeno" style="margin-top:0">{{ _('Dia {v1}: você tinha direito a {v2} pausa(s) pagas de 10 minutos. A lei da Califórnia garante essas pausas.', v1=pausas.dia.strftime('%m/%d'), v2=pausas.pausas) }}</p>
+  <form method="post" action="/app/descanso" class="pausas-opcoes">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="botao" type="submit" name="resposta" value="sim">{{ _('Sim, fiz todas') }}</button>
+    <button class="botao claro" type="submit" name="resposta" value="escolhi">{{ _('Preferi não fazer') }}</button>
+    <button class="botao claro" type="submit" name="resposta" value="nao_liberado">{{ _('Não me liberaram') }}</button>
+  </form>
+</section>
+{% endif %}
 {% if perguntas_fim %}
 <section class="cartao avaliar-turno" id="perguntas">
   <h2>{{ _('Antes de ir embora') }}</h2>
-  <p class="suave pequeno" style="margin-top:0">{{ _('Dia {v1}. Responda rapidinho:', v1=perguntas_fim.dia.strftime('%d/%m')) }}</p>
+  <p class="suave pequeno" style="margin-top:0">{{ _('Dia {v1}. Responda rapidinho:', v1=perguntas_fim.dia|fdata('%d/%m')) }}</p>
   <form method="post" action="/app/perguntas" class="perguntas-fim">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     {% for q in perguntas_fim.perguntas %}
@@ -22,7 +35,7 @@
 {% elif avaliar_dia %}
 <section class="cartao avaliar-turno" id="avaliar">
   <h2>{{ _('Como foi o seu turno?') }}</h2>
-  <p class="suave pequeno" style="margin-top:0">{{ _('Dia {v1}. Só o gestor vê a sua resposta.', v1=avaliar_dia.strftime('%d/%m')) }}</p>
+  <p class="suave pequeno" style="margin-top:0">{{ _('Dia {v1}. Só o gestor vê a sua resposta.', v1=avaliar_dia|fdata('%d/%m')) }}</p>
   <form method="post" action="/app/avaliar">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="estrelas-escolha" role="radiogroup" aria-label="{{ _('Nota de 1 a 5') }}">
@@ -48,7 +61,7 @@
 </a>
 {% endif %}
 <section class="cartao-ponto">
-  <div class="suave pequeno">{{ DIAS[agora.weekday()] }}, {{ agora.strftime('%d/%m') }}</div>
+  <div class="suave pequeno">{{ DIAS[agora.weekday()] }}, {{ agora|fdata('%d/%m') }}</div>
   <div class="relogio" id="relogio">{{ agora.strftime('%H:%M:%S') }}</div>
   <div class="suave" style="margin-top:6px">
     {% if turno and turno.folga %}{{ _('Hoje é sua folga.') }}
@@ -59,7 +72,7 @@
   {% set n = batidas|length %}
   {% set antes_vigencia = u.ponto_desde and dia < u.ponto_desde %}
   {% set so_totem = not gps_liberado(e) or antes_vigencia %}
-  {% if antes_vigencia %}<p class="alerta" style="margin-top:14px">{{ _('Seu registro de ponto começa em {v1}. Até lá você pode conhecer o app; o ponto ainda não é registrado.', v1=(u.ponto_desde.strftime('%d/%m/%Y'))) }}</p>{% else %}
+  {% if antes_vigencia %}<p class="alerta" style="margin-top:14px">{{ _('Seu registro de ponto começa em {v1}. Até lá você pode conhecer o app; o ponto ainda não é registrado.', v1=(u.ponto_desde|fdata('%d/%m/%Y'))) }}</p>{% else %}
   {% if so_totem %}<p class="alerta" style="margin-top:14px">{{ _('Na sua empresa o ponto é batido no totem (o tablet da empresa).') }} {{ _('Use o seu PIN nele ou digite abaixo o código que aparece na tela.') if tem_totem else _('Fale com o gestor para ativar o totem.') }}</p>{% endif %}{% endif %}
   <button type="button" id="bater" class="botao-ponto {{ 'saida' if aberta }}" {{ 'hidden' if so_totem }}>{{ (_('Sair para o intervalo') if pausa and n == 1 else _('Bater saída')) if aberta else (_('Voltar do intervalo') if pausa and n == 2 else _('Bater ponto')) }}</button>
   <div class="suave pequeno">{% if aberta %}{{ _('Você entrou às {v1}.', v1=(local(e, aberta.momento))) }}{% if pausa and n == 1 %} {{ _('Seu intervalo é de {v1} min: bata a saída ao parar e a entrada ao voltar.', v1=(turno.intervalo_min)) }}{% endif %}{% elif pausa and n == 2 %}{{ _('Você saiu para o intervalo às {v1}.', v1=(local(e, batidas[-1].momento))) }}{% elif not so_totem %}{{ _('Vamos conferir se você está na empresa.') }}{% endif %}</div>
@@ -127,7 +140,7 @@
   {% if proximos %}
   <ul class="lista-dias">
     {% for t in proximos %}
-    <li><span>{{ DIAS[t.data.weekday()] }} {{ t.data.strftime('%d/%m') }}</span>
+    <li><span>{{ DIAS[t.data.weekday()] }} {{ t.data|fdata('%d/%m') }}</span>
       <span>{% if t.folga %}<span class="etiqueta">{{ _('Folga') }}</span>{% else %}<strong>{{ _('{v1} às {v2}', v1=(t.inicio), v2=(t.fim)) }}</strong>{% endif %}</span></li>
     {% endfor %}
   </ul>

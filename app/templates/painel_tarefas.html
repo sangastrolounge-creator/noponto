@@ -60,8 +60,8 @@
     {% endif %}
   </div>
   <div>
-    {{ quadro(hoje, _('Hoje, ') ~ dia.strftime('%d/%m')) }}
-    {{ quadro(de_ontem, _('Ontem, ') ~ ontem.strftime('%d/%m')) }}
+    {{ quadro(hoje, _('Hoje, ') ~ dia|fdata('%d/%m')) }}
+    {{ quadro(de_ontem, _('Ontem, ') ~ ontem|fdata('%d/%m')) }}
   </div>
 </div>
 {% endblock %}

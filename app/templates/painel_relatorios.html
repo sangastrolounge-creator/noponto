@@ -5,7 +5,7 @@
 {% set t = r.tot %}
 <div class="cabecalho">
   <div><h1>{{ _('Relatórios') }}</h1>
-    <p class="suave" style="margin:0">{{ _('Escalado × trabalhado, pontualidade, faltas e como a equipe avaliou os turnos, de {v1} a {v2}.', v1=ini.strftime('%d/%m'), v2=fim.strftime('%d/%m/%Y')) }}</p></div>
+    <p class="suave" style="margin:0">{{ _('Escalado × trabalhado, pontualidade, faltas e como a equipe avaliou os turnos, de {v1} a {v2}.', v1=ini|fdata('%d/%m'), v2=fim|fdata('%d/%m/%Y')) }}</p></div>
   <form method="get" action="/painel/relatorios" class="semana-nav relatorio-filtro">
     <label class="pequeno">{{ _('De') }} <input type="date" name="ini" value="{{ ini.isoformat() }}" max="{{ hoje.isoformat() }}"></label>
     <label class="pequeno">{{ _('Até') }} <input type="date" name="fim" value="{{ fim.isoformat() }}" max="{{ hoje.isoformat() }}"></label>
@@ -63,7 +63,7 @@
     <h2>{{ _('O que a equipe disse') }}</h2>
     {% if r.comentarios %}
     <ul class="lista-alertas">
-      {% for a in r.comentarios %}<li style="display:block"><strong>{{ a.usuario.nome }}</strong> {{ estrelas(a.nota) }} <span class="suave pequeno">{{ a.dia.strftime('%d/%m') }}</span><br>{{ a.comentario }}</li>{% endfor %}
+      {% for a in r.comentarios %}<li style="display:block"><strong>{{ a.usuario.nome }}</strong> {{ estrelas(a.nota) }} <span class="suave pequeno">{{ a.dia|fdata('%d/%m') }}</span><br>{{ a.comentario }}</li>{% endfor %}
     </ul>
     {% else %}<p class="suave pequeno">{{ _('Nenhum comentário neste período.') }}</p>{% endif %}
     {% if pode(u, 'dono') %}

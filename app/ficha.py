@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import master, regras, salario_minimo
+from . import master, paises, regras, salario_minimo  # noqa: F401
 from .core import (PERMISSOES, avisar, celular_limpo, celular_valido, da_empresa, data_iso,
                    email_valido, encaixar_no_alcance, exigir_csrf, gestor_logado, ir, ler_centavos, pode, render,
                    alcance_locais, alcance_setores, restrito)
@@ -295,9 +295,10 @@ async def ficha(request: Request, fid: int, u: Usuario = Depends(gestor_logado),
                      f"{alvo.nome}: {NIVEIS[antes]} → {NIVEIS[nivel_de(alvo)]}." if antes != nivel_de(alvo)
                      else f"{alvo.nome}: dados atualizados.")
     db.commit()
-    baixos = [x for x in salario_minimo.abaixo(db, e, regras.hoje(e)) if x["u"].id == alvo.id]
+    sm_pais = paises.regras_de(e).salario_minimo
+    baixos = [x for x in sm_pais.abaixo(db, e, regras.hoje(e)) if x["u"].id == alvo.id]
     if baixos:
-        avisar(request, salario_minimo.aviso(baixos), "erro")
+        avisar(request, sm_pais.aviso(baixos), "erro")
     else:
         avisar(request, f"Ficha de {alvo.primeiro_nome} salva.")
     return ir(f"/painel/equipe#p{alvo.id}")

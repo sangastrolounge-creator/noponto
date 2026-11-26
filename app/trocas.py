@@ -84,9 +84,10 @@ def aviso_extra(db: Session, e: Empresa, o: Oferta, u: Usuario) -> dict:
     ja = sum(regras.minutos_turno(t) for t in db.scalars(select(Turno).where(
         Turno.usuario_id == u.id, Turno.data.between(ini, fim))))
     total = ja + minutos(o)
-    if total > apuracao.SEMANA_CLT_MIN:
+    limite = paises.regras_de(e).SEMANA_LIMITE_MIN
+    if total > limite:
         return {"nome": u.primeiro_nome, "total": regras.fmt_min(total),
-                "extra": regras.fmt_min(total - apuracao.SEMANA_CLT_MIN)}
+                "extra": regras.fmt_min(total - limite)}
     return {}
 
 

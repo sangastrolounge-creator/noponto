@@ -30,7 +30,7 @@
 <form method="post" action="/master/portaria671/certificado" class="cartao" enctype="multipart/form-data">
   <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="tipo" value="{{ tipo }}">
   <h2>{{ _(rotulo) }}</h2>
-  {% if c %}<p>{{ c.nome }} · {{ _('válido até {v1}', v1=c.valido_ate.strftime('%d/%m/%Y')) }}{% if c.vencido %} · <strong>{{ _('vencido') }}</strong>{% endif %}</p>{% else %}<p class="suave">{{ _('Nenhum certificado enviado.') }}</p>{% endif %}
+  {% if c %}<p>{{ c.nome }} · {{ _('válido até {v1}', v1=c.valido_ate|fdata('%d/%m/%Y')) }}{% if c.vencido %} · <strong>{{ _('vencido') }}</strong>{% endif %}</p>{% else %}<p class="suave">{{ _('Nenhum certificado enviado.') }}</p>{% endif %}
   {% if tipo == 'tecnico' %}<p class="suave pequeno">{{ _('Se a mesma pessoa for responsável legal e técnico, basta o certificado do responsável legal.') }}</p>{% endif %}
   <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));align-items:end">
     <div class="campo"><label>{{ _('Arquivo A1 (.pfx ou .p12)') }}</label><input type="file" name="arquivo" accept=".pfx,.p12,application/x-pkcs12"></div>

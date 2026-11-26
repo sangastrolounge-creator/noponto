@@ -54,8 +54,9 @@ def usa(u: Usuario) -> bool:
 
 
 def ligado(e: Empresa) -> bool:
-    """A empresa ligou e o plano dela inclui o reconhecimento facial."""
-    return bool(e.facial_ativo) and facial_liberado(e)
+    """A empresa ligou e o plano dela inclui o reconhecimento facial. Fora do Brasil fica
+    desligado até a revisão jurídica (BIPA em Illinois, leis do Texas e de Washington)."""
+    return bool(e.facial_ativo) and facial_liberado(e) and (e.pais or "BR") == "BR"
 
 
 def pendente(u: Usuario) -> str:

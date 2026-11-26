@@ -26,7 +26,7 @@ from . import crescimento, entrada, parceiros, rep
 from . import setores as setores_mod
 from . import (apuracao, asaas, caixa, instagram, whatsapp, cobranca, conta, crm, rastreio, desligamento, lojas, vendedor, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
-               ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento)
+               ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento, paises)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
                    SECRET_KEY, Redirecionar, app_ios, destino_inicial, avisar, base_url, celular_limpo,
                    da_empresa, data_iso, ir,
@@ -48,6 +48,8 @@ def ciclo_alertas():
         novos, lembretes = regras.verificar_turnos(db)
         novos += extra.verificar(db)
         novos += menores.verificar(db)
+        from .paises.us import menores as menores_us
+        novos += menores_us.verificar(db)
         n2, l2 = confirmacao.verificar(db)
         novos += n2
         lembretes += l2
@@ -151,6 +153,8 @@ for _r in (_us_descanso.rota, _us_fw.rota, _us_pto.rota, _us_sm.rota):
     app.include_router(_r, dependencies=[Depends(_us_telas.so_eua)])
 from .paises.us import pagamento as _us_pagamento  # noqa: E402
 app.include_router(_us_pagamento.rota, prefix="/eua", dependencies=[Depends(_us_telas.so_eua)])
+from .paises.us import conformidade as _us_conformidade  # noqa: E402
+app.include_router(_us_conformidade.rota, prefix="/eua", dependencies=[Depends(_us_telas.so_eua)])
 app.include_router(rastreio.rota)   # antes do CRM: /master/crm/canais não é um lead
 app.include_router(crm.rota)
 app.include_router(instagram.rota)
@@ -426,7 +430,7 @@ def painel(request: Request, u: Usuario = Depends(gestor_logado),
         Alerta.criado_em >= banco.agora() - timedelta(days=7))
         .order_by(Alerta.criado_em.desc()).limit(30)))
     tarefas = regras.tarefas_do_dia(db, e, dia)
-    sm = salario_minimo.situacao(db, e, dia) if core.pode(u, "pagamento") or core.pode(u, "equipe") else None
+    sm = paises.regras_de(e).salario_minimo.situacao(db, e, dia) if core.pode(u, "pagamento") or core.pode(u, "equipe") else None
     return render(
         request, "painel_hoje.html", u=u, e=e, aba="hoje", dia=dia, linhas=linhas,
         soltas=soltas, alertas=alertas, tarefas=tarefas, sm=sm,
@@ -570,9 +574,9 @@ def escala(request: Request, semana: str = "", dia: str = "", setor: str | None 
                   ofertas=ofertas, avisos_extra=trocas.avisos_extra(db, e, ofertas),
                   ver_custo=ver_custo, custo=custo, publicar_n=len(publicar_ids), publicacao=publicacao,
                   disp=disponibilidade.da_empresa(db, e.id), fora_disp=disponibilidade.fora,
-                  fw=escala_justa.situacao_semana(db, e, seg),
-                  curtos=escala_justa.descansos_curtos_na_grade(e, turnos, equipe, dias),
-                  menor=menores.conferir_grade(db, e, equipe, turnos, dias),
+                  fw=paises.regras_de(e).escala_justa.situacao_semana(db, e, seg),
+                  curtos=paises.regras_de(e).escala_justa.descansos_curtos_na_grade(e, turnos, equipe, dias),
+                  menor=paises.regras_de(e).menores.conferir_grade(db, e, equipe, turnos, dias),
                   travado=confirmacao.travado_ate(e), publicada=confirmacao.semana_publicada(db, e, seg),
                   cargos=sorted({f.cargo.strip() for f in equipe if f.cargo and f.cargo.strip()}
                                 | {f["nome"] for f in triagem.funcoes_da(e)}))
@@ -623,7 +627,8 @@ def escala_turno(request: Request, usuario_id: int = Form(...), data: str = Form
             "sabado": [seg + timedelta(days=i) for i in range(6)],
             "semana": [seg + timedelta(days=i) for i in range(7)]}.get(repetir, [d])
     pulados = 0
-    antes_fw = escala_justa.antes_de_mudar(db, f.id, alvo)
+    rp = paises.regras_de(u.empresa)
+    antes_fw = rp.escala_justa.antes_de_mudar(db, f.id, alvo)
     trava = confirmacao.travado_ate(u.empresa)
     travados = 0
     for dia in alvo:
@@ -650,7 +655,7 @@ def escala_turno(request: Request, usuario_id: int = Form(...), data: str = Form
         t.so_principal = na_matriz and not t.folga
         t.obs = obs.strip()[:200]
         t.fixa = fixo and local_na_fixa   # local avulso: o dia fica diferente da escala fixa
-        if antes_fw.get(dia) != escala_justa._valor(t):
+        if antes_fw.get(dia) != rp.escala_justa._valor(t):
             t.confirmado_em, t.lembrou_conf = None, False   # mudou: precisa confirmar de novo
     if fixo:
         for dia in alvo:
@@ -678,14 +683,24 @@ def escala_turno(request: Request, usuario_id: int = Form(...), data: str = Form
                          + (" sem escala" if modo == "limpar" else " folga" if modo == "folga"
                             else f" {inicio}–{fim}") + ", toda semana.")
     db.flush()
+    premios = []
+    if u.empresa.pais == "US":   # Fair Workweek: mudança em escala publicada dentro do prazo
+        premios = rp.escala_justa.avaliar_mudancas(db, u.empresa, f.id, alvo, antes_fw, u.nome, bool(a_pedido))
+        for p in premios:
+            regras.registrar(db, u.empresa_id, u.nome, "predictability pay",
+                             f"{f.nome}, {p.data:%m/%d}: {p.antes or '—'} → {p.depois or '—'} ({regras.fmt_min(p.minutos)}).")
     db.commit()
     regras.gerar_da_fixa(db, u.empresa, seg, max(seg + timedelta(days=6), regras.hoje(u.empresa)
                                                  + timedelta(days=regras.DIAS_A_FRENTE)))
-    problemas_menor = menores.problemas_ao_salvar(db, u.empresa, f, [x for x in alvo if modo != "limpar"])
+    problemas_menor = rp.menores.problemas_ao_salvar(db, u.empresa, f, [x for x in alvo if modo != "limpar"])
     if problemas_menor:
         avisar(request, f"{f.nome} é menor de idade e este turno passa do limite da lei: "
                         f"{'; '.join(problemas_menor[:4])}.", "erro")
-    curtos = escala_justa.curtos_ao_salvar(db, f.id, [x for x in alvo if modo != "limpar"])
+    if premios:
+        avisar(request, f"Mudança em escala já publicada dentro do prazo de aviso: {f.nome} ganha "
+                        f"{regras.fmt_min(sum(p.minutos for p in premios))} de predictability pay.", "erro")
+    curtos = (rp.escala_justa.curtos_ao_salvar(db, f.id, [x for x in alvo if modo != "limpar"])
+              if u.empresa.pais == "BR" else [])
     if curtos:
         avisar(request, f"{f.nome} fica com menos de 11 horas de descanso entre um turno e outro em "
                         f"{', '.join(f'{d:%d/%m}' for d in curtos[:4])} (CLT art. 66).", "erro")
@@ -1314,7 +1329,8 @@ def app_hoje(request: Request, codigo: str = "", u: Usuario = Depends(usuario_lo
                   perguntas_fim=None if aberta else perguntas.pendente(db, u),
                   codigo="".join(c for c in codigo if c.isdigit())[:6],
                   tem_totem=bool(db.scalar(select(Totem.id).where(Totem.empresa_id == e.id).limit(1))),
-                  facial_pendente=facial.pendente(u), facial_usa=facial.usa(u))
+                  facial_pendente=facial.pendente(u), facial_usa=facial.usa(u),
+                  pausas=None if aberta or e.pais != "US" else _us_descanso.pendente(db, u))
     if not request.cookies.get(COOKIE_APARELHO):  # identifica este aparelho daqui em diante
         resp.set_cookie(COOKIE_APARELHO, secrets.token_urlsafe(32), max_age=60 * 60 * 24 * 730,
                         httponly=True, samesite="lax", secure=COOKIE_SECURE)
@@ -1434,7 +1450,9 @@ def app_ajustes(request: Request, u: Usuario = Depends(usuario_logado),
                                .order_by(Ausencia.criado_em.desc()).limit(20)))
     return render(request, "app_ajustes.html", u=u, e=e, aba="ajustes", pedidos=pedidos,
                   hoje=hoje, minimo=hoje - timedelta(days=e.ajuste_dias), enviados=enviados,
-                  ferias=ferias.situacao(db, u, hoje), ferias_participa=ferias.participa(u))
+                  ferias=ferias.situacao(db, u, hoje), ferias_participa=ferias.participa(u),
+                  **(dict(saldos=_us_pto.saldos(db, e.id, u.id), extrato=_us_pto.extrato(db, u.id, 10),
+                          MOTIVOS_PTO=_us_pto.MOTIVOS) if e.pais == "US" else {}))
 
 
 @app.post("/app/ajustes", dependencies=CSRF)

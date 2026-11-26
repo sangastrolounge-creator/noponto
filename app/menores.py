@@ -139,7 +139,7 @@ def verificar(db: Session) -> list:
     from .core import alertas_liberados
     novos = []
     agora = banco.agora()
-    for e in db.scalars(select(Empresa).where(Empresa.ativo.is_(True))):
+    for e in db.scalars(select(Empresa).where(Empresa.ativo.is_(True), Empresa.pais == "BR")):
         if not alertas_liberados(e):
             continue
         menores = list(db.scalars(select(Usuario).where(Usuario.empresa_id == e.id, Usuario.ativo.is_(True),

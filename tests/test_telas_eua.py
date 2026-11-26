@@ -57,6 +57,8 @@ def main():
     as_("07:00", DOM, fuso=3)
     m = cadastra("Plataforma", "Dono", "dono@plataforma.com")
     br = cadastra("Bar do Brasil", "Bia", "bia@br.com")
+    with SessionLocal() as db:
+        bid = db.scalar(select(Empresa.id).where(Empresa.nome == "Bar do Brasil"))
     us = cadastra("Taco Bar", "Gil", "gil@us.com")
     with SessionLocal() as db:
         eid = db.scalar(select(Empresa.id).where(Empresa.nome == "Taco Bar"))
@@ -67,6 +69,7 @@ def main():
     tm = csrf(m, "/master")
     posta(m, f"/master/empresas/{dono_eid}/dados", tm, plano="0", pais="US")
     posta(m, f"/master/empresas/{eid}/dados", tm, plano="0", isenta="1", pais="US")
+    posta(m, f"/master/empresas/{bid}/dados", tm, plano="0", isenta="1")
     with SessionLocal() as db:
         assert db.get(Empresa, dono_eid).pais == "BR"
         e = db.get(Empresa, eid)
@@ -167,6 +170,24 @@ def main():
     tela = us.get(r.headers["location"]).text
     assert "Bruto total" in tela and "$1,500.00" in tela, re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", tela))[:2500]
     assert "INSS" not in tela and "R$" not in tela
+
+    # demais telas da empresa americana
+    tela = us.get("/painel/ausencias").text
+    assert "Saldos de sick leave e PTO" in tela
+    tela = us.get("/painel/conformidade").text
+    assert "regras federais e as do seu estado" in tela and "Pausas de descanso (Califórnia)" in tela
+    assert us.get("/eua/painel/conformidade").status_code == 404
+    assert "CLT" not in us.get("/painel/conformidade").text
+    assert us.get("/painel/ponto/problemas").status_code == 200
+    assert us.get("/painel").status_code == 200
+    assert us.get(f"/painel/escala?semana={DOM}").status_code == 200
+    tela = us.get(f"/painel/fechamento?de={DOM}&ate={sab}").text
+    assert "11/15" in tela or "11/21" in tela      # datas no formato americano
+    # e as da brasileira continuam brasileiras
+    tela = br.get("/painel/conformidade").text
+    assert "regras federais e as do seu estado" not in tela
+    assert br.get("/painel/ausencias").status_code == 200 and "Saldos de sick leave" not in br.get("/painel/ausencias").text
+    assert br.get("/painel/ponto/problemas").status_code == 200
 
     # a empresa brasileira continua no Brasil, com as regras de lá
     with SessionLocal() as db:

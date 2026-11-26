@@ -34,7 +34,7 @@
     {% if b.link %}<span class="botao">{{ b.botao or _('Saiba mais') }}</span>{% endif %}
   </div>
   <p class="pequeno" style="margin-top:0">{% if no_ar %}<span class="etiqueta ok">{{ _('No ar') }}</span>{% elif not b.ativo %}<span class="etiqueta">{{ _('Desligado') }}</span>{% else %}<span class="etiqueta alerta">{{ _('Fora do período') }}</span>{% endif %}
-    {% if b.inicio or b.fim %}<span class="suave">{{ b.inicio.strftime('%d/%m/%Y') if b.inicio else '…' }} – {{ b.fim.strftime('%d/%m/%Y') if b.fim else '…' }}</span>{% endif %}</p>
+    {% if b.inicio or b.fim %}<span class="suave">{{ b.inicio|fdata('%d/%m/%Y') if b.inicio else '…' }} – {{ b.fim|fdata('%d/%m/%Y') if b.fim else '…' }}</span>{% endif %}</p>
   <details><summary>{{ _('Editar') }}</summary>
     <form method="post" action="/master/banners" enctype="multipart/form-data" style="margin-top:10px">{{ campos(b) }}<button class="botao" type="submit">{{ _('Salvar') }}</button></form>
   </details>

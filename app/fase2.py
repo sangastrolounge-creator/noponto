@@ -76,10 +76,22 @@ def ausencias(request: Request, ano: int = 0, u: Usuario = Depends(gestor_logado
         Usuario.empresa_id == e.id, Usuario.ativo.is_(True)).order_by(Usuario.nome)))
     from . import ferias
     avisos_ferias = {a.id: ferias.conferir(db, a.usuario, a.inicio, a.fim, a.abono_dias or 0)
-                     for a in lista if a.tipo == "ferias" and a.situacao == "pendente"}
+                     for a in lista if a.tipo == "ferias" and a.situacao == "pendente" and e.pais == "BR"}
     return render(request, "painel_ausencias.html", u=u, e=e, aba="ausencias", lista=lista,
                   feriados=feriados, equipe=equipe, hoje=hoje, ano=ano,
-                  fechado=apuracao.fechado_ate(db, e), avisos_ferias=avisos_ferias)
+                  fechado=apuracao.fechado_ate(db, e), avisos_ferias=avisos_ferias,
+                  **_ausencias_eua(db, e, lista))
+
+
+def _ausencias_eua(db: Session, e, lista) -> dict:
+    """EUA: saldos de sick leave/PTO e quanto cada pedido pendente vai usar."""
+    if e.pais != "US":
+        return {}
+    from .paises.us import pto
+    return dict(saldos=pto.saldos(db, e.id),
+                previstos={a.id: pto.minutos_previstos(db, a) for a in lista
+                           if a.situacao == "pendente" and a.tipo in pto.DO_TIPO},
+                DO_TIPO=pto.DO_TIPO)
 
 
 @rota.post("/painel/ausencias", dependencies=CSRF)

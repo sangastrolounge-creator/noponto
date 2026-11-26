@@ -12,7 +12,7 @@
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div>
       <span class="nome-forte">{{ a.usuario.nome }}</span> · {{ TIPOS_AUSENCIA.get(a.tipo, a.tipo) }} ·
-      <strong>{{ a.inicio.strftime('%d/%m') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim.strftime('%d/%m'))) }}{% endif %}</strong>
+      <strong>{{ a.inicio|fdata('%d/%m') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim|fdata('%d/%m'))) }}{% endif %}</strong>
       {% if a.anexo %} · <a href="/anexo/{{ a.id }}" target="_blank" rel="noopener">{{ _('ver anexo') }}</a>{% endif %}
       {% if a.abono_dias %} · {{ _('vende {v1} dia(s)', v1=a.abono_dias) }}{% endif %}
       {% if a.obs %}<br><span class="suave pequeno">{{ a.obs }}</span>{% endif %}
@@ -58,7 +58,7 @@
     <tr>
       <td class="nome-forte">{{ a.usuario.nome }}</td>
       <td>{{ TIPOS_AUSENCIA.get(a.tipo, a.tipo) }}{% if a.obs %}<br><span class="suave pequeno">{{ a.obs }}</span>{% endif %}</td>
-      <td style="white-space:nowrap">{{ a.inicio.strftime('%d/%m/%Y') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim.strftime('%d/%m/%Y'))) }}{% endif %}</td>
+      <td style="white-space:nowrap">{{ a.inicio|fdata('%d/%m/%Y') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim|fdata('%d/%m/%Y'))) }}{% endif %}</td>
       <td><span class="etiqueta {{ 'ok' if a.situacao == 'aprovado' else 'erro' }}">{{ _('Válida') if a.situacao == 'aprovado' else _('Recusada') }}</span>
         {% if a.anexo %}<a class="link-foto" href="/anexo/{{ a.id }}" target="_blank" rel="noopener">{{ _('anexo') }}</a>{% endif %}</td>
       <td class="direita">
@@ -94,7 +94,7 @@
   {% if feriados %}
   <ul class="lista-dias">
     {% for f in feriados %}
-    <li><span>{{ DIAS[f.data.weekday()] }} {{ f.data.strftime('%d/%m') }} · {{ f.nome }}</span>
+    <li><span>{{ DIAS[f.data.weekday()] }} {{ f.data|fdata('%d/%m') }} · {{ f.nome }}</span>
       <form method="post" action="/painel/feriados/{{ f.id }}/remover" class="inline">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <button class="botao link" type="submit" aria-label="{{ _('Remover {v1}', v1=(f.nome)) }}">{{ _('remover') }}</button>

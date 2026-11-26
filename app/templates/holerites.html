@@ -23,7 +23,7 @@
       </div>
       <div class="direita">
         <strong>{{ _('Competência {v1}', v1=(f.competencia[5:] ~ '/' ~ f.competencia[:4])) }}</strong><br>
-        {{ _('Ponto de {v1} a {v2}', v1=(f.inicio.strftime('%d/%m/%Y')), v2=(f.fim.strftime('%d/%m/%Y'))) }}<br>
+        {{ _('Ponto de {v1} a {v2}', v1=(f.inicio|fdata('%d/%m/%Y')), v2=(f.fim|fdata('%d/%m/%Y'))) }}<br>
         <span class="suave pequeno">{{ _('emitido em {v1}', v1=(emitido.strftime('%d/%m/%Y às %H:%M'))) }}</span>
       </div>
     </header>
