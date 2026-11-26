@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Resumo do fechamento — {v1} — {v2} a {v3}', v1=(e.nome), v2=(ini.strftime('%m/%d/%Y')), v3=(fim.strftime('%m/%d/%Y'))) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+{% set tem_not = total.noturno > 0 %}
+{% set tem_dt = total.dt > 0 %}
+{% set tem_meal = total.meal_premios > 0 %}
+{% set tem_rest = total.descanso_premios > 0 %}
+{% set tem_prev = total.previsibilidade_min > 0 or total.previsibilidade_centavos > 0 %}
+{% set tem_pto = total.pto_min > 0 %}
+{% set tem_falta = total.faltas > 0 %}
+<div class="folha">
+  <div class="folha-barra nao-imprime">
+    {{ seletor() }}
+    <a class="botao claro" href="{{ volta }}">{{ _('Voltar') }}</a>
+    <button class="botao" type="button" onclick="window.print()">{{ _('Imprimir ou salvar em PDF') }}</button>
+  </div>
+  <p class="ajuda nao-imprime" style="margin-top:0">{{ _('Para gerar o PDF, toque no botão e escolha “Salvar como PDF” na janela de impressão.') }}</p>
+
+  <header class="folha-topo">
+    <div>
+      <h1>{{ _('Resumo do fechamento') }}</h1>
+      <div>{{ e.nome }}{% if e.endereco %} · {{ e.endereco }}{% endif %}</div>
+    </div>
+    <div class="direita">
+      <strong>{{ _('{v1} a {v2}', v1=(ini.strftime('%m/%d/%Y')), v2=(fim.strftime('%m/%d/%Y'))) }}</strong><br>
+      {% if fechado %}{{ _('período fechado por {v1} em {v2}', v1=(fechado.criado_por), v2=(local(e, fechado.criado_em, '%m/%d/%Y'))) }}
+      {% else %}<span class="etiqueta alerta">{{ _('período ainda aberto') }}</span>{% endif %}<br>
+      <span class="suave pequeno">{{ _('emitido em {v1}', v1=(emitido.strftime('%m/%d/%Y às %H:%M'))) }}</span>
+    </div>
+  </header>
+
+  {% if resultado %}
+  <div class="rolagem"><table class="tabela-folha tabela-resumo tabela-valores">
+    <thead><tr>
+      <th>{{ _('Funcionário') }}</th><th>{{ _('Função') }}</th><th>{{ _('Horas trabalhadas') }}</th>
+      <th>{{ _('Normais') }}</th><th>{{ _('Extra 1,5x') }}</th>
+      {% if tem_dt %}<th>{{ _('Dobro 2x') }}</th>{% endif %}
+      {% if tem_meal %}<th>{{ _('Meal premium') }}</th>{% endif %}
+      {% if tem_rest %}<th>{{ _('Rest premium') }}</th>{% endif %}
+      {% if tem_prev %}<th>{{ _('Predictability pay') }}</th>{% endif %}
+      {% if tem_pto %}<th>{{ _('PTO/sick') }}</th>{% endif %}
+      {% if tem_not %}<th>{{ _('Noturnas ({v1}%)', v1=(pnot)) }}</th>{% endif %}
+      {% if tem_falta %}<th>{{ _('Não compareceu') }}</th>{% endif %}
+    </tr></thead>
+    <tbody>
+    {% for r in resultado %}
+    <tr>
+      <td class="nome-forte">{{ r.u.nome }}</td>
+      <td>{{ r.u.cargo or '—' }}</td>
+      <td>{{ fmt_min(r.trabalhado) }}</td>
+      <td>{{ fmt_min(r.regular) }}</td>
+      <td>{{ fmt_min(r.ot) if r.ot else '—' }}</td>
+      {% if tem_dt %}<td>{{ fmt_min(r.dt) if r.dt else '—' }}</td>{% endif %}
+      {% if tem_meal %}<td>{{ fmt_min(r.meal_premios) if r.meal_premios else '—' }}</td>{% endif %}
+      {% if tem_rest %}<td>{{ fmt_min(r.descanso_premios) if r.descanso_premios else '—' }}</td>{% endif %}
+      {% if tem_prev %}<td>{{ fmt_min(r.previsibilidade_min) if r.previsibilidade_min else '—' }}{% if r.previsibilidade_centavos %} + {{ r.previsibilidade_centavos|dinheiro }}{% endif %}</td>{% endif %}
+      {% if tem_pto %}<td>{{ fmt_min(r.pto_min) if r.pto_min else '—' }}</td>{% endif %}
+      {% if tem_not %}<td>{{ fmt_min(r.noturno) if r.noturno else '—' }}</td>{% endif %}
+      {% if tem_falta %}<td>{{ r.faltas if r.faltas else '—' }}</td>{% endif %}
+    </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr>
+      <td colspan="2"><strong>{{ _('Total da equipe ({v1})', v1=(resultado|length)) }}</strong></td>
+      <td><strong>{{ fmt_min(total.trabalhado) }}</strong></td>
+      <td><strong>{{ fmt_min(total.regular) }}</strong></td>
+      <td><strong>{{ fmt_min(total.ot) }}</strong></td>
+      {% if tem_dt %}<td><strong>{{ fmt_min(total.dt) }}</strong></td>{% endif %}
+      {% if tem_meal %}<td><strong>{{ fmt_min(total.meal_premios) }}</strong></td>{% endif %}
+      {% if tem_rest %}<td><strong>{{ fmt_min(total.descanso_premios) }}</strong></td>{% endif %}
+      {% if tem_prev %}<td><strong>{{ fmt_min(total.previsibilidade_min) }}{% if total.previsibilidade_centavos %} + {{ total.previsibilidade_centavos|dinheiro }}{% endif %}</strong></td>{% endif %}
+      {% if tem_pto %}<td><strong>{{ fmt_min(total.pto_min) }}</strong></td>{% endif %}
+      {% if tem_not %}<td><strong>{{ fmt_min(total.noturno) }}</strong></td>{% endif %}
+      {% if tem_falta %}<td><strong>{{ total.faltas }}</strong></td>{% endif %}
+    </tr></tfoot>
+  </table></div>
+  <p class="ajuda">{{ _('Hora extra a 1,5x acima de 40 horas na semana de trabalho, mais as regras por dia de {v1}. Valores em horas e minutos.', v1=(e.estado)) }}</p>
+  <div class="linhas-assinatura so-imprime"><div>{{ _('Responsável') }}</div><div>{{ _('Conferido por') }}</div></div>
+  {% else %}
+  <div class="vazio">{{ _('Ninguém tem escala ou batidas neste período.') }}</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Folha de ponto — {v1} — {v2} a {v3}', v1=(r.u.nome), v2=(ini.strftime('%m/%d/%Y')), v3=(fim.strftime('%m/%d/%Y'))) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+{% set pnot = linha.fechamento.pct_noturno if linha else e.pct_noturno %}
+<div class="folha">
+  <div class="folha-barra nao-imprime">
+    {{ seletor() }}
+    <a class="botao claro" href="{{ volta }}">{{ _('Voltar') }}</a>
+    <button class="botao" type="button" onclick="window.print()">{{ _('Imprimir ou salvar em PDF') }}</button>
+  </div>
+  {% if flash %}<div class="aviso {{ 'erro' if flash.tipo == 'erro' }} nao-imprime">{{ flash.texto }}</div>{% endif %}
+
+  <header class="folha-topo">
+    <div>
+      <h1>{{ _('Folha de ponto') }}</h1>
+      <div>{{ e.nome }}{% if e.endereco %} · {{ e.endereco }}{% endif %}</div>
+    </div>
+    <div class="direita">
+      <strong>{{ r.u.nome }}</strong>{% if r.u.cargo %} · {{ r.u.cargo }}{% endif %}<br>
+      {{ _('{v1} a {v2}', v1=(ini.strftime('%m/%d/%Y')), v2=(fim.strftime('%m/%d/%Y'))) }}
+      {% if not linha %}<br><span class="etiqueta alerta">{{ _('período ainda aberto') }}</span>{% endif %}
+    </div>
+  </header>
+
+  <div class="rolagem"><table class="tabela-folha">
+    <thead><tr><th>{{ _('Dia') }}</th><th>{{ _('Escala') }}</th><th>{{ _('Batidas') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Previsto') }}</th><th>{{ _('Normais') }}</th><th>{{ _('Extra 1,5x') }}</th><th>{{ _('Dobro 2x') }}</th><th>{{ _('Atraso/saída') }}</th><th>{{ _('Observações') }}</th></tr></thead>
+    <tbody>
+    {% for d in r.dias %}
+    <tr class="{{ 'dia-especial' if d.especial }}">
+      <td style="white-space:nowrap">{{ DIAS[d.dia.weekday()] }} {{ d.dia.strftime('%m/%d') }}</td>
+      <td style="white-space:nowrap">{% if d.turno and d.turno.folga %}{{ _('Folga') }}{% elif d.turno %}{{ d.turno.inicio }}–{{ d.turno.fim }}{% else %}—{% endif %}</td>
+      <td>{% for a, b in d.pares %}<span style="white-space:nowrap">{{ local(e, a.momento) if a else '?' }}{{ '*' if a and a.manual }} → {{ local(e, b.momento) if b else '?' }}{{ '*' if b and b.manual }}</span>{{ ', ' if not loop.last }}{% endfor %}</td>
+      <td>{{ fmt_min(d.trabalhado) if d.trabalhado else '' }}</td>
+      <td>{{ fmt_min(d.previsto) if d.previsto else '' }}</td>
+      <td>{{ fmt_min(d.regular) if d.regular else '' }}</td>
+      <td>{{ fmt_min(d.ot) if d.ot else '' }}</td>
+      <td>{{ fmt_min(d.dt) if d.dt else '' }}</td>
+      <td>{{ fmt_min(d.debito) if d.debito else '' }}</td>
+      <td class="pequeno">{{ d.obs|map('traduz')|join('; ') }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr>
+      <td colspan="3"><strong>{{ _('Totais') }}</strong></td>
+      <td><strong>{{ fmt_min(r.trabalhado) }}</strong></td><td><strong>{{ fmt_min(r.previsto) }}</strong></td>
+      <td><strong>{{ fmt_min(r.regular) }}</strong></td><td><strong>{{ fmt_min(r.ot) }}</strong></td><td><strong>{{ fmt_min(r.dt) }}</strong></td><td><strong>{{ fmt_min(r.debito) }}</strong></td><td></td>
+    </tr></tfoot>
+  </table></div>
+  <p class="ajuda">{{ _('* batida lançada à mão pelo gestor.') }}</p>
+
+  <div class="folha-resumo">
+    <div><span>{{ _('Horas normais') }}</span><strong>{{ fmt_min(r.regular) }}</strong></div>
+    <div><span>{{ _('Hora extra (1,5x)') }}</span><strong>{{ fmt_min(r.ot) }}</strong></div>
+    {% if r.dt %}<div><span>{{ _('Dobro (2x)') }}</span><strong>{{ fmt_min(r.dt) }}</strong></div>{% endif %}
+    {% if r.meal_premios %}<div><span>{{ _('Meal premium') }}</span><strong>{{ fmt_min(r.meal_premios) }}</strong></div>{% endif %}
+    {% if r.previsibilidade_min or r.previsibilidade_centavos %}<div><span>{{ _('Predictability pay') }}</span><strong>{{ fmt_min(r.previsibilidade_min) }}{% if r.previsibilidade_centavos %} + {{ r.previsibilidade_centavos|dinheiro }}{% endif %}</strong></div>{% endif %}
+    {% if r.descanso_premios %}<div><span>{{ _('Rest premium') }}</span><strong>{{ fmt_min(r.descanso_premios) }}</strong></div>{% endif %}
+    {% if r.pto_min %}<div><span>{{ _('Licença remunerada (PTO/sick)') }}</span><strong>{{ fmt_min(r.pto_min) }}</strong></div>{% endif %}
+    {% if r.feriado_min %}<div><span>{{ _('Horas em feriado') }}</span><strong>{{ fmt_min(r.feriado_min) }}</strong></div>{% endif %}
+    {% if r.noturno %}<div><span>{{ _('Horas noturnas (diferencial de {v1}%)', v1=(pnot)) }}</span><strong>{{ fmt_min(r.noturno) }}</strong></div>{% endif %}
+    <div><span>{{ _('Atrasos e saídas antecipadas') }}</span><strong>{{ fmt_min(r.debito) }}</strong></div>
+    <div><span>{{ _('Não compareceu') }}</span><strong>{{ _('{v1} dia(s)', v1=(r.faltas)) }}</strong></div>
+    <div class="destaque"><span>{{ _('Total de horas pagas') }}</span><strong>{{ fmt_min(r.regular + r.ot + r.dt) }}</strong></div>
+  </div>
+
+  <div class="folha-assinatura">
+    {% if linha and linha.aceite_em %}
+    <p><strong>{{ _('Assinada eletronicamente por {v1}', v1=(r.u.nome)) }}</strong> {{ _('em {v1}, com confirmação de senha (IP {v2}).', v1=(local(e, linha.aceite_em, '%m/%d/%Y às %H:%M')), v2=(linha.aceite_ip)) }}</p>
+    {% else %}
+    <div class="linhas-assinatura so-imprime">
+      <div>{{ _('Funcionário') }}</div><div>{{ _('Empresa') }}</div>
+    </div>
+    {% if linha and linha.contestacao %}<p class="nao-imprime"><span class="etiqueta erro">{{ _('Contestada') }}</span> {{ linha.contestacao }}</p>{% endif %}
+    {% if not linha %}<p class="suave pequeno nao-imprime">{{ _('Esta folha ainda pode mudar: o período não foi fechado.') }}</p>
+    {% elif modo == 'gestor' %}<p class="suave pequeno nao-imprime">{{ _('Aguardando a assinatura de {v1} no aplicativo.', v1=(r.u.primeiro_nome)) }}</p>{% endif %}
+    {% endif %}
+  </div>
+
+  {% if modo == 'app' and linha and not linha.aceite_em %}
+  <div class="cartao nao-imprime">
+    <h2>{{ _('Conferi e concordo') }}</h2>
+    <p class="suave pequeno">{{ _('Confira os dias acima. Ao assinar, você confirma que as horas estão corretas.') }}</p>
+    <form method="post" action="/app/folha/{{ linha.id }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label for="senha">{{ _('Sua senha') }}</label><input type="password" id="senha" name="senha" required autocomplete="current-password"></div>
+      <button class="botao" type="submit" name="acao" value="aceitar" style="width:100%">{{ _('Assinar a folha') }}</button>
+    </form>
+    <details style="margin-top:14px">
+      <summary>{{ _('Algo está errado') }}</summary>
+      <form method="post" action="/app/folha/{{ linha.id }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="campo"><label for="texto">{{ _('O que está errado?') }}</label><input type="text" id="texto" name="texto" maxlength="500" minlength="5" required value="{{ linha.contestacao }}" placeholder="{{ _('Ex.: no dia 12 eu saí às 18h, não às 17h') }}"></div>
+        <button class="botao claro" type="submit" name="acao" value="contestar">{{ _('Avisar o gestor') }}</button>
+      </form>
+    </details>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

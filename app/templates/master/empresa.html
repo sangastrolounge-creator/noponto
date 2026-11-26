@@ -62,6 +62,11 @@
           {% for p in planos %}<option value="{{ p.id }}" {{ 'selected' if alvo.plano_id == p.id }}>{{ p.nome }} · {{ p.preco_centavos|dinheiro }}{{ '' if p.ativo else _(' (fora de venda)') }}</option>{% endfor %}
         </select>
       </div>
+      <div class="campo"><label for="pais">{{ _('País da empresa') }}</label>
+        <select id="pais" name="pais" {{ 'disabled' if alvo.id == e.id }}>
+          {% for cod, nome in PAISES.items() %}<option value="{{ cod }}" {{ 'selected' if (alvo.pais or 'BR') == cod }}>{{ nome|traduz }}</option>{% endfor %}
+        </select>
+        <div class="ajuda">{{ _('Decide as leis do ponto, a moeda e a cobrança. Só pode ser trocado antes do primeiro fechamento.') }}</div></div>
       <label class="marcar campo"><input type="checkbox" name="isenta" value="1" {{ 'checked' if alvo.isenta }} {{ 'disabled' if alvo.id == e.id }}><span>{{ _('Cortesia: não vence e não tem limite de funcionários') }}{% if alvo.id == e.id %} {{ _('(a sua empresa é sempre cortesia)') }}{% endif %}</span></label>
       <div class="campo"><label for="obs">{{ _('Anotações internas') }}</label><textarea id="obs" name="obs" maxlength="2000">{{ alvo.obs_master }}</textarea></div>
       <button class="botao" type="submit">{{ _('Salvar') }}</button>

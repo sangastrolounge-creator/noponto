@@ -32,6 +32,22 @@ def periodo_aberto(db, e):
     return apuracao.periodo_aberto(db, e)
 
 
+def periodo_sugerido(db, e):
+    """Do início do período aberto até o fim do período de pagamento dele (ou até hoje)."""
+    ini, hoje = apuracao.periodo_aberto(db, e)
+    return ini, min(apuracao.periodo_de(e, ini)[1], hoje)
+
+
+CHAVES_RESUMO = apuracao.CHAVES
+TIPOS_PEDIDO_AUSENCIA = ("atestado", "ferias", "abono", "outro")
+
+
+def ao_reabrir(db, f):
+    """Desfaz o ganho e o uso de sick leave/PTO lançados por este fechamento."""
+    from . import pto
+    pto.apagar_do_fechamento(db, f.id)
+
+
 def apurar(db, e, ini, fim, usuario_id=None):
     return apuracao.apurar(db, e, ini, fim, usuario_id)
 

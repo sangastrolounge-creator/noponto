@@ -235,10 +235,16 @@ def funcionarios_ativos(db: Session, empresa_id: int) -> int:
         Usuario.ativo.is_(True)).execution_options(alcance_livre=True)) or 0
 
 
-def dinheiro(centavos: int | None) -> str:
+# País da empresa da tela que está sendo montada (ver render): decide moeda e formato de data.
+_pais_tela: ContextVar[str] = ContextVar("pais_tela", default="BR")
+
+
+def dinheiro(centavos: int | None, pais: str | None = None) -> str:
     c = int(centavos or 0)
     if c < 0:
-        return "−" + dinheiro(-c)
+        return "−" + dinheiro(-c, pais)
+    if (pais or _pais_tela.get()) == "US":
+        return f"${c // 100:,}.{c % 100:02d}"
     return f"R$ {c // 100:,}".replace(",", ".") + f",{c % 100:02d}"
 
 
@@ -404,6 +410,14 @@ def render(request: Request, nome: str, status_code: int = 200, **ctx):
             base["cad_parceiro"] = (par.escritorio or par.nome) if par else ""
         base["cad_cupom"] = request.session.get("cupom", "")
     tudo = {**base, **ctx}
+    # País da empresa da tela: moeda nos valores e, se existir, a versão da tela daquele país
+    # (templates/us/<nome>). Sem empresa (master, páginas públicas) fica o Brasil.
+    emp = ctx.get("e") or getattr(ctx.get("u"), "empresa", None)
+    pais = getattr(emp, "pais", None) or "BR"
+    _pais_tela.set(pais)
+    tudo["pais"] = pais
+    if pais != "BR" and (AQUI / "templates" / pais.lower() / nome).exists():
+        nome = f"{pais.lower()}/{nome}"
     if marca or base["app_ios"]:
         tudo["google_ok"] = False
     if base["app_ios"]:

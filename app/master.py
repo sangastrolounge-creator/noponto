@@ -9,13 +9,13 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import asaas
+from . import asaas, paises
 from . import db as banco
 from .core import (SITUACOES, Redirecionar, admin_logado, avisar, base_url, celular_limpo,
                    dinheiro, email_valido, exigir_csrf, funcionarios_ativos, gerar_hash,
                    ir, ler_centavos, limite_funcionarios, plataforma,
                    plataforma_mudou, render, situacao)
-from .db import Banner, Batida, Empresa, Pagamento, Plano, Plataforma, Usuario, get_db
+from .db import Banner, Batida, Empresa, Fechamento, Pagamento, Plano, Plataforma, Usuario, get_db
 
 rota = APIRouter()
 CSRF = [Depends(exigir_csrf)]
@@ -118,7 +118,7 @@ def _detalhe(request: Request, u: Usuario, db: Session, empresa_id: int,
     return render(
         request, "master/empresa.html", u=u, e=u.empresa, aba="master", sub="geral", alvo=alvo,
         dono=_dono(db, alvo.id), planos=_todos_os_planos(db), senha_temp=senha_temp,
-        entrar_url=f"{base_url(request)}/entrar",
+        entrar_url=f"{base_url(request)}/entrar", PAISES=paises.PAISES,
         pagamentos=list(db.scalars(select(Pagamento).where(Pagamento.empresa_id == alvo.id)
                                    .order_by(Pagamento.criado_em.desc()).limit(50))),
         numeros={"equipe": funcionarios_ativos(db, alvo.id),
@@ -158,8 +158,21 @@ def empresa_detalhe(empresa_id: int, request: Request,
 @rota.post("/master/empresas/{empresa_id}/dados", dependencies=CSRF)
 def empresa_dados(empresa_id: int, request: Request, u: Usuario = Depends(admin_logado),
                   db: Session = Depends(get_db), plano: int = Form(0),
-                  isenta: str = Form(""), obs: str = Form("")):
+                  isenta: str = Form(""), obs: str = Form(""), pais: str = Form("")):
     alvo = _empresa(db, empresa_id)
+    if pais and pais in paises.PAISES and pais != alvo.pais:
+        # Trocar o país muda as leis do ponto: só antes do primeiro fechamento e nunca a do dono.
+        if alvo.id == u.empresa_id or db.scalar(select(Fechamento.id).where(
+                Fechamento.empresa_id == alvo.id).limit(1)):
+            avisar(request, "O país só pode ser trocado antes do primeiro fechamento de ponto, "
+                            "e a empresa do dono da plataforma fica no Brasil.", "erro")
+            return ir(f"/master/empresas/{alvo.id}")
+        alvo.pais = pais
+        if pais == "US":
+            from .paises.us import apuracao as ap_us
+            if not alvo.estado:
+                ap_us.aplicar_estado(alvo, "FL")
+            alvo.fuso = "America/New_York"
     alvo.plano_id = plano if db.get(Plano, plano) else None
     alvo.isenta = bool(isenta) or alvo.id == u.empresa_id  # a do dono é sempre cortesia
     alvo.obs_master = obs.strip()[:2000]

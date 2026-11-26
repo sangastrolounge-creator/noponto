@@ -15,7 +15,8 @@ PAISES = {"BR": "Brasil", "US": "Estados Unidos"}
 CONTRATO = (
     "CODIGO", "NOME", "MOEDA", "IDIOMA", "COBRANCA",
     "feriados", "facultativos", "comemorativas",
-    "inicio_semana", "periodo_aberto", "apurar", "fechar",
+    "inicio_semana", "periodo_aberto", "periodo_sugerido", "apurar", "fechar", "ao_reabrir",
+    "CHAVES_RESUMO", "TIPOS_PEDIDO_AUSENCIA",
     "calcular_folha", "alertas_folha",
 )
 
