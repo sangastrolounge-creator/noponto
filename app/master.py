@@ -168,11 +168,15 @@ def empresa_dados(empresa_id: int, request: Request, u: Usuario = Depends(admin_
                             "e a empresa do dono da plataforma fica no Brasil.", "erro")
             return ir(f"/master/empresas/{alvo.id}")
         alvo.pais = pais
-        if pais == "US":
+        if pais == "US":   # padrões americanos (os brasileiros não valem lá)
             from .paises.us import apuracao as ap_us
             if not alvo.estado:
                 ap_us.aplicar_estado(alvo, "FL")
             alvo.fuso = "America/New_York"
+            alvo.intervalo_padrao_min, alvo.intervalo_auto, alvo.intervalo_obrigatorio = 30, False, True
+            alvo.pct_noturno, alvo.pct_feriado, alvo.tolerancia_dia_min = 0, 0, 7
+            alvo.semana_inicio, alvo.frequencia = 6, "biweekly"
+            alvo.facial_ativo = False
     alvo.plano_id = plano if db.get(Plano, plano) else None
     alvo.isenta = bool(isenta) or alvo.id == u.empresa_id  # a do dono é sempre cortesia
     alvo.obs_master = obs.strip()[:2000]
