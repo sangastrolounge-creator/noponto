@@ -25,6 +25,12 @@
       {%- endif %}
     </div>
   {%- endmacro %}
+  {% if aba == 'master' %}
+  {# No Master o menu da empresa some; o do Master fica à direita da tela. #}
+  <nav class="abas" aria-label="{{ _('Menu do painel') }}">
+    {{ item('/painel', 'voltar', _('Painel da empresa'), '<path d="M15 6l-6 6 6 6"/><path d="M9 12h11"/>') }}
+  </nav>
+  {% else %}
   <nav class="abas" aria-label="{{ _('Menu do painel') }}">
     <span class="menu-titulo">{{ _('Dia a dia') }}</span>
     {{ item('/painel', 'hoje', _('Hoje'), '<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>') }}
@@ -44,6 +50,7 @@
     {% if pode(u, 'dono') %}{{ item('/painel/config', 'config', _('Configurações'), '<path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="16" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/>', [('/painel/config', _('Empresa e regras')), ('/painel/comecar', _('Configuração guiada')), ('/painel/ponto/problemas#regras', _('Regras automáticas do ponto'))] + ([] if app_ios else [('/painel/assinatura', _('Assinatura e plano'))])) }}{% endif %}
     {% if u.na_escala %}{{ item('/app', 'meu', _('Meu ponto'), '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/>') }}{% endif %}
   </nav>
+  {% endif %}
   <div class="conta">
     {% set st = situacao(e) %}
     {% if st == 'teste' and not app_ios %}
