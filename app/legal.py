@@ -17,6 +17,10 @@ from .core import plataforma, render
 rota = APIRouter()
 VERSAO = "2026-11-25"
 IDIOMAS = ("pt",)
+# EUA (dataworke.com e empresas americanas): textos da empresa americana; o inglês é o que vale,
+# espanhol e português são traduções de cortesia. Ficam em templates/legal/us/.
+VERSAO_EUA = "2026-11-19"
+IDIOMAS_EUA = ("en", "es", "pt")
 
 
 def dados() -> dict:
@@ -34,6 +38,35 @@ def dados() -> dict:
     }
 
 
+def dados_eua() -> dict:
+    p = plataforma()
+    marca = p["nome"]
+    return {
+        "marca": marca,
+        "empresa": (p.get("eua_razao_social") or "").strip() or marca,
+        "endereco": (p.get("eua_endereco") or "").strip(),
+        "email": (p.get("eua_email_legal") or "").strip() or (p.get("email_legal") or "").strip(),
+        "estado": (p.get("eua_estado_lei") or "").strip() or "Wyoming",
+        "foro": (p.get("eua_estado_lei") or "").strip() or "Wyoming",
+        "pais": (p.get("pais_servidores") or "").strip() or "Brazil",
+        "versao": date.fromisoformat(VERSAO_EUA),
+        "rep": {"completo": False, "inpi": ""},
+    }
+
+
+def pais_da_pagina(request: Request) -> str:
+    """Quem está logado segue o país da empresa; o visitante, o do endereço do site."""
+    from . import paises
+    from .db import SessionLocal, Usuario
+    uid = request.session.get("uid")
+    if uid:
+        with SessionLocal() as db:
+            u = db.get(Usuario, uid)
+            if u and u.empresa:
+                return u.empresa.pais or "BR"
+    return paises.pais_do_host(request)
+
+
 def _rep() -> dict:
     """Situação do REP-P (Portaria 671) para o texto dos Termos de Uso."""
     from . import rep
@@ -43,12 +76,16 @@ def _rep() -> dict:
     return {"completo": s["completo"], "inpi": rep.digitos(s["config"]["inpi"])}
 
 
-def registrar_aceite(u) -> None:
+def registrar_aceite(u, pais: str = "BR") -> None:
     u.termos_em = banco.agora()
-    u.termos_versao = VERSAO
+    u.termos_versao = VERSAO_EUA if pais == "US" else VERSAO
 
 
 def _pagina(request: Request, doc: str):
+    if pais_da_pagina(request) == "US":
+        from . import i18n
+        cod = i18n.idioma() if i18n.idioma() in IDIOMAS_EUA else "en"
+        return render(request, f"legal/us/{doc}_{cod}.html", L=dados_eua(), doc=doc, cod=cod, pais_tela="US")
     return render(request, f"legal/{doc}_pt.html", L=dados(), doc=doc, cod="pt")
 
 

@@ -427,7 +427,7 @@ def render(request: Request, nome: str, status_code: int = 200, **ctx):
     # País da empresa da tela: moeda nos valores e, se existir, a versão da tela daquele país
     # (templates/us/<nome>). Sem empresa (master, páginas públicas) fica o Brasil.
     emp = ctx.get("e") or getattr(ctx.get("u"), "empresa", None)
-    pais = getattr(emp, "pais", None) or "BR"
+    pais = ctx.get("pais_tela") or getattr(emp, "pais", None) or "BR"
     _pais_tela.set(pais)
     tudo["pais"] = pais
     if pais != "BR" and (AQUI / "templates" / pais.lower() / nome).exists():

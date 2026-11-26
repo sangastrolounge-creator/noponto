@@ -1,0 +1,80 @@
+{% extends "legal/_base.html" %}
+{% block nome_doc %}Política de Privacidad{% endblock %}
+{% block texto %}
+<h1>Política de Privacidad</h1>
+<p class="suave">Última actualización: {{ L.versao.strftime('%m/%d/%Y') }}</p>
+<p class="aviso">Esta es una traducción de cortesía. Si hay alguna diferencia, vale la <a href="/idioma/en?volta=/privacy">versión en inglés</a>.</p>
+
+<p>Esta política explica qué información recolecta {{ L.empresa }} (“{{ L.marca }}”, “nosotros”) por medio del sitio, la aplicación web y la aplicación móvil de {{ L.marca }} (el “Servicio”), cómo la usamos y qué opciones tiene usted.</p>
+
+<h2>1. Quién es responsable de sus datos</h2>
+<ul>
+  <li><strong>Empresas que se registran</strong> (nuestros “Clientes”): nosotros decidimos cómo usar los datos de contacto y de cobro del titular y de los gerentes.</li>
+  <li><strong>Empleados</strong> invitados por un empleador: su empleador decide qué información recolectar sobre su trabajo y para qué. Nosotros la tratamos <strong>en nombre de su empleador</strong>, como su proveedor de servicios. Las preguntas o solicitudes sobre sus registros de trabajo deben ir primero a su empleador. Nosotros le ayudaremos a responder.</li>
+</ul>
+
+<h2>2. Información que recolectamos</h2>
+<ul>
+  <li><strong>Datos de la cuenta:</strong> nombre, correo (gerentes), número de celular (empleados), nombre y dirección de la empresa, y su contraseña. La contraseña solo se guarda como un hash seguro.</li>
+  <li><strong>Datos de trabajo que ingresa el empleador o el empleado:</strong> horarios, disponibilidad, entradas y salidas, descansos, solicitudes y saldos de tiempo libre, cargos, tarifas y salario, propinas, clasificación (W-2 o 1099), fecha de ingreso, tareas, cambios de turno, mensajes del mural y calificaciones de turno.</li>
+  <li><strong>Ubicación solo al marcar entrada y salida:</strong> cuando un empleado marca por celular, la aplicación lee la ubicación del dispositivo (latitud, longitud y precisión) en ese momento, para confirmar que está en el lugar de trabajo. Las marcas en el quiosco usan la tableta de la empresa y un PIN, no la ubicación del empleado.</li>
+  <li><strong>Revisión del área durante el turno, solo si el empleador la activa:</strong> mientras el empleado tiene el turno abierto <em>y</em> la app abierta en la pantalla, la app revisa la ubicación cada 2 minutos aproximadamente para ver si está dentro del área de trabajo, y avisa al empleador si se queda fuera. <strong>Nunca leemos la ubicación con la app cerrada, en segundo plano ni fuera del turno.</strong></li>
+  <li><strong>Fotos al marcar, si el empleador lo activa:</strong> se toma una foto al momento de marcar para que el empleador confirme quién marcó. Las fotos se <strong>borran automáticamente</strong> después del plazo que elija el empleador, de hasta 45 días. <strong>No usamos reconocimiento facial ni creamos plantillas faciales u otros identificadores biométricos</strong> con estas fotos.</li>
+  <li><strong>Datos del dispositivo:</strong> un identificador aleatorio guardado en una cookie del dispositivo y el nombre del navegador. Con ellos reconocemos el dispositivo usado para marcar y avisamos al empleador si se usa uno nuevo. También guardamos las suscripciones a notificaciones si usted las permite.</li>
+  <li><strong>Datos de pago:</strong> los pagos con tarjeta los procesa Stripe. Recibimos el estado de la suscripción y los montos pagados. <strong>Nunca recibimos ni guardamos el número completo de la tarjeta.</strong></li>
+  <li><strong>Datos técnicos:</strong> dirección IP y registros de acceso. Los usamos para seguridad, prevención de abusos y solución de problemas.</li>
+</ul>
+
+<h2>3. Cómo usamos la información</h2>
+<p>Usamos la información para prestar el Servicio: mostrar horarios, registrar horas, calcular horas y pago estimado, enviar recordatorios y avisos, y generar informes y archivos. También la usamos para proteger las cuentas y prevenir fraudes, dar soporte, cobrar a los Clientes, enviar mensajes del servicio (como restablecer la contraseña o avisar de cambios importantes) y cumplir obligaciones legales. <strong>No vendemos información personal, no la compartimos para publicidad basada en comportamiento entre sitios y no mostramos anuncios.</strong></p>
+
+<h2>4. Con quién la compartimos</h2>
+<ul>
+  <li><strong>El empleador:</strong> la información del empleado la ven el titular de la cuenta del empleador y los gerentes con permiso para esa área.</li>
+  <li><strong>Proveedores de servicios</strong> que nos ayudan a operar el Servicio, con contratos que limitan el uso de los datos:
+    <ul>
+      <li>alojamiento en la nube, donde funcionan la aplicación y la base de datos;</li>
+      <li>Stripe, para los pagos;</li>
+      <li>nuestro proveedor de correo, para los correos de contraseña y del servicio;</li>
+      <li>Anthropic, nuestro proveedor de inteligencia artificial, solo cuando un gerente pide la revisión automática de un período de pago. Los datos enviados por la API comercial de Anthropic no se usan para entrenar sus modelos.</li>
+      <li>Google Fonts, que entrega las tipografías de nuestras páginas y recibe su dirección IP al hacerlo;</li>
+      <li>OpenStreetMap, que entrega los mapas cuando un gerente dibuja la cerca del área de trabajo, y recibe la dirección IP de ese gerente;</li>
+      <li>un proveedor de almacenamiento externo que guarda nuestras copias de seguridad. Las copias se cifran en nuestro servidor antes de enviarse.</li>
+    </ul></li>
+  <li><strong>Razones legales:</strong> cuando la ley o un proceso legal válido lo exija, o para proteger los derechos y la seguridad de personas o del Servicio.</li>
+  <li><strong>Transferencias de negocio:</strong> en una fusión, adquisición o venta de activos, siempre sujeto a esta política.</li>
+</ul>
+
+<h2>5. Dónde se guardan los datos</h2>
+<p>Nuestros servidores están en <strong>{{ L.pais }}</strong>. Si usa el Servicio desde Estados Unidos u otro lugar, su información se transfiere y se procesa en ese país, con las protecciones descritas en esta política.</p>
+
+<h2>6. Por cuánto tiempo la guardamos</h2>
+<ul>
+  <li>Los datos de la cuenta y de trabajo se guardan mientras la cuenta del Cliente esté activa. La ley federal suele exigir que los empleadores guarden los registros de nómina por 3 años y las tarjetas de horas por 2 años. Su empleador controla estos registros.</li>
+  <li>Las fotos de marcación se borran después del plazo que elige el empleador, nunca más de 45 días. El registro de la marca se mantiene.</li>
+  <li>Al cerrar una cuenta, guardamos sus datos por 90 días para que el Cliente pueda pedir una copia, y luego los borramos. Las copias en nuestros respaldos cifrados se sobrescriben en unos 120 días.</li>
+</ul>
+
+<h2>7. Seguridad</h2>
+<p>Usamos conexiones cifradas (HTTPS), contraseñas con hash, acceso por permisos para los gerentes y respaldos externos cifrados. El acceso a los sistemas de producción es limitado. Ningún sistema es perfectamente seguro. Si sabemos de una filtración que afecte su información, avisaremos al Cliente afectado y, donde la ley lo exija, a las personas afectadas.</p>
+
+<h2>8. Cookies</h2>
+<p>Solo usamos las cookies que el Servicio necesita para funcionar: la sesión iniciada, el identificador de dispositivo descrito arriba y sus preferencias de idioma y de tema claro u oscuro. No usamos cookies de publicidad ni de seguimiento entre sitios.</p>
+
+<h2>9. Sus derechos y opciones</h2>
+<ul>
+  <li><strong>Empleados:</strong> puede ver su horario, sus marcas y sus horas en la aplicación. Para corregir un registro, pida un ajuste en la aplicación o hable con su empleador. Puede negarse a la recolección de ubicación o fotos, pero su empleador podrá pedirle que marque en el quiosco o de otra forma.</li>
+  <li><strong>Notificaciones:</strong> puede desactivarlas en los ajustes de su dispositivo o navegador.</li>
+  <li><strong>Derechos de privacidad estatales:</strong> según dónde viva (por ejemplo, California, bajo la CCPA/CPRA), puede tener derecho a saber, acceder, corregir o borrar su información personal, y a no ser discriminado por usar estos derechos. Las solicitudes sobre registros de trabajo se atienden junto con su empleador. También puede escribirnos a la dirección de abajo. Verificaremos su solicitud y responderemos en el plazo que exija la ley. Puede usar un agente autorizado.</li>
+</ul>
+
+<h2>10. Menores</h2>
+<p>El Servicio es para empresas y su personal. No está dirigido a menores de 13 años y no recolectamos su información a sabiendas. Los empleadores que contratan menores son responsables de cumplir las leyes de trabajo juvenil.</p>
+
+<h2>11. Cambios en esta política</h2>
+<p>Podemos actualizar esta política. Si un cambio es importante, avisaremos a los titulares de cuenta por correo o en la aplicación antes de que entre en vigor. La fecha de arriba muestra la versión más reciente.</p>
+
+<h2>12. Contacto</h2>
+<p>Preguntas o solicitudes sobre privacidad:</p>
+{% include "legal/_contato.html" %}
+{% endblock %}

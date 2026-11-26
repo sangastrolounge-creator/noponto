@@ -8,6 +8,9 @@
     <div class="campo"><label>{{ _('Locais de ponto') }}</label><input type="number" name="limite_locais" min="0" value="{{ p.limite_locais if p else 0 }}"><div class="ajuda">{{ _('contando o principal; 0 = ilimitado') }}</div></div>
     <div class="campo"><label>{{ _('Ordem') }}</label><input type="number" name="ordem" value="{{ p.ordem if p else 0 }}"></div>
   </div>
+  <div class="campo" style="max-width:280px"><label>{{ _('País onde é vendido') }}</label><select name="pais">
+    {% for cod, nome_p in PAISES.items() %}<option value="{{ cod }}" {{ 'selected' if (p.pais if p else 'BR') == cod }}>{{ nome_p|traduz }}</option>{% endfor %}
+  </select><div class="ajuda">{{ _('Preço em reais no Brasil e em dólares nos EUA.') }}</div></div>
   <fieldset class="cobranca-pessoa">
     <legend class="pequeno"><strong>{{ _('Cobrança por pessoa (opcional)') }}</strong> · <span class="suave">{{ _('Preencha o valor por pessoa para cobrar base + pessoas que trabalharam nos últimos 30 dias. Assim o preço fixo acima é ignorado.') }}</span></legend>
     <div class="linha-form" style="grid-template-columns:repeat(3,1fr)">

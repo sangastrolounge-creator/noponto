@@ -1,0 +1,80 @@
+{% extends "legal/_base.html" %}
+{% block nome_doc %}Política de Privacidade{% endblock %}
+{% block texto %}
+<h1>Política de Privacidade</h1>
+<p class="suave">Última atualização: {{ L.versao.strftime('%m/%d/%Y') }}</p>
+<p class="aviso">Esta é uma tradução de cortesia. Se houver diferença, vale a <a href="/idioma/en?volta=/privacy">versão em inglês</a>.</p>
+
+<p>Esta política explica quais dados a {{ L.empresa }} (“{{ L.marca }}”, “nós”) coleta pelo site, pelo aplicativo web e pelo aplicativo de celular do {{ L.marca }} (o “Serviço”), como os usamos e quais escolhas você tem.</p>
+
+<h2>1. Quem responde pelos seus dados</h2>
+<ul>
+  <li><strong>Empresas que se cadastram</strong> (nossos “Clientes”): nós decidimos como usar os dados de contato e de cobrança do dono da conta e dos gerentes.</li>
+  <li><strong>Funcionários</strong> convidados por um empregador: o seu empregador decide o que coletar sobre o seu trabalho e para quê. Nós tratamos esses dados <strong>em nome do seu empregador</strong>, como prestador de serviço dele. Dúvidas ou pedidos sobre os seus registros de trabalho devem ir primeiro ao seu empregador. Nós o ajudaremos a responder.</li>
+</ul>
+
+<h2>2. Dados que coletamos</h2>
+<ul>
+  <li><strong>Dados da conta:</strong> nome, e-mail (gerentes), celular (funcionários), nome e endereço da empresa, e a sua senha. A senha é guardada só como um hash seguro.</li>
+  <li><strong>Dados de trabalho informados pelo empregador ou pelo funcionário:</strong> escala, disponibilidade, horários de entrada e saída, intervalos, pedidos e saldos de folga, funções, valor da hora e salário, gorjetas, classificação (W-2 ou 1099), data de início, tarefas, trocas de turno, mensagens do mural e avaliações de turno.</li>
+  <li><strong>Localização só na hora de bater o ponto:</strong> quando o funcionário bate o ponto pelo celular, o aplicativo lê a localização do aparelho (latitude, longitude e precisão) naquele momento, para conferir que ele está no local de trabalho. As batidas no totem usam o tablet da empresa e um PIN, não a localização do funcionário.</li>
+  <li><strong>Conferência da área durante o turno, só se o empregador ligar:</strong> enquanto o funcionário está com o ponto aberto <em>e</em> com o app aberto na tela, o app confere a localização mais ou menos a cada 2 minutos para ver se ele está dentro da área de trabalho, e avisa o empregador se ele ficar fora. <strong>Nunca lemos a localização com o app fechado, em segundo plano ou fora do turno.</strong></li>
+  <li><strong>Fotos na batida do ponto, se o empregador ligar essa opção:</strong> uma foto é tirada no momento da batida para o empregador confirmar quem bateu. As fotos são <strong>apagadas sozinhas</strong> depois do prazo que o empregador escolher, de até 45 dias. <strong>Não usamos reconhecimento facial nem criamos modelos do rosto ou outros identificadores biométricos</strong> com essas fotos.</li>
+  <li><strong>Dados do aparelho:</strong> um identificador aleatório guardado num cookie do aparelho e o nome do navegador. Com eles reconhecemos o aparelho usado para bater o ponto e avisamos o empregador se for usado um aparelho novo. Também guardamos a inscrição para notificações, se você permitir.</li>
+  <li><strong>Dados de pagamento:</strong> pagamentos com cartão são processados pelo Stripe. Recebemos a situação da assinatura e os valores pagos. <strong>Nunca recebemos nem guardamos o número completo do cartão.</strong></li>
+  <li><strong>Dados técnicos:</strong> endereço IP e registros de acesso. Usamos para segurança, prevenção de abusos e solução de problemas.</li>
+</ul>
+
+<h2>3. Como usamos os dados</h2>
+<p>Usamos os dados para prestar o Serviço: mostrar a escala, registrar o ponto, calcular horas e o pagamento estimado, mandar lembretes e avisos, e gerar relatórios e arquivos. Também os usamos para proteger as contas e evitar fraudes, dar suporte, cobrar os Clientes, mandar mensagens do serviço (como redefinir a senha ou avisar de mudanças importantes) e cumprir obrigações legais. <strong>Não vendemos dados pessoais, não os compartilhamos para publicidade baseada em comportamento entre sites e não mostramos anúncios.</strong></p>
+
+<h2>4. Com quem compartilhamos</h2>
+<ul>
+  <li><strong>O empregador:</strong> os dados do funcionário são vistos pelo dono da conta do empregador e pelos gerentes com permissão para aquela área.</li>
+  <li><strong>Prestadores de serviço</strong> que nos ajudam a operar o Serviço, com contratos que limitam o uso dos dados:
+    <ul>
+      <li>hospedagem em nuvem, onde rodam o aplicativo e o banco de dados;</li>
+      <li>Stripe, para os pagamentos;</li>
+      <li>nosso provedor de e-mail, para os e-mails de senha e do serviço;</li>
+      <li>Anthropic, nosso provedor de inteligência artificial, só quando um gerente pede a revisão automática de um período de pagamento. Os dados enviados pela API comercial da Anthropic não são usados para treinar os modelos dela.</li>
+      <li>Google Fonts, que entrega as fontes das nossas páginas e recebe o seu endereço IP ao fazer isso;</li>
+      <li>OpenStreetMap, que entrega os mapas quando um gerente desenha a cerca da área de trabalho, e recebe o endereço IP desse gerente;</li>
+      <li>um provedor de armazenamento externo que guarda as nossas cópias de segurança. As cópias são criptografadas no nosso servidor antes de serem enviadas.</li>
+    </ul></li>
+  <li><strong>Motivos legais:</strong> quando a lei ou uma ordem legal válida exigir, ou para proteger os direitos e a segurança de pessoas ou do Serviço.</li>
+  <li><strong>Venda ou fusão do negócio:</strong> numa fusão, aquisição ou venda de ativos, sempre respeitando esta política.</li>
+</ul>
+
+<h2>5. Onde os dados ficam</h2>
+<p>Nossos servidores ficam em <strong>{{ L.pais }}</strong>. Se você usa o Serviço dos Estados Unidos ou de outro lugar, os seus dados são transferidos e processados nesse país, com as proteções descritas nesta política.</p>
+
+<h2>6. Por quanto tempo guardamos</h2>
+<ul>
+  <li>Os dados da conta e de trabalho ficam guardados enquanto a conta do Cliente estiver ativa. A lei federal normalmente exige que o empregador guarde os registros de folha por 3 anos e os cartões de ponto por 2 anos. Quem controla esses registros é o seu empregador.</li>
+  <li>As fotos do ponto são apagadas depois do prazo escolhido pelo empregador, nunca mais de 45 dias. O registro da batida continua.</li>
+  <li>Quando uma conta é encerrada, guardamos os dados por 90 dias para o Cliente pedir uma cópia, e então os apagamos. As cópias nas nossas cópias de segurança criptografadas são substituídas em cerca de 120 dias.</li>
+</ul>
+
+<h2>7. Segurança</h2>
+<p>Usamos conexão criptografada (HTTPS), senhas com hash, acesso por permissões para os gerentes e cópias de segurança externas criptografadas. O acesso aos sistemas em produção é restrito. Nenhum sistema é totalmente seguro. Se soubermos de um vazamento que afete os seus dados, avisaremos o Cliente afetado e, quando a lei exigir, as pessoas afetadas.</p>
+
+<h2>8. Cookies</h2>
+<p>Usamos só os cookies de que o Serviço precisa para funcionar: a sessão de login, o identificador do aparelho descrito acima e as suas preferências de idioma e de tema claro ou escuro. Não usamos cookies de publicidade nem de rastreamento entre sites.</p>
+
+<h2>9. Seus direitos e escolhas</h2>
+<ul>
+  <li><strong>Funcionários:</strong> você vê a sua escala, as suas batidas e as suas horas no aplicativo. Para corrigir um registro, peça um ajuste no aplicativo ou fale com o seu empregador. Você pode recusar a coleta de localização ou foto, mas o empregador pode então pedir que você bata o ponto no totem ou de outro jeito.</li>
+  <li><strong>Notificações:</strong> você pode desligá-las nos ajustes do aparelho ou do navegador.</li>
+  <li><strong>Direitos de privacidade estaduais:</strong> dependendo de onde você mora (por exemplo, na Califórnia, pela CCPA/CPRA), você pode ter o direito de saber, acessar, corrigir ou apagar os seus dados pessoais, e de não ser discriminado por usar esses direitos. Pedidos sobre registros de trabalho são atendidos junto com o seu empregador. Você também pode nos escrever no endereço abaixo. Vamos confirmar o pedido e responder no prazo que a lei exigir. Você pode usar um representante autorizado.</li>
+</ul>
+
+<h2>10. Crianças</h2>
+<p>O Serviço é para empresas e suas equipes. Ele não é voltado para menores de 13 anos, e não coletamos os dados deles de propósito. Empregadores que contratam menores de idade são responsáveis por cumprir as leis de trabalho de menores.</p>
+
+<h2>11. Mudanças nesta política</h2>
+<p>Podemos atualizar esta política. Se a mudança for importante, avisaremos os donos das contas por e-mail ou no aplicativo antes de ela valer. A data no alto mostra a versão mais recente.</p>
+
+<h2>12. Contato</h2>
+<p>Dúvidas ou pedidos sobre privacidade:</p>
+{% include "legal/_contato.html" %}
+{% endblock %}

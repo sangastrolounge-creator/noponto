@@ -27,7 +27,9 @@ ETAPAS = [("novo", "Novo"), ("contato", "Em contato"), ("proposta", "Proposta"),
           ("cliente", "Cliente"), ("perdido", "Perdido")]
 NOME_ETAPA = dict(ETAPAS)
 ORIGENS = {"chat": "Chat do site", "teste": "Conta de teste", "manual": "Cadastro manual",
-           "indicacao": "Indicação", "whatsapp": "WhatsApp", "email": "E-mail", "instagram": "Instagram"}
+           "indicacao": "Indicação", "whatsapp": "WhatsApp", "email": "E-mail", "instagram": "Instagram",
+           "espera": "Lista de espera (EUA)"}
+PAISES_LEAD = {"BR": "Brasil", "US": "Estados Unidos"}
 MANUAIS = ["manual", "instagram", "indicacao", "whatsapp"]   # origens que a equipe escolhe ao cadastrar
 TIPOS = {"nota": "Anotação", "ligacao": "Ligação", "whatsapp": "WhatsApp", "email": "E-mail",
          "etapa": "Etapa", "sistema": "Sistema", "instagram": "Direct do Instagram"}
@@ -165,6 +167,7 @@ def lead_do_cadastro(db: Session, e: Empresa, gestor: Usuario) -> None:
         ld.email = ld.email or (gestor.email or "")
         ld.telefone = ld.telefone or tel
         ld.empresa_id = e.id
+        ld.pais = e.pais or "BR"
         ld.utm = ld.utm or (e.origem or "")
         db.flush()
         registrar(db, ld, f"Criou a conta de teste \"{e.nome}\".")
@@ -175,6 +178,24 @@ def lead_do_cadastro(db: Session, e: Empresa, gestor: Usuario) -> None:
         db.commit()
     except Exception:
         db.rollback()
+
+
+def lead_da_lista_espera(db: Session, nome: str, empresa: str, email: str, telefone: str,
+                         funcionarios: int, pais: str = "US") -> Lead:
+    """Quem entra na lista de espera do site americano vira lead (ou atualiza o que já existia)."""
+    ld = _achar(db, telefone, email)
+    novo = ld is None
+    if novo:
+        ld = Lead(origem="espera", etapa="novo", criado_em=_agora(), atualizado_em=_agora())
+        db.add(ld)
+    ld.nome, ld.empresa_nome = ld.nome or nome, ld.empresa_nome or empresa
+    ld.email, ld.telefone = ld.email or email, ld.telefone or telefone
+    ld.funcionarios = ld.funcionarios or funcionarios
+    ld.pais, ld.autorizou = pais, True
+    db.flush()
+    registrar(db, ld, "Entrou na lista de espera do site dos EUA." if novo else "Entrou de novo na lista de espera dos EUA.")
+    db.commit()
+    return ld
 
 
 def sincronizar() -> None:
@@ -194,10 +215,12 @@ def sincronizar() -> None:
 
 
 # ------------------------------------------------------------------ funil
-def _visiveis(db: Session, u: Usuario, ver: str, q: str, origem: str = ""):
+def _visiveis(db: Session, u: Usuario, ver: str, q: str, origem: str = "", pais: str = ""):
     sel = select(Lead)
     if origem in ORIGENS:
         sel = sel.where(Lead.origem == origem)
+    if pais in PAISES_LEAD:
+        sel = sel.where(Lead.pais == pais)
     if ver == "meus":
         sel = sel.where(Lead.dono_id == u.id)
     elif ver == "fila":
@@ -218,11 +241,12 @@ def _visiveis(db: Session, u: Usuario, ver: str, q: str, origem: str = ""):
 
 
 @rota.get("/master/crm")
-def funil(request: Request, ver: str = "", q: str = "", origem: str = "", u: Usuario = Depends(admin_logado),
-          db: Session = Depends(get_db)):
+def funil(request: Request, ver: str = "", q: str = "", origem: str = "", pais: str = "",
+          u: Usuario = Depends(admin_logado), db: Session = Depends(get_db)):
     ver = ver or ("todos" if supervisor(u) else "meus_fila")
     origem = origem if origem in ORIGENS else ""
-    leads = _visiveis(db, u, ver, q, origem)
+    pais = pais if pais in PAISES_LEAD else ""
+    leads = _visiveis(db, u, ver, q, origem, pais)
     ids = [x.id for x in leads]
     pend = dict(db.execute(select(LeadTarefa.lead_id, func.min(LeadTarefa.quando)).where(
         LeadTarefa.lead_id.in_(ids or [0]), LeadTarefa.feita_em.is_(None)).group_by(LeadTarefa.lead_id)).all())
@@ -235,7 +259,8 @@ def funil(request: Request, ver: str = "", q: str = "", origem: str = "", u: Usu
                                                       Lead.etapa.not_in(("cliente", "perdido")))) or 0
     return render(request, "master/crm.html", u=u, e=u.empresa, aba="master", sub="crm", colunas=colunas,
                   pend=pend, agora=_agora(), nomes=nomes, time=time, ver=ver, q=q, fila=fila,
-                  supervisor=supervisor(u), ORIGENS=ORIGENS, MANUAIS=MANUAIS, origem=origem, total=len(leads), zap_novas=zap_novas,
+                  supervisor=supervisor(u), ORIGENS=ORIGENS, MANUAIS=MANUAIS, origem=origem, total=len(leads),
+                  PAISES_LEAD=PAISES_LEAD, pais=pais, zap_novas=zap_novas,
                   valor=sum(x.valor_centavos for x in leads if x.etapa not in ("perdido",)))
 
 

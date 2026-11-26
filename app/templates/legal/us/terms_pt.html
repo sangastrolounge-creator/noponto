@@ -1,0 +1,86 @@
+{% extends "legal/_base.html" %}
+{% block nome_doc %}Termos de Uso{% endblock %}
+{% block texto %}
+<h1>Termos de Uso</h1>
+<p class="suave">Última atualização: {{ L.versao.strftime('%m/%d/%Y') }}</p>
+<p class="aviso">Esta é uma tradução de cortesia. Se houver diferença, vale a <a href="/idioma/en?volta=/terms">versão em inglês</a>.</p>
+
+<p>Estes Termos de Uso (os “Termos”) são um acordo entre a {{ L.empresa }} (“{{ L.marca }}”, “nós”) e a empresa que cria uma conta (o “Cliente”, “você”). Eles regem o uso do site, do aplicativo web e do aplicativo de celular do {{ L.marca }} (o “Serviço”) pelo Cliente e por todas as pessoas que o Cliente convidar, incluindo gerentes e funcionários (“Usuários”). Ao criar uma conta ou usar o Serviço, você aceita estes Termos e a nossa <a href="/privacy">Política de Privacidade</a>. Se aceitar em nome de uma empresa, você confirma que tem autoridade para isso.</p>
+
+<h2>1. O Serviço</h2>
+<p>O {{ L.marca }} ajuda empresas a gerenciar a equipe que trabalha por hora. Isso inclui escala, ponto (pelo celular com localização ou num totem compartilhado com PIN), intervalos, pedidos e saldos de folga, trocas de turno, mural da equipe, tarefas, estimativa do custo da equipe, aviso de hora extra, resumos do período de pagamento e arquivos para o seu provedor de folha. As funções disponíveis dependem do seu plano.</p>
+<p>O {{ L.marca }} é uma ferramenta. <strong>Não somos o seu processador de folha, contador, preparador de impostos nem advogado.</strong> Não pagamos funcionários, não retemos nem declaramos impostos e não damos orientação jurídica, fiscal ou de RH.</p>
+
+<h2>2. Contas</h2>
+<ul>
+  <li>Quem cria a conta é o dono da conta. O dono pode convidar gerentes com permissões limitadas e responde por tudo o que é feito na conta do Cliente.</li>
+  <li>Mantenha senhas e PINs do totem em segredo. Avise-nos imediatamente se suspeitar de acesso não autorizado.</li>
+  <li>Você deve informar dados corretos e mantê-los atualizados, incluindo o nome, o local e o fuso horário da empresa.</li>
+  <li>Os funcionários usam o Serviço a convite do Cliente. A relação deles é com o Cliente, não conosco.</li>
+</ul>
+
+<h2>3. Teste grátis, planos e cobrança</h2>
+<ul>
+  <li>Contas novas podem ter um teste grátis, sem cartão. Quando ele acaba, a conta fica limitada até você escolher um plano.</li>
+  <li>Os planos pagos são cobrados antecipadamente, todo mês ou como aparecer no pagamento, pelo nosso processador de pagamentos, o Stripe. A assinatura se renova sozinha até ser cancelada.</li>
+  <li>Você pode cancelar a qualquer momento na tela Assinatura ou falando conosco. O cancelamento vale no fim do período já pago. O que já foi pago não é devolvido, salvo quando a lei exigir.</li>
+  <li>Se um pagamento falhar, podemos manter a conta aberta por uma carência curta enquanto a cobrança é tentada de novo, e depois limitá-la até o pagamento.</li>
+  <li>Podemos mudar os preços com pelo menos 30 dias de aviso. O novo preço vale a partir do seu próximo período de cobrança depois do aviso.</li>
+  <li>Os preços não incluem impostos, a não ser que esteja indicado. Os impostos sobre vendas ou uso que se aplicarem são de sua responsabilidade.</li>
+</ul>
+
+<h2>4. Suas responsabilidades como empregador</h2>
+<p>Você é o único responsável pelas suas decisões trabalhistas e por cumprir todas as leis que se aplicam a você, incluindo a Fair Labor Standards Act e as leis estaduais e municipais de salário e jornada. Em especial, você é responsável por:</p>
+<ul>
+  <li>pagar a equipe corretamente e no prazo, incluindo salário mínimo, hora extra, adicionais por refeição e descanso, gorjetas e licença médica remunerada;</li>
+  <li>classificar corretamente cada pessoa (por exemplo, funcionário W-2 ou prestador 1099, exempt ou não) e cadastrar os valores certos;</li>
+  <li>conferir e aprovar os registros de ponto antes de usá-los na folha;</li>
+  <li>dar aos funcionários os avisos exigidos por lei e obter o consentimento necessário para coletar localização ou fotos na batida do ponto, inclusive por escrito onde a lei estadual exigir;</li>
+  <li>as regras de aviso prévio de escala (“predictive scheduling”), de trabalho de menores e de guarda de registros do seu estado ou cidade.</li>
+</ul>
+<p>Os cálculos mostrados pelo Serviço são ajudas baseadas nos dados e ajustes que você informa. Isso inclui horas, hora extra, adicionais, custo da equipe, saldos de PTO e pagamento bruto estimado. Eles podem não refletir todas as regras que se aplicam a você. <strong>Confira antes de usar.</strong></p>
+
+<h2>5. Revisão com inteligência artificial</h2>
+<p>Alguns planos permitem que um gerente peça uma revisão automática de um período de pagamento. Ela é feita por um provedor externo de inteligência artificial. Pode estar incompleta ou errada, não é orientação jurídica ou fiscal e não substitui a sua conferência nem a de um profissional. Ela só roda quando um gerente pede. Só são enviados os dados necessários: nomes, horas, valores e ajustes daquele período.</p>
+
+<h2>6. Dados do Cliente</h2>
+<ul>
+  <li>Os dados que você e seus Usuários colocam no Serviço (“Dados do Cliente”) pertencem a você. Você nos autoriza a guardá-los, processá-los e exibi-los apenas para prestar, proteger e dar suporte ao Serviço, e conforme a Política de Privacidade.</li>
+  <li>Para os dados pessoais dos seus funcionários, atuamos como seu prestador de serviço (operador). Não vendemos os Dados do Cliente nem os usamos para publicidade.</li>
+  <li>Você confirma que tem o direito de nos passar os Dados do Cliente e que coletá-los está de acordo com a lei.</li>
+  <li>Você pode exportar os registros de ponto e os resumos de pagamento a qualquer momento enquanto a conta estiver ativa. Depois que a conta é encerrada, guardamos os Dados do Cliente por 90 dias para você pedir uma cópia, e então os apagamos, como diz a Política de Privacidade.</li>
+</ul>
+
+<h2>7. Uso aceitável</h2>
+<p>Você e seus Usuários não podem: usar o Serviço para algo ilegal; falsificar registros de ponto ou ajudar alguém a fazer isso; tentar driblar as verificações de localização, totem ou aparelho; acessar contas ou dados que não são seus; testar, varrer, sobrecarregar ou atrapalhar o Serviço; copiar, revender ou fazer engenharia reversa do Serviço; nem enviar código malicioso. Podemos suspender o acesso que coloque em risco o Serviço, outros clientes ou pessoas.</p>
+
+<h2>8. Disponibilidade e mudanças</h2>
+<p>Trabalhamos para manter o Serviço no ar e os seus dados seguros, mas não garantimos que ele funcione sem interrupções nem erros. As verificações de localização e foto dependem do aparelho, do navegador e da internet do Usuário. Guarde os registros de que precisar. Podemos melhorar, mudar ou retirar funções. Se uma mudança reduzir muito uma função paga de que você depende, você pode cancelar e devolvemos a parte não usada do período já pago.</p>
+
+<h2>9. Propriedade intelectual</h2>
+<p>O Serviço é nosso, incluindo o software, o visual e o conteúdo, exceto os Dados do Cliente. Enquanto você for assinante, tem o direito limitado, não exclusivo e intransferível de usá-lo no seu negócio. Se você nos mandar sugestões, podemos usá-las sem nenhuma obrigação com você.</p>
+
+<h2>10. Suspensão e encerramento</h2>
+<p>Você pode parar de usar o Serviço e encerrar a conta quando quiser. Podemos suspender ou encerrar uma conta por falta de pagamento, por descumprimento grave ou repetido destes Termos, ou quando a lei exigir. Quando for razoável, avisaremos antes. As seções 4, 6, 11, 12, 13 e 14 continuam valendo depois do encerramento.</p>
+
+<h2>11. Isenção de garantias</h2>
+<p>EXCETO O QUE ESTES TERMOS DIZEM EXPRESSAMENTE, O SERVIÇO É OFERECIDO “NO ESTADO EM QUE SE ENCONTRA” E “CONFORME DISPONÍVEL”. NA MEDIDA PERMITIDA PELA LEI, NÃO DAMOS GARANTIAS IMPLÍCITAS, INCLUINDO AS DE COMERCIALIZAÇÃO, ADEQUAÇÃO A UM FIM ESPECÍFICO E NÃO VIOLAÇÃO, NEM GARANTIMOS QUE OS CÁLCULOS OU AS REVISÕES DE IA ESTEJAM CERTOS OU DE ACORDO COM A LEI.</p>
+
+<h2>12. Limitação de responsabilidade</h2>
+<p>NA MEDIDA PERMITIDA PELA LEI: (a) NENHUMA DAS PARTES RESPONDE POR DANOS INDIRETOS, INCIDENTAIS, ESPECIAIS, CONSEQUENTES OU PUNITIVOS, NEM POR LUCROS, RECEITAS OU DADOS PERDIDOS; E (b) A NOSSA RESPONSABILIDADE TOTAL POR TODAS AS RECLAMAÇÕES LIGADAS AO SERVIÇO FICA LIMITADA AO VALOR QUE VOCÊ NOS PAGOU NOS 12 MESES ANTERIORES AO FATO QUE DEU ORIGEM À RECLAMAÇÃO. SALÁRIOS, HORAS EXTRAS, MULTAS OU IMPOSTOS QUE VOCÊ DEVA À SUA EQUIPE OU A QUALQUER GOVERNO SÃO SUA RESPONSABILIDADE E NÃO SÃO DANOS CAUSADOS POR NÓS. Algumas jurisdições não permitem esses limites, e eles podem não valer totalmente para você.</p>
+
+<h2>13. Indenização</h2>
+<p>Você nos defenderá e nos isentará de reclamações de terceiros ligadas às suas práticas trabalhistas, às suas decisões de pagamento, aos seus Dados do Cliente ou ao descumprimento destes Termos ou da lei. Isso inclui reclamações dos seus funcionários ou de órgãos do governo. Avisaremos logo sobre qualquer reclamação desse tipo e colaboraremos de forma razoável.</p>
+
+<h2>14. Lei aplicável e disputas</h2>
+<p>Estes Termos seguem as leis do Estado de {{ L.estado }} e a lei federal dos EUA aplicável, sem aplicar regras de conflito de leis. Antes de abrir uma reclamação, cada parte tentará resolver a disputa de forma amigável por 30 dias, por escrito. A reclamação não resolvida será levada apenas aos tribunais estaduais ou federais de {{ L.estado }}, e as duas partes aceitam essa jurisdição. Qualquer parte pode, ainda, abrir uma reclamação individual no juizado de pequenas causas (“small claims”).</p>
+
+<h2>15. Mudanças nestes Termos</h2>
+<p>Podemos atualizar estes Termos. Se a mudança for importante, avisaremos os donos das contas por e-mail ou no aplicativo pelo menos 15 dias antes de ela valer. Continuar usando o Serviço depois dessa data significa que você aceita os Termos atualizados.</p>
+
+<h2>16. Outras condições</h2>
+<p>Estes Termos e a Política de Privacidade são o acordo completo entre você e nós sobre o Serviço. Se uma cláusula for considerada inválida, o restante continua valendo. Você não pode transferir estes Termos sem a nossa autorização. Nós podemos transferi-los numa fusão, aquisição ou venda de ativos. Nenhuma das partes responde por atrasos causados por fatos fora do seu controle razoável. As traduções são só de cortesia. Vale a versão em inglês.</p>
+
+<h2>17. Contato</h2>
+{% include "legal/_contato.html" %}
+{% endblock %}

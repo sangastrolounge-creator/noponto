@@ -51,6 +51,10 @@
     <option value="">{{ _('Todas as origens') }}</option>
     {% for k, v in ORIGENS.items() %}<option value="{{ k }}" {{ 'selected' if origem == k }}>{{ _(v) }}</option>{% endfor %}
   </select>
+  <select name="pais" onchange="this.form.submit()" aria-label="{{ _('País') }}">
+    <option value="">{{ _('Todos os países') }}</option>
+    {% for k, v in PAISES_LEAD.items() %}<option value="{{ k }}" {{ 'selected' if pais == k }}>{{ _(v) }}</option>{% endfor %}
+  </select>
   <input type="search" name="q" value="{{ q }}" placeholder="{{ _('Nome, empresa, telefone, e-mail ou @') }}">
   <button class="botao claro" type="submit">{{ _('Buscar') }}</button>
   <span class="suave pequeno">{{ _('{v1} lead(s)', v1=total) }}{% if valor %} · {{ _('previsão {v1}/mês', v1=valor|dinheiro) }}{% endif %}</span>
