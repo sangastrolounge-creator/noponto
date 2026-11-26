@@ -110,7 +110,7 @@ def main():
     assert not PUSH                                                    # primeira carga não dispara avisos
     lista = m.get("/master/caixa").text
     assert "Dúvida sobre o plano" in lista and "Proposta assinada" in lista and "/master/caixa\"" in lista
-    assert re.search(r'E-mail <span class="etiqueta"[^>]*>1</span>', lista)  # contador de não lidos no menu
+    assert re.search(r'E-mail <b class="menu-selo">1</b>', lista)  # contador de não lidos no menu
     assert "Proposta" in m.get("/master/caixa?q=proposta").text and "Dúvida" not in m.get("/master/caixa?q=proposta").text
 
     # ler: marca como lido (aqui e no servidor); HTML isolado, sem scripts
