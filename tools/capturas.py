@@ -236,6 +236,12 @@ def main():
                 for nome, url in PAINEL:
                     if not so or nome in so:
                         fotografar(pag, f"{nome}-{sufixo}", url)
+                if tela == "cel" and (not so or "gaveta" in so):   # menu em gaveta aberto
+                    for nome, url in (("gaveta-painel", "/painel/ponto"), ("gaveta-master", "/master/crm")):
+                        pag.goto(BASE + url, wait_until="networkidle")
+                        pag.click("#abrir-gaveta")
+                        pag.wait_for_timeout(500)
+                        pag.screenshot(path=str(SAIDA / f"{nome}-{sufixo}.png"))
                 if tela == "pc" and tema == "light" and (not so or "facial" in so):
                     pag.goto(BASE + "/painel/config", wait_until="networkidle")
                     pag.check("#facial input[name=ativo]")
