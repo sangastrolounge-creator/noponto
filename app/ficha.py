@@ -26,7 +26,15 @@ CLASSIFICACOES = {"clt": ("Empregado CLT", "Carteira assinada"),
                   "intermitente": ("Intermitente", "CLT, convocado por período e pago por hora"),
                   "estagio": ("Estagiário", "Bolsa de estágio, sem carteira (Lei 11.788)"),
                   "pj": ("Prestador PJ", "Empresa ou MEI que emite nota: não entra na folha")}
+CLASSIFICACOES_US = {"w2": ("Empregado", "Recebe W-2"),
+                     "1099_ind": ("Prestador autônomo (pessoa física)", "Recebe 1099"),
+                     "1099_emp": ("Prestador (empresa)", "Recebe 1099")}
+PERIODOS_ANO = {"weekly": 52, "biweekly": 26, "semimonthly": 24, "monthly": 12}
 PERM_GERENTE = "escala,ponto,mural,tarefas,ausencias"
+
+
+def classificacoes(e) -> dict:
+    return CLASSIFICACOES_US if getattr(e, "pais", "BR") == "US" else CLASSIFICACOES
 MAX_FUNCOES = 3
 
 
@@ -37,8 +45,10 @@ def nivel_de(u: Usuario) -> str:
 
 
 def contratado(u: Usuario) -> bool:
-    """Prestador PJ: não é empregado, não entra na folha nem nas regras de hora extra."""
-    return (u.classificacao or "clt") == "pj"
+    """Prestador (PJ no Brasil, 1099 nos EUA): não é empregado, não entra na folha nem nas regras
+    de hora extra."""
+    c = u.classificacao or ""
+    return c == "pj" or c.startswith("1099")
 
 
 def funcoes(db: Session, u: Usuario) -> list[FuncaoUsuario]:
@@ -60,7 +70,8 @@ def _ler(form, e) -> tuple[dict, str | None]:
     email = str(form.get("email", "")).strip().lower()
     cel = celular_limpo(str(form.get("celular", "")))
     nivel = str(form.get("nivel", "funcionario"))
-    classe = str(form.get("classificacao", "clt"))
+    eua = getattr(e, "pais", "BR") == "US"
+    classe = str(form.get("classificacao", "w2" if eua else "clt"))
     inicio = data_iso(str(form.get("data_admissao", "")), None) if form.get("data_admissao") else None
     nasc = data_iso(str(form.get("nascimento", "")), None) if form.get("nascimento") else None
     vigencia = data_iso(str(form.get("ponto_desde", "")), None) if form.get("ponto_desde") else None
@@ -68,11 +79,13 @@ def _ler(form, e) -> tuple[dict, str | None]:
     for i in range(MAX_FUNCOES):
         fn = str(form.get(f"funcao_{i}", "")).strip()[:80]
         valor_txt = str(form.get(f"valor_{i}", "")).strip()
-        tipo = str(form.get(f"tipo_{i}", "mensal"))
+        tipo = str(form.get(f"tipo_{i}", "hora" if eua else "mensal"))
         if not fn and not valor_txt:
             continue
         valor = ler_centavos(valor_txt) if valor_txt else 0
-        if valor is None or tipo not in ("hora", "mensal") or (tipo == "hora" and valor > 100000):
+        if valor is None or tipo not in (("hora", "anual") if eua else ("hora", "mensal")) or (tipo == "hora" and valor > 100000):
+            if eua:
+                return {}, f"Confira o valor da função {fn or i + 1}: em dólares, como 18.50 por hora ou 52000 por ano."
             return {}, f"Confira o valor da função {fn or i + 1}: em reais, como 1.850,00 por mês ou 12,50 por hora."
         funcs.append({"nome": fn, "valor": valor, "tipo": tipo})
     def inteiro(campo, padrao, minimo, maximo):
@@ -90,15 +103,19 @@ def _ler(form, e) -> tuple[dict, str | None]:
          "na_escala": bool(form.get("na_escala")), "convidar": bool(form.get("convidar"))}
     if not nome:
         return d, "Informe o nome."
-    if nivel not in NIVEIS or classe not in CLASSIFICACOES:
+    if nivel not in NIVEIS or classe not in classificacoes(e):
         return d, "Escolha o nível de acesso e a classificação."
     if nivel == "funcionario" and not celular_valido(cel):
+        if eua:
+            return d, "Funcionário entra pelo celular: informe o celular com o código de área (ex.: 305 555-0123)."
         return d, "Funcionário entra pelo celular: informe o celular com DDD (ex.: 98 99999-1234)."
     if nivel != "funcionario" and not email_valido(email):
         return d, "Gerente entra com o e-mail: informe um e-mail válido."
     if email and not email_valido(email):
         return d, "E-mail inválido."
     if cel and not celular_valido(cel):
+        if eua:
+            return d, "Celular inválido: use o código de área (ex.: 305 555-0123)."
         return d, "Celular inválido: use o DDD (ex.: 98 99999-1234)."
     if form.get("data_admissao") and not inicio:
         return d, "Data de admissão inválida."
@@ -139,6 +156,14 @@ def _aplicar(db: Session, e, alvo: Usuario, d: dict) -> None:
                              valor_centavos=f["valor"], tipo=f["tipo"]))
     principal = d["funcoes"][0] if d["funcoes"] else None
     alvo.cargo = principal["nome"] if principal else ""
+    if getattr(e, "pais", "BR") == "US":   # EUA: por hora, ou salário anual (isento de hora extra)
+        if principal and principal["tipo"] == "anual":
+            alvo.isento, alvo.taxa_hora_centavos = True, 0
+            alvo.salario_periodo_centavos = round(principal["valor"] / PERIODOS_ANO.get(e.frequencia, 26))
+        elif principal:
+            alvo.isento, alvo.salario_periodo_centavos = False, 0
+            alvo.taxa_hora_centavos = principal["valor"]
+        return
     if principal and principal["tipo"] == "mensal":
         alvo.salario_centavos = principal["valor"]
     elif principal:   # por hora: o salário de referência é o valor da hora x a jornada do mês
@@ -147,14 +172,20 @@ def _aplicar(db: Session, e, alvo: Usuario, d: dict) -> None:
 
 def _contexto(db: Session, e, alvo: Usuario | None, quem: Usuario | None = None) -> dict:
     fs = funcoes(db, alvo) if alvo else []
-    if alvo and not fs and (alvo.cargo or alvo.salario_centavos):
+    if getattr(e, "pais", "BR") == "US":
+        if alvo and not fs and (alvo.cargo or alvo.taxa_hora_centavos or alvo.isento):
+            anual = alvo.salario_periodo_centavos * PERIODOS_ANO.get(e.frequencia, 26)
+            fs = [FuncaoUsuario(nome=alvo.cargo, valor_centavos=anual if alvo.isento else alvo.taxa_hora_centavos,
+                                tipo="anual" if alvo.isento else "hora")]
+    elif alvo and not fs and (alvo.cargo or alvo.salario_centavos):
         fs = [FuncaoUsuario(nome=alvo.cargo, valor_centavos=alvo.salario_centavos, tipo="mensal")]
-    return {"alvo": alvo, "funcs": fs, "NIVEIS": NIVEIS, "CLASSIFICACOES": CLASSIFICACOES,
+    return {"alvo": alvo, "funcs": fs, "NIVEIS": NIVEIS, "CLASSIFICACOES": classificacoes(e),
             "setores": list(db.scalars(select(Setor).where(Setor.empresa_id == e.id).order_by(Setor.nome))),
             "alc_s": alcance_setores(quem) if quem else set(), "alc_l": alcance_locais(quem) if quem else set(),
             "locais": list(db.scalars(select(Local).where(Local.empresa_id == e.id, Local.ativo.is_(True))
                                       .order_by(Local.nome))),
-            "nivel_atual": nivel_de(alvo) if alvo else "funcionario", "MAX_FUNCOES": MAX_FUNCOES}
+            "nivel_atual": nivel_de(alvo) if alvo else "funcionario", "MAX_FUNCOES": MAX_FUNCOES,
+            "periodos": PERIODOS_ANO.get(getattr(e, "frequencia", "") or "", 26)}
 
 
 def _rh_ctx(db: Session, alvo: Usuario | None, u: Usuario) -> dict:
@@ -168,7 +199,7 @@ def _rh_ctx(db: Session, alvo: Usuario | None, u: Usuario) -> dict:
 
 def _ler_rh(db: Session, e, form, u: Usuario, alvo_id: int | None) -> tuple[dict, str | None]:
     from .core import recurso_liberado
-    if not recurso_liberado(e, "com_rh"):
+    if not recurso_liberado(e, "com_rh") or getattr(e, "pais", "BR") != "BR":
         return {}, None
     dr, erro = rh.ler(form, pode(u, "pagamento"))
     if not erro and rh.cpf_repetido(db, e.id, dr.get("cpf", ""), alvo_id):

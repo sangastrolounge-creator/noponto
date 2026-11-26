@@ -1,0 +1,85 @@
+{% extends "painel_base.html" %}
+{% block conteudo %}
+<div class="cabecalho">
+  <div><h1>{{ _('Pagamento') }}</h1><p class="suave" style="margin:0">{{ _('Pagamento bruto calculado a partir do ponto fechado, com revisão do Claude. Os impostos ficam com o seu provedor de folha.') }}</p></div>
+</div>
+
+{% if not liberado %}
+<div class="cartao">
+  <h2>{{ _('Pagamento não está no seu plano') }}</h2>
+  <p>{{ _('No plano {v1} você tem escala, ponto, trocas de turno e mural. Para calcular o pagamento bruto com horas extras, gorjetas e a revisão do Claude, mude para um plano pago.', v1=(e.plano.nome)) }}</p>
+  <a class="botao" href="/painel/assinatura">{{ _('Ver planos') }}</a>
+</div>
+{% else %}
+<div class="cartao">
+  <h2>{{ _('Gerar pagamento') }}</h2>
+  {% if fechamentos %}
+  <form method="post" action="/painel/pagamento/gerar">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="linha-form">
+      <div><label for="g-per">{{ _('Período fechado') }}</label><select id="g-per" name="fechamento_id">
+        {% for fe in fechamentos %}<option value="{{ fe.id }}">{{ _('{v1} a {v2}', v1=(fe.inicio.strftime('%m/%d/%Y')), v2=(fe.fim.strftime('%m/%d/%Y'))) }}</option>{% endfor %}
+      </select></div>
+      <div><button class="botao" type="submit">{{ _('Gerar pagamento do período') }}</button></div>
+    </div>
+  </form>
+  <p class="ajuda">{{ _('Usa as horas do período fechado (normais, extra 1,5x, dobro, meal premium, licença remunerada) e o valor da hora abaixo. Depois, envie a planilha ao seu provedor de folha (Gusto, ADP, QuickBooks...), que desconta os impostos e paga.') }}</p>
+  {% else %}
+  <div class="vazio">{{ _('Nenhum período fechado sem pagamento.') }} <a href="/painel/fechamento">{{ _('Fechar um período') }}</a></div>
+  {% endif %}
+</div>
+
+<div class="cartao">
+  <h2>{{ _('Pagamentos gerados') }}</h2>
+  {% if folhas %}
+  <div class="rolagem"><table class="tabela-valores">
+    <thead><tr><th>{{ _('Período') }}</th><th>{{ _('Funcionários') }}</th><th>{{ _('Bruto total') }}</th><th>{{ _('Situação') }}</th><th>{{ _('Revisão do Claude') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for f in folhas %}
+    <tr>
+      <td>{{ _('{v1} a {v2}', v1=(f.inicio.strftime('%m/%d/%Y')), v2=(f.fim.strftime('%m/%d/%Y'))) }}</td>
+      <td>{{ f.itens|length }}</td>
+      <td>{{ (f.itens|sum(attribute='bruto'))|dinheiro }}</td>
+      <td>{% if f.situacao == 'finalizada' %}<span class="etiqueta ok">{{ _('Finalizada') }}</span>{% else %}<span class="etiqueta">{{ _('Rascunho') }}</span>{% endif %}</td>
+      <td>{% if f.revisao_situacao == 'pronta' %}<span class="etiqueta ok">{{ _('Revisada') }}</span>{% elif f.revisao_situacao == 'andamento' %}<span class="etiqueta alerta">{{ _('Em andamento') }}</span>{% elif f.revisao_situacao == 'erro' %}<span class="etiqueta erro">{{ _('Erro') }}</span>{% else %}—{% endif %}</td>
+      <td class="direita"><a class="botao mini" href="/painel/pagamento/{{ f.id }}">{{ _('Abrir') }}</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="vazio">{{ _('Nenhum pagamento gerado ainda.') }}</div>
+  {% endif %}
+</div>
+
+<div class="cartao" id="dados">
+  <h2>{{ _('Dados de pagamento da equipe') }}</h2>
+  <p class="suave pequeno" style="margin-top:-4px">{{ _('Salário mínimo do local ({v1}): {v2} por hora; com gorjeta, {v3} em dinheiro.', v1=(sm.normal.fonte|traduz), v2=(sm.normal.centavos|dinheiro), v3=(sm.gorjeta.centavos|dinheiro)) }}{% if sm.proxima %} {{ _('A partir de {v1}: {v2}.', v1=sm.proxima.data.strftime('%m/%d/%Y'), v2=(sm.proxima.normal.centavos|dinheiro)) }}{% endif %} {% if pode(u, 'dono') %}<a href="/painel/config#salario-minimo">{{ _('Mudar a cidade') }}</a>{% endif %}</p>
+  {% set baixos = sm.abaixo|map(attribute='u')|map(attribute='id')|list %}
+  {% if equipe %}
+  <form method="post" action="/painel/pagamento/dados">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="rolagem"><table>
+      <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Valor da hora (US$)') }}</th><th>{{ _('Recebe gorjeta') }}</th><th>{{ _('Exempt (salário fixo)') }}</th><th>{{ _('Salário por período (US$)') }}</th></tr></thead>
+      <tbody>
+      {% for p in equipe %}
+      <tr>
+        <td class="nome-forte">{{ p.nome }}{% if p.cargo %}<br><span class="suave pequeno">{{ p.cargo }}</span>{% endif %}</td>
+        <td><input type="text" inputmode="decimal" name="taxa_{{ p.id }}" value="{{ '%.2f'|format(p.taxa_hora_centavos / 100) if p.taxa_hora_centavos else '' }}" placeholder="0.00" aria-label="{{ _('Valor da hora de {v1}', v1=(p.nome)) }}" style="min-width:100px" class="{{ 'campo-erro' if p.id in baixos }}">{% if p.id in baixos %}<br><span class="etiqueta erro pequeno">{{ _('Abaixo do mínimo') }}</span>{% endif %}</td>
+        <td><input type="checkbox" name="gorjeta_{{ p.id }}" value="1" {{ 'checked' if p.gorjeta }} aria-label="{{ _('{v1} recebe gorjeta', v1=(p.nome)) }}"></td>
+        <td><input type="checkbox" name="isento_{{ p.id }}" value="1" {{ 'checked' if p.isento }} aria-label="{{ _('{v1} é exempt', v1=(p.nome)) }}"></td>
+        <td><input type="text" inputmode="decimal" name="sal_{{ p.id }}" value="{{ '%.2f'|format(p.salario_periodo_centavos / 100) if p.salario_periodo_centavos else '' }}" placeholder="0.00" aria-label="{{ _('Salário de {v1}', v1=(p.nome)) }}" style="min-width:110px"></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="ajuda">{{ _('Exempt é quem recebe salário fixo e não tem direito a hora extra (gerentes, por exemplo). Pela lei federal, precisa ganhar pelo menos US$ 684 por semana e ter funções de gestão; na dúvida, marque como por hora. Quem recebe gorjeta pode ter valor da hora menor (tip credit), conforme o estado.') }}</p>
+    <button class="botao" type="submit">{{ _('Salvar dados de pagamento') }}</button>
+  </form>
+  {% else %}
+  <div class="vazio">{{ _('Cadastre os funcionários primeiro.') }} <a href="/painel/equipe">{{ _('Ir para Equipe') }}</a></div>
+  {% endif %}
+</div>
+{% if not claude %}<p class="ajuda">{{ _('A revisão pelo Claude ainda não foi ligada nesta plataforma; o cálculo funciona normalmente.') }}</p>{% endif %}
+{% endif %}
+{% endblock %}

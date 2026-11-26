@@ -143,6 +143,31 @@ def main():
     with SessionLocal() as db:
         assert db.get(Empresa, eid).pais == "US"
 
+    # ficha americana: valor por hora em dólar, ou salário anual (isento de hora extra)
+    tela = us.get("/painel/equipe/novo").text
+    assert "Por ano (salário)" in tela and "W-2" in tela and "CPF" not in tela
+    posta(us, "/painel/equipe/novo", tg, nome="Bob", sobrenome="Smith", celular="3055550123",
+          nivel="funcionario", classificacao="w2", funcao_0="Cook", valor_0="18.50", tipo_0="hora")
+    posta(us, "/painel/equipe/novo", tg, nome="Carol", sobrenome="Lee", celular="3055550124",
+          nivel="funcionario", classificacao="w2", funcao_0="Chef", valor_0="52000", tipo_0="anual")
+    with SessionLocal() as db:
+        bob = db.scalar(select(Usuario).where(Usuario.nome == "Bob Smith"))
+        carol = db.scalar(select(Usuario).where(Usuario.nome == "Carol Lee"))
+        assert (bob.taxa_hora_centavos, bob.isento, bob.cargo) == (1850, False, "Cook")
+        assert (carol.isento, carol.salario_periodo_centavos) == (True, 100000)   # 52.000 / 52 semanas
+
+    # pagamento bruto americano no mesmo endereço; o prefixo interno não abre direto
+    assert us.get("/eua/painel/pagamento").status_code == 404
+    tela = us.get("/painel/pagamento").text
+    assert "Resumos de pagamento" in tela or "Gerar" in tela
+    with SessionLocal() as db:
+        fid = db.scalar(select(Fechamento.id).where(Fechamento.empresa_id == eid))
+    r = posta(us, "/painel/pagamento/gerar", tg, fechamento_id=str(fid))
+    assert r.status_code == 303, r.status_code
+    tela = us.get(r.headers["location"]).text
+    assert "Bruto total" in tela and "$1,500.00" in tela, re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", tela))[:2500]
+    assert "INSS" not in tela and "R$" not in tela
+
     # a empresa brasileira continua no Brasil, com as regras de lá
     with SessionLocal() as db:
         b = db.scalar(select(Empresa).where(Empresa.nome == "Bar do Brasil"))

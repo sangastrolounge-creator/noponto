@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block titulo %}{{ _('Resumo de pagamento — {v1} — {v2}', v1=(e.nome), v2=(f.fim.strftime('%m/%d/%Y'))) }}{% endblock %}
+{% block corpo %}
+{% from "_idioma.html" import seletor %}
+<div class="folha">
+  <div class="folha-barra nao-imprime">
+    {{ seletor() }}
+    <a class="botao claro" href="{{ volta }}">{{ _('Voltar') }}</a>
+    <button class="botao" type="button" onclick="window.print()">{{ _('Imprimir ou salvar em PDF') }}</button>
+  </div>
+  {% if flash %}<div class="aviso nao-imprime {{ 'erro' if flash.tipo == 'erro' }}">{{ flash.texto }}</div>{% endif %}
+  {% if f.situacao != 'finalizada' %}<p class="nao-imprime"><span class="etiqueta alerta">{{ _('Rascunho: ainda não foi finalizado') }}</span></p>{% endif %}
+
+  {% for h in lista %}
+  {% set it = h.it %}
+  <section class="holerite">
+    <header class="folha-topo">
+      <div>
+        <h1>{{ _('Resumo de pagamento bruto') }}</h1>
+        <div>{{ e.nome }}</div>
+        <div><strong>{{ it.usuario.nome }}</strong>{% if it.usuario.cargo %} · {{ it.usuario.cargo }}{% endif %}</div>
+      </div>
+      <div class="direita">
+        <strong>{{ _('{v1} a {v2}', v1=(f.inicio.strftime('%m/%d/%Y')), v2=(f.fim.strftime('%m/%d/%Y'))) }}</strong><br>
+        {{ _('Exempt (salário fixo)') if it.isento else _('Por hora: {v1}', v1=(it.taxa_hora_centavos|dinheiro)) }}<br>
+        <span class="suave pequeno">{{ _('emitido em {v1}', v1=(emitido.strftime('%m/%d/%Y %I:%M %p'))) }}</span>
+      </div>
+    </header>
+    <div class="rolagem"><table class="tabela-folha">
+      <thead><tr><th>{{ _('Descrição') }}</th><th>{{ _('Horas') }}</th><th class="direita">{{ _('Valor') }}</th></tr></thead>
+      <tbody>
+      {% for l in h.proventos %}<tr><td>{{ _(l.desc) }}</td><td>{{ _(l.ref) if l.ref else '' }}</td><td class="direita">{{ l.valor|dinheiro }}</td></tr>{% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><td colspan="2"><strong>{{ _('Pagamento bruto') }}</strong></td><td class="direita"><strong>{{ it.bruto|dinheiro }}</strong></td></tr>
+      </tfoot>
+    </table></div>
+    <p class="pequeno">{{ _('Valor antes dos impostos e descontos (federal, estadual, FICA, benefícios), que são feitos pelo provedor de folha. O contracheque oficial vem dele.') }}</p>
+
+    {% if editar %}
+    <div class="cartao nao-imprime">
+      <h2>{{ _('Gorjetas, bônus e outros') }}</h2>
+      {% if h.lanc %}
+      <ul class="lista-dias">
+        {% for l in h.lanc %}
+        <li><span>{{ _(tipos_lanc_us[l.tipo][0]) if l.tipo in tipos_lanc_us else l.tipo }}{% if l.descricao %} <span class="suave pequeno">· {{ l.descricao }}</span>{% endif %}</span>
+          <span>{{ l.centavos|dinheiro }}
+            <form method="post" action="/painel/pagamento/{{ f.id }}/item/{{ it.id }}/lancamento/{{ loop.index0 }}/remover" class="inline">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <button class="botao mini perigo" type="submit">{{ _('Remover') }}</button>
+            </form></span></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      <form method="post" action="/painel/pagamento/{{ f.id }}/item/{{ it.id }}/lancamento">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="linha-form">
+          <div><label for="l-tipo">{{ _('Tipo') }}</label><select id="l-tipo" name="tipo">
+            {% for k, (rot, _x) in tipos_lanc_us.items() %}<option value="{{ k }}">{{ _(rot) }}</option>{% endfor %}</select></div>
+          <div><label for="l-valor">{{ _('Valor (US$)') }}</label><input type="text" id="l-valor" name="valor" inputmode="decimal" required placeholder="150.00"></div>
+          <div><label for="l-desc">{{ _('Observação (opcional)') }}</label><input type="text" id="l-desc" name="descricao" maxlength="80"></div>
+          <div><button class="botao" type="submit">{{ _('Lançar') }}</button></div>
+        </div>
+      </form>
+      <p class="ajuda">{{ _('Bônus por meta e comissões aumentam o valor da hora extra (regular rate); o sistema calcula esse ajuste sozinho. Bônus discricionário (presente, sem meta combinada) não aumenta.') }}</p>
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}
