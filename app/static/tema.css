@@ -681,6 +681,10 @@ main.legal.parceiro { max-width: 1040px; }
     transition: transform .28s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .28s;
   }
   html.gaveta-aberta .topo.com-gaveta .abas { transform: none; visibility: visible; transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
+  /* o fundo escuro fica dentro do topo, logo abaixo da gaveta; o topo não pode ter filtro (prenderia
+     a gaveta dentro dele) e sobe acima da página enquanto a gaveta está aberta */
+  .topo.com-gaveta { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  html.gaveta-aberta .topo.com-gaveta { z-index: 80; }
   .gaveta-fundo:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 55;
     background: rgb(15 20 50 / .42); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
   html.gaveta-aberta, html.gaveta-aberta body { overflow: hidden; }
@@ -688,7 +692,7 @@ main.legal.parceiro { max-width: 1040px; }
   .topo.com-gaveta .gaveta-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px;
     padding: 2px 2px 10px 6px; margin-bottom: 4px; border-bottom: 1px solid var(--borda); }
   .topo.com-gaveta .gaveta-topo .marca { padding: 4px 0; }
-  .fechar-gaveta { display: grid; place-items: center; width: 38px; height: 38px; border: 0; border-radius: 10px;
+  .fechar-gaveta { display: grid; place-items: center; width: 38px; height: 38px; margin-left: auto; border: 0; border-radius: 10px;
     background: transparent; color: var(--suave); cursor: pointer; }
   .fechar-gaveta:hover { background: var(--cartao-2); color: var(--texto); }
   .fechar-gaveta svg { width: 22px; height: 22px; }
