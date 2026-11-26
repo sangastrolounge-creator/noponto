@@ -78,6 +78,8 @@ def custo_mensal(db: Session, e, chave: str, hoje: date) -> dict:
                 _l, tot = regras.espelho(db, e, ini, min(fim, hoje))
                 minutos = {t["u"].id: t["minutos"] for t in tot}
             base = _c(Decimal(f.valor_centavos) * minutos.get(u.id, 0) / 60)
+        elif f and f.tipo == "anual":   # EUA: salário anual (exempt), um doze avos no mês
+            base = _c(Decimal(f.valor_centavos) / 12)
         else:
             base = u.salario_centavos or (f.valor_centavos if f and f.tipo == "mensal" else 0)
         if not base:
@@ -85,8 +87,9 @@ def custo_mensal(db: Session, e, chave: str, hoje: date) -> dict:
             continue
         pessoas += 1
         sal += base
-        enc += _c(Decimal(base) * ENCARGOS.get(u.classificacao, ENCARGOS["clt"])[regime])
-        vt += u.vt_centavos or 0
+        if (e.pais or "BR") == "BR":   # encargos e vale-transporte são do Brasil
+            enc += _c(Decimal(base) * ENCARGOS.get(u.classificacao, ENCARGOS["clt"])[regime])
+            vt += u.vt_centavos or 0
     return dict(salarios=sal, encargos=enc, vt=vt, total=sal + enc + vt, pessoas=pessoas,
                 sem_valor=sem_valor, regime=regime)
 

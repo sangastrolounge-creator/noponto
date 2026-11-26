@@ -37,7 +37,7 @@
     {% if respostas %}
     <ul class="lista-alertas">
       {% for r in respostas %}
-      <li style="display:block"><strong>{{ r.u.nome }}</strong> <span class="suave pequeno">{{ DIAS[r.dia.weekday()] }} {{ r.dia.strftime('%d/%m') }}</span>
+      <li style="display:block"><strong>{{ r.u.nome }}</strong> <span class="suave pequeno">{{ DIAS[r.dia.weekday()] }} {{ r.dia|fdata('%d/%m') }}</span>
         {% for x in r.itens %}<br><span class="pequeno">{{ x.pergunta.texto }}: <strong>{% if x.valor == 'sim' %}{{ _('Sim') }}{% elif x.valor == 'nao' %}{{ _('Não') }}{% elif x.valor %}{{ x.valor }}{% else %}<span class="suave">{{ _('pulou') }}</span>{% endif %}</strong></span>{% endfor %}</li>
       {% endfor %}
     </ul>

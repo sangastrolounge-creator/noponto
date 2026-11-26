@@ -15,7 +15,7 @@
     {% if atual %}<input type="hidden" name="func" value="{{ atual.u.id }}">{% endif %}
     <div><button class="botao" type="submit">{{ _('Ver período') }}</button></div>
   </div>
-  {% if fechado_ate %}<p class="ajuda" style="margin-bottom:0">{{ _('Ponto fechado até {v1}: esses dias só mudam reabrindo o período em Fechamento.', v1=fechado_ate.strftime('%d/%m/%Y')) }}</p>{% endif %}
+  {% if fechado_ate %}<p class="ajuda" style="margin-bottom:0">{{ _('Ponto fechado até {v1}: esses dias só mudam reabrindo o período em Fechamento.', v1=fechado_ate|fdata('%d/%m/%Y')) }}</p>{% endif %}
 </form>
 
 {% if not resultado %}
@@ -42,7 +42,7 @@
   {% set r = atual %}
   <section class="cartao dias-colab">
     <div class="dias-topo">
-      <div><h2 style="margin:0">{{ r.u.nome }}</h2><span class="suave pequeno">{{ r.u.cargo }} · {{ ini.strftime('%d/%m/%Y') }} a {{ fim.strftime('%d/%m/%Y') }}</span></div>
+      <div><h2 style="margin:0">{{ r.u.nome }}</h2><span class="suave pequeno">{{ r.u.cargo }} · {{ ini|fdata('%d/%m/%Y') }} a {{ fim|fdata('%d/%m/%Y') }}</span></div>
       <a class="botao claro pequeno" href="/painel/ponto?de={{ ini.isoformat() }}&ate={{ fim.isoformat() }}&func={{ r.u.id }}">{{ _('Ver batidas') }}</a>
     </div>
     <div class="grade mini-numeros">
@@ -66,14 +66,14 @@
       <div class="esp-dia{{ ' falta' if dd.falta }}{{ ' sem-escala' if not dd.pares and not dd.turno }}">
         <div class="esp-barra">
           <div class="menu-acoes">
-            <button type="button" class="tres-pontos" aria-haspopup="true" aria-label="{{ _('Ações do dia {v1}', v1=dd.dia.strftime('%d/%m')) }}">⋮</button>
+            <button type="button" class="tres-pontos" aria-haspopup="true" aria-label="{{ _('Ações do dia {v1}', v1=dd.dia|fdata('%d/%m')) }}">⋮</button>
             <div class="menu-lista" role="menu">
               {% for chave, rotulo in ACOES.items() %}
               <a role="menuitem" href="/painel/ponto/ajuste/{{ r.u.id }}/{{ dd.dia.isoformat() }}/{{ chave }}?volta={{ volta|urlencode }}"{% if chave != 'escala' %} data-janela{% endif %}><span class="ic ic-{{ chave }}" aria-hidden="true"></span>{{ rotulo|traduz }}</a>
               {% endfor %}
             </div>
           </div>
-          <strong>{{ dd.dia.strftime('%d/%m/%Y') }} – {{ SEMANA[dd.dia.weekday()] }}</strong>
+          <strong>{{ dd.dia|fdata('%d/%m/%Y') }} – {{ SEMANA[dd.dia.weekday()] }}</strong>
           {% if dd.feriado %}<span class="esp-tag">{{ _('Feriado') }}: {{ dd.feriado }}</span>{% endif %}
           {% if dd.turno %}<span class="esp-escala">{{ _('Folga') if dd.turno.folga else _('Escala {v1}', v1=dd.turno.inicio ~ '–' ~ dd.turno.fim) }}</span>{% endif %}
         </div>

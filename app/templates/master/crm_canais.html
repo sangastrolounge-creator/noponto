@@ -44,7 +44,7 @@
   <thead><tr><th>{{ _('Semana') }}</th><th class="num">{{ _('Leads') }}</th><th class="num">{{ _('Contas de teste') }}</th><th class="num">%</th><th class="num">{{ _('Clientes') }}</th><th class="num">%</th></tr></thead>
   <tbody>
   {% for w in ig_semanas %}
-    <tr><td>{{ w.de.strftime('%d/%m') }} – {{ w.ate.strftime('%d/%m') }}</td><td class="num">{{ w.leads }}</td>
+    <tr><td>{{ w.de|fdata('%d/%m') }} – {{ w.ate|fdata('%d/%m') }}</td><td class="num">{{ w.leads }}</td>
       <td class="num">{{ w.testes }}</td><td class="num">{{ ((w.testes * 100 / w.leads)|round|int ~ '%') if w.leads else '—' }}</td>
       <td class="num">{{ w.clientes }}</td><td class="num">{{ ((w.clientes * 100 / w.leads)|round|int ~ '%') if w.leads else '—' }}</td></tr>
   {% endfor %}

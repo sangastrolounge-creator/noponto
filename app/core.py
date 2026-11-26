@@ -271,7 +271,16 @@ templates.env.globals.update(situacao=situacao, SITUACOES=SITUACOES, validade=va
                              IDIOMAS=i18n.IDIOMAS, caminho_atual=i18n.caminho_atual,
                              textos_js=i18n.textos_js, recurso_liberado=recurso_liberado)
 templates.env.filters.update(traduz=i18n._)
-templates.env.filters.update(dinheiro=dinheiro, data=data_br, fromjson=json.loads)
+def fdata(d, formato: str = "%d/%m/%Y") -> str:
+    """Data no formato do país da tela: dia/mês no Brasil, mês/dia nos EUA."""
+    if not d:
+        return ""
+    if _pais_tela.get() == "US":
+        formato = formato.replace("%d/%m", "%m/%d").replace("%H:%M", "%I:%M %p")
+    return d.strftime(formato)
+
+
+templates.env.filters.update(dinheiro=dinheiro, data=data_br, fromjson=json.loads, fdata=fdata)
 
 
 class Redirecionar(Exception):

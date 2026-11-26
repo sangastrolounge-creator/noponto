@@ -1,11 +1,11 @@
 {% extends "painel_base.html" %}
 {% block conteudo %}
 <div class="cabecalho">
-  <div><h1>{{ titulo|traduz }}</h1><p class="suave" style="margin:0">{{ f.nome }} · {{ DIAS[d.weekday()] }} {{ d.strftime('%d/%m/%Y') }}</p></div>
+  <div><h1>{{ titulo|traduz }}</h1><p class="suave" style="margin:0">{{ f.nome }} · {{ DIAS[d.weekday()] }} {{ d|fdata('%d/%m/%Y') }}</p></div>
   <div class="acoes"><a class="botao claro" href="{{ volta }}">{{ _('Voltar ao Ajuste de ponto') }}</a></div>
 </div>
 <div class="cartao">
-<div id="acao-conteudo" data-titulo="{{ titulo|traduz }} · {{ f.primeiro_nome }} · {{ d.strftime('%d/%m/%Y') }}">
+<div id="acao-conteudo" data-titulo="{{ titulo|traduz }} · {{ f.primeiro_nome }} · {{ d|fdata('%d/%m/%Y') }}">
   <p class="suave pequeno" style="margin-top:0">{{ _('Escala do dia: {v1}', v1=(_('Folga') if turno and turno.folga else (turno.inicio ~ '–' ~ turno.fim ~ (_(' · intervalo de {v1} min', v1=turno.intervalo_min) if turno.intervalo_min else '')) if turno else _('sem escala'))) }}</p>
   {% if fechado and acao not in ('originais', 'historico') %}
   <div class="aviso erro">{{ _('Este dia está num período de ponto já fechado. Para alterar, reabra o período em Fechamento.') }}</div>
@@ -114,7 +114,7 @@
     </form>
 
   {% elif acao == 'ausencia' %}
-    {% if ausencias %}<ul class="lista-simples">{% for a in ausencias %}<li><strong>{{ TIPOS[a.tipo]|traduz if a.tipo in TIPOS else a.tipo }}</strong> {{ a.inicio.strftime('%d/%m') }}–{{ a.fim.strftime('%d/%m') }}{% if a.obs %} · {{ a.obs }}{% endif %}</li>{% endfor %}</ul>{% endif %}
+    {% if ausencias %}<ul class="lista-simples">{% for a in ausencias %}<li><strong>{{ TIPOS[a.tipo]|traduz if a.tipo in TIPOS else a.tipo }}</strong> {{ a.inicio|fdata('%d/%m') }}–{{ a.fim|fdata('%d/%m') }}{% if a.obs %} · {{ a.obs }}{% endif %}</li>{% endfor %}</ul>{% endif %}
     <form method="post" action="/painel/ausencias" enctype="multipart/form-data">
       <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="volta" value="{{ volta }}">
       <input type="hidden" name="usuario_id" value="{{ f.id }}">

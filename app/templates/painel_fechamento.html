@@ -31,7 +31,7 @@
 {% endif %}
 
 <div class="cartao">
-  <h2>{{ _('{v1} a {v2}', v1=(ini.strftime('%d/%m/%Y')), v2=(fim.strftime('%d/%m/%Y'))) }}</h2>
+  <h2>{{ _('{v1} a {v2}', v1=(ini|fdata('%d/%m/%Y')), v2=(fim|fdata('%d/%m/%Y'))) }}</h2>
   {% if resultado %}
   <div class="rolagem"><table>
     <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Previsto') }}</th><th>{{ _('Trabalhado') }}</th><th>{{ _('Extras ({v1}%)', v1=(e.pct_extra_normal)) }}</th><th>{{ _('Extras em folga/feriado ({v1}%)', v1=(e.pct_extra_especial)) }}</th><th>{{ _('Noturnas ({v1}%)', v1=(e.pct_noturno)) }}</th><th>{{ _('Atrasos e saídas') }}</th><th>{{ _('Faltas') }}</th><th>{{ _('Ausências') }}</th><th>{{ _('DSR') }}</th>{% if tem_int %}<th>{{ _('Intervalo não concedido') }}</th>{% endif %}{% if tem_sob %}<th>{{ _('Sobreaviso (1/3)') }}</th>{% endif %}
@@ -59,7 +59,7 @@
     </tbody>
   </table></div>
   <p class="ajuda">{{ _('Previsto = escala menos o intervalo. Diferença de até {v1} min no dia não conta. Falta é dia de escala sem nenhuma batida e fica fora do saldo{v2}. “Noturnas” são as horas entre 22h e 5h{v3}, sobre as quais incide o adicional. Os percentuais ficam em Configurações.', v1=(e.tolerancia_dia_min), v2=(_('; o banco de horas conta hora por hora') if banco), v3=(_(', já com a hora reduzida') if e.noturno_reduzida)) }}{% if e.dsr_faltas or e.dsr_extras %} {{ _('DSR:') }}{% if e.dsr_faltas %} {{ _('quem falta sem justificativa perde o descanso remunerado da semana;') }}{% endif %}{% if e.dsr_extras and not banco %} {{ _('o reflexo das extras é extras com acréscimo ÷ dias úteis × folgas da escala e feriados.') }}{% elif e.dsr_extras %} {{ _('o reflexo sobre extras só é calculado no controle por hora extra.') }}{% endif %}{% endif %}</p>
-  <form method="post" action="/painel/fechamento" data-confirma="{{ _('Fechar o ponto de {v1} a {v2}? Depois disso as batidas, a escala e as ausências desse período não podem mais ser alteradas (a não ser reabrindo).', v1=(ini.strftime('%d/%m/%Y')), v2=(fim.strftime('%d/%m/%Y'))) }}">
+  <form method="post" action="/painel/fechamento" data-confirma="{{ _('Fechar o ponto de {v1} a {v2}? Depois disso as batidas, a escala e as ausências desse período não podem mais ser alteradas (a não ser reabrindo).', v1=(ini|fdata('%d/%m/%Y')), v2=(fim|fdata('%d/%m/%Y'))) }}">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="de" value="{{ ini.isoformat() }}"><input type="hidden" name="ate" value="{{ fim.isoformat() }}">
     <button class="botao" type="submit" {{ 'disabled' if motivo }}>{{ _('Fechar este período') }}</button>
@@ -83,7 +83,7 @@
     {% set assinadas = f.linhas|selectattr('aceite_em')|list|length %}
     {% set contestadas = f.linhas|selectattr('contestacao')|list %}
     <tr>
-      <td style="white-space:nowrap"><a href="/painel/fechamento?de={{ f.inicio.isoformat() }}&ate={{ f.fim.isoformat() }}">{{ _('{v1} a {v2}', v1=(f.inicio.strftime('%d/%m/%Y')), v2=(f.fim.strftime('%d/%m/%Y'))) }}</a></td>
+      <td style="white-space:nowrap"><a href="/painel/fechamento?de={{ f.inicio.isoformat() }}&ate={{ f.fim.isoformat() }}">{{ _('{v1} a {v2}', v1=(f.inicio|fdata('%d/%m/%Y')), v2=(f.fim|fdata('%d/%m/%Y'))) }}</a></td>
       <td>{{ f.criado_por }}<br><span class="suave pequeno">{{ local(e, f.criado_em, '%d/%m/%Y %H:%M') }}</span></td>
       <td><span class="etiqueta {{ 'ok' if assinadas == f.linhas|length and assinadas else '' }}">{{ _('{v1} de {v2}', v1=(assinadas), v2=(f.linhas|length)) }}</span>
         {% for l in contestadas %}<br><span class="pequeno"><span class="etiqueta erro">{{ _('contestou') }}</span> {{ l.usuario.primeiro_nome }}: {{ l.contestacao }}</span>{% endfor %}</td>

@@ -12,7 +12,7 @@
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="linha-form">
       <div><label for="g-per">{{ _('Período fechado') }}</label><select id="g-per" name="fechamento_id">
-        {% for fe in fechamentos %}<option value="{{ fe.id }}">{{ _('{v1} a {v2}', v1=(fe.inicio.strftime('%d/%m/%Y')), v2=(fe.fim.strftime('%d/%m/%Y'))) }}</option>{% endfor %}
+        {% for fe in fechamentos %}<option value="{{ fe.id }}">{{ _('{v1} a {v2}', v1=(fe.inicio|fdata('%d/%m/%Y')), v2=(fe.fim|fdata('%d/%m/%Y'))) }}</option>{% endfor %}
       </select></div>
       <div><button class="botao" type="submit">{{ _('Gerar folha de pagamento') }}</button></div>
     </div>
@@ -31,7 +31,7 @@
     <tbody>
     {% for f in folhas %}
     <tr>
-      <td style="white-space:nowrap">{{ _('{v1} a {v2}', v1=(f.inicio.strftime('%d/%m/%Y')), v2=(f.fim.strftime('%d/%m/%Y'))) }}</td>
+      <td style="white-space:nowrap">{{ _('{v1} a {v2}', v1=(f.inicio|fdata('%d/%m/%Y')), v2=(f.fim|fdata('%d/%m/%Y'))) }}</td>
       <td>{{ f.itens|length }}</td>
       <td>{{ (f.itens|sum(attribute='liquido'))|dinheiro }}</td>
       <td>{% if f.situacao == 'finalizada' %}<span class="etiqueta ok">{{ _('Finalizada') }}</span>{% else %}<span class="etiqueta">{{ _('Rascunho') }}</span>{% endif %}</td>

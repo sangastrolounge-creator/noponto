@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titulo %}{{ _('Horas do fechamento — {v1} — {v2} a {v3}', v1=(e.nome), v2=(ini.strftime('%d/%m/%Y')), v3=(fim.strftime('%d/%m/%Y'))) }}{% endblock %}
+{% block titulo %}{{ _('Horas do fechamento — {v1} — {v2} a {v3}', v1=(e.nome), v2=(ini|fdata('%d/%m/%Y')), v3=(fim|fdata('%d/%m/%Y'))) }}{% endblock %}
 {% block corpo %}
 {% from "_idioma.html" import seletor %}
 <div class="folha">
@@ -17,7 +17,7 @@
       <div>{{ e.nome }}{% if e.endereco %} · {{ e.endereco }}{% endif %}</div>
     </div>
     <div class="direita">
-      <strong>{{ _('{v1} a {v2}', v1=(ini.strftime('%d/%m/%Y')), v2=(fim.strftime('%d/%m/%Y'))) }}</strong>{% if nome_setor %} · {{ _('Setor: {v1}', v1=_(nome_setor)) }}{% endif %}<br>
+      <strong>{{ _('{v1} a {v2}', v1=(ini|fdata('%d/%m/%Y')), v2=(fim|fdata('%d/%m/%Y'))) }}</strong>{% if nome_setor %} · {{ _('Setor: {v1}', v1=_(nome_setor)) }}{% endif %}<br>
       {% if fechado %}{{ _('período fechado por {v1} em {v2}', v1=(fechado.criado_por), v2=(local(e, fechado.criado_em, '%d/%m/%Y'))) }}
       {% else %}<span class="etiqueta alerta">{{ _('período ainda aberto') }}</span>{% endif %}<br>
       <span class="suave pequeno">{{ _('emitido em {v1}', v1=(emitido.strftime('%d/%m/%Y às %H:%M'))) }}</span>

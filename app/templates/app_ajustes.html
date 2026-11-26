@@ -26,7 +26,7 @@
   {% if pedidos %}
   <ul class="lista-dias">
     {% for a in pedidos %}
-    <li><span>{{ _('{v1} · {v2} às {v3}', v1=(_('Entrada') if a.tipo == 'entrada' else _('Saída')), v2=(a.data.strftime('%d/%m')), v3=(a.hora)) }}
+    <li><span>{{ _('{v1} · {v2} às {v3}', v1=(_('Entrada') if a.tipo == 'entrada' else _('Saída')), v2=(a.data|fdata('%d/%m')), v3=(a.hora)) }}
         <br><span class="suave pequeno">{{ a.motivo }}{% if a.resposta %}<br>{{ _('Resposta: {v1}', v1=(a.resposta)) }}{% endif %}</span></span>
       <span><span class="etiqueta {{ 'ok' if a.situacao == 'aprovado' else 'erro' if a.situacao == 'recusado' else 'alerta' }}">{{ _('Aguardando') if a.situacao == 'pendente' else a.situacao|capitalize }}</span></span></li>
     {% endfor %}
@@ -41,8 +41,8 @@
   <h2>{{ _('Minhas férias') }}</h2>
   {% if ferias %}
   <div>
-    <p style="margin:0 0 6px"><strong>{{ _('{v1} dia(s) para tirar', v1=ferias.saldo) }}</strong>{% if ferias.proximo %} · {{ _('até {v1}', v1=ferias.proximo.concessivo.strftime('%d/%m/%Y')) }}{% endif %}</p>
-    {% if ferias.atual %}<p class="suave pequeno" style="margin:0 0 12px">{{ _('Período atual: {v1} a {v2} · {v3} dia(s) proporcionais até hoje.', v1=ferias.atual.inicio.strftime('%d/%m/%Y'), v2=ferias.atual.fim.strftime('%d/%m/%Y'), v3=ferias.atual.proporcional) }}</p>{% endif %}
+    <p style="margin:0 0 6px"><strong>{{ _('{v1} dia(s) para tirar', v1=ferias.saldo) }}</strong>{% if ferias.proximo %} · {{ _('até {v1}', v1=ferias.proximo.concessivo|fdata('%d/%m/%Y')) }}{% endif %}</p>
+    {% if ferias.atual %}<p class="suave pequeno" style="margin:0 0 12px">{{ _('Período atual: {v1} a {v2} · {v3} dia(s) proporcionais até hoje.', v1=ferias.atual.inicio|fdata('%d/%m/%Y'), v2=ferias.atual.fim|fdata('%d/%m/%Y'), v3=ferias.atual.proporcional) }}</p>{% endif %}
   </div>
   {% else %}
   <p class="suave pequeno">{{ _('A empresa ainda não informou sua data de admissão, por isso o saldo não aparece. Você pode pedir as férias mesmo assim.') }}</p>
@@ -79,7 +79,7 @@
   {% if enviados %}
   <ul class="lista-dias" style="margin-top:14px">
     {% for a in enviados %}
-    <li><span>{{ TIPOS_AUSENCIA.get(a.tipo, a.tipo) }} · {{ a.inicio.strftime('%d/%m') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim.strftime('%d/%m'))) }}{% endif %}
+    <li><span>{{ TIPOS_AUSENCIA.get(a.tipo, a.tipo) }} · {{ a.inicio|fdata('%d/%m') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim|fdata('%d/%m'))) }}{% endif %}
         {% if a.anexo %}<br><a class="pequeno" href="/anexo/{{ a.id }}" target="_blank" rel="noopener">{{ _('ver anexo') }}</a>{% endif %}</span>
       <span><span class="etiqueta {{ 'ok' if a.situacao == 'aprovado' else 'erro' if a.situacao == 'recusado' else 'alerta' }}">{{ _('Aguardando') if a.situacao == 'pendente' else _('Aceito') if a.situacao == 'aprovado' else _('Recusado') }}</span></span></li>
     {% endfor %}

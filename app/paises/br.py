@@ -4,13 +4,14 @@ reduzida, feriados nacionais, folha com INSS/IRRF/FGTS e cobrança pelo Asaas.
 Este módulo só aponta para o código que já existia; nada muda no resultado."""
 from datetime import timedelta
 
-from .. import apuracao, calculo_folha, calendario
+from .. import apuracao, calculo_folha, calendario, escala_justa, menores, salario_minimo  # noqa: F401
 
 CODIGO = "BR"
 NOME = "Brasil"
 MOEDA = "BRL"
 IDIOMA = "pt"
 COBRANCA = "asaas"
+SEMANA_LIMITE_MIN = apuracao.SEMANA_CLT_MIN   # acima disso a semana passa a ter hora extra
 
 
 def feriados(ano):

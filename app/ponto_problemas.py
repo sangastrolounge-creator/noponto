@@ -78,8 +78,13 @@ def _hora_no_dia(base: datetime, hora: str, depois_de: datetime | None) -> datet
 @rota.get("/painel/ponto/problemas")
 def tela(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
     e = u.empresa
+    extra = {}
+    if e.pais == "US":   # Califórnia: respostas das pausas de descanso
+        from .paises.us import descanso
+        extra = dict(descansos=descanso.para_revisar(db, e), pausas_ca=descanso.ativo(e),
+                     RESPOSTAS_PAUSA=descanso.RESPOSTAS)
     return render(request, "painel_problemas.html", u=u, e=e, aba="ponto",
-                  lista=problemas(db, e), regras_dono=pode(u, "dono"))
+                  lista=problemas(db, e), regras_dono=pode(u, "dono"), **extra)
 
 
 @rota.post("/painel/ponto/problemas", dependencies=CSRF)

@@ -20,7 +20,7 @@
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div>
       <span class="nome-forte">{{ a.usuario.nome }}</span> {{ _('pede') }}
-      <strong>{{ _('{v1} em {v2} {v3} às {v4}', v1=('entrada' if a.tipo == 'entrada' else _('saída')), v2=(DIAS[a.data.weekday()]|lower), v3=(a.data.strftime('%d/%m')), v4=(a.hora)) }}</strong>
+      <strong>{{ _('{v1} em {v2} {v3} às {v4}', v1=('entrada' if a.tipo == 'entrada' else _('saída')), v2=(DIAS[a.data.weekday()]|lower), v3=(a.data|fdata('%d/%m')), v4=(a.hora)) }}</strong>
       <br><span class="suave pequeno">{{ _('Motivo: {v1} · pedido em {v2}', v1=(a.motivo), v2=(local(e, a.criado_em, '%d/%m %H:%M'))) }}</span>
     </div>
     <div class="pedido-acoes">
@@ -48,7 +48,7 @@
 
 {% set saldo = resumo.minutos - resumo.previsto %}
 <div class="grade resumo-ponto">
-  <div class="numero"><div class="rotulo">{{ _('Horas trabalhadas') }}</div><div class="valor">{{ fmt_min(resumo.minutos) }}</div><div class="nota">{{ _('{v1} pessoa(s) · {v2} a {v3}', v1=resumo.pessoas, v2=ini.strftime('%d/%m'), v3=fim.strftime('%d/%m')) }}</div></div>
+  <div class="numero"><div class="rotulo">{{ _('Horas trabalhadas') }}</div><div class="valor">{{ fmt_min(resumo.minutos) }}</div><div class="nota">{{ _('{v1} pessoa(s) · {v2} a {v3}', v1=resumo.pessoas, v2=ini|fdata('%d/%m'), v3=fim|fdata('%d/%m')) }}</div></div>
   <div class="numero"><div class="rotulo">{{ _('Horas na escala') }}</div><div class="valor">{{ fmt_min(resumo.previsto) if resumo.previsto else '—' }}</div><div class="nota">{{ _('previstas para quem bateu ponto') }}</div></div>
   <div class="numero {{ 'atencao' if saldo < 0 }}"><div class="rotulo">{{ _('Saldo') }}</div><div class="valor">{{ ('+' if saldo > 0 else '−' if saldo < 0 else '') ~ fmt_min(saldo|abs) }}</div><div class="nota">{{ _('trabalhadas menos previstas') }}</div></div>
   <div class="numero {{ 'atencao' if resumo.atrasos }}"><div class="rotulo">{{ _('Atrasos') }}</div><div class="valor">{{ resumo.atrasos }}</div><div class="nota">{{ _('acima da tolerância de {v1} min', v1=e.tolerancia_min) }}</div></div>
@@ -86,7 +86,7 @@
   {% if cal.lista %}
   <ul class="cal-lista">
     {% for d, itens in cal.lista %}{% for t, nome in itens %}
-    <li><span class="ponto-cor {{ 'feriado' if t in ('feriado', 'nacional') else t }}"></span><strong>{{ d.strftime('%d/%m') }}</strong> {{ DIAS[d.weekday()] }} · {{ nome|traduz }}{% if t == 'nacional' %} <span class="suave pequeno">{{ _('(nacional, ainda não cadastrado na empresa)') }}</span>{% elif t == 'facultativo' %} <span class="suave pequeno">{{ _('(ponto facultativo)') }}</span>{% endif %}</li>
+    <li><span class="ponto-cor {{ 'feriado' if t in ('feriado', 'nacional') else t }}"></span><strong>{{ d|fdata('%d/%m') }}</strong> {{ DIAS[d.weekday()] }} · {{ nome|traduz }}{% if t == 'nacional' %} <span class="suave pequeno">{{ _('(nacional, ainda não cadastrado na empresa)') }}</span>{% elif t == 'facultativo' %} <span class="suave pequeno">{{ _('(ponto facultativo)') }}</span>{% endif %}</li>
     {% endfor %}{% endfor %}
   </ul>
   <p class="ajuda">{{ _('No ponto só contam os feriados cadastrados em Ausências → Feriados. Os nacionais podem ser cadastrados de uma vez por lá.') }} <a href="/painel/ausencias#feriados">{{ _('Ver feriados') }}</a></p>

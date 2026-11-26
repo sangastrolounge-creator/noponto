@@ -4,7 +4,7 @@
 <div class="cabecalho">
   <div>
     <h1>{{ _('Escala da semana') }}</h1>
-    <p class="suave" style="margin:0">{{ _('{v1} a {v2}. Toque num dia para definir o horário ou a folga.', v1=(dias[0].strftime('%d/%m')), v2=(dias[6].strftime('%d/%m/%Y'))) }} {% if fixas %}{{ _('A escala fixa se repete sozinha toda semana.') }}{% else %}{{ _('Marque “Repetir toda semana” e a escala passa a valer sempre.') }}{% endif %}</p>
+    <p class="suave" style="margin:0">{{ _('{v1} a {v2}. Toque num dia para definir o horário ou a folga.', v1=(dias[0]|fdata('%d/%m')), v2=(dias[6]|fdata('%d/%m/%Y'))) }} {% if fixas %}{{ _('A escala fixa se repete sozinha toda semana.') }}{% else %}{{ _('Marque “Repetir toda semana” e a escala passa a valer sempre.') }}{% endif %}</p>
   </div>
   <div class="semana-nav">
     <a class="botao claro" href="/painel/escala?semana={{ ant.isoformat() }}" aria-label="{{ _('Semana anterior') }}">‹</a>
@@ -41,10 +41,10 @@
 <div class="{{ 'alerta' if fw.atrasada or not fw.publicada else 'aviso' }}" id="escala-justa">
   <strong>{{ fw.regra.nome }} · {{ _('escala justa') }}</strong>:
   {% if fw.publicada and fw.no_prazo %}{{ _('escala publicada dentro do prazo de {v1} dias.', v1=fw.regra.aviso) }}
-  {% elif fw.publicada %}{{ _('escala publicada depois do prazo ({v1}). Mudanças nos próximos dias podem gerar predictability pay.', v1=fw.prazo.strftime('%d/%m')) }}
-  {% elif fw.atrasada %}{{ _('o prazo para publicar esta semana era {v1}. Publique agora.', v1=fw.prazo.strftime('%d/%m')) }}
-  {% else %}{{ _('publique esta semana até {v1} ({v2} dias antes).', v1=fw.prazo.strftime('%d/%m'), v2=fw.regra.aviso) }}{% endif %}
-  {% if fw.regra.muda %}{{ _('Depois de publicada, mudar um turno até {v1} gera adicional, salvo a pedido do funcionário.', v1=fw.janela_ate.strftime('%d/%m')) }}{% endif %}
+  {% elif fw.publicada %}{{ _('escala publicada depois do prazo ({v1}). Mudanças nos próximos dias podem gerar predictability pay.', v1=fw.prazo|fdata('%d/%m')) }}
+  {% elif fw.atrasada %}{{ _('o prazo para publicar esta semana era {v1}. Publique agora.', v1=fw.prazo|fdata('%d/%m')) }}
+  {% else %}{{ _('publique esta semana até {v1} ({v2} dias antes).', v1=fw.prazo|fdata('%d/%m'), v2=fw.regra.aviso) }}{% endif %}
+  {% if fw.regra.muda %}{{ _('Depois de publicada, mudar um turno até {v1} gera adicional, salvo a pedido do funcionário.', v1=fw.janela_ate|fdata('%d/%m')) }}{% endif %}
 </div>
 {% endif %}
 
@@ -62,7 +62,7 @@
   <ul class="lista-alertas">
     {% for o in pedidas %}
     <li style="justify-content:space-between;flex-wrap:wrap">
-      <span><strong>{{ o.candidato.nome }}</strong> {{ _('quer') }} {{ DIAS[o.data.weekday()] }} {{ o.data.strftime('%d/%m') }}, {{ o.inicio }}–{{ o.fim }}
+      <span><strong>{{ o.candidato.nome }}</strong> {{ _('quer') }} {{ DIAS[o.data.weekday()] }} {{ o.data|fdata('%d/%m') }}, {{ o.inicio }}–{{ o.fim }}
         <br><span class="suave pequeno">{% if o.tipo == 'repasse' %}{{ _('Cobrindo {v1}', v1=(o.de.nome)) }}{% else %}{{ _('Turno aberto') }}{% endif %}{% if o.cargo %} · {{ o.cargo }}{% endif %}{% if o.local %} · {{ o.local.nome }}{% endif %}</span>
         {% set x = avisos_extra.get(o.id) %}{% if x %}<br><span class="etiqueta alerta pequeno">{{ _('Com este turno, {v1} fica com {v2} na semana: {v3} além das 44 horas (hora extra).', v1=x.nome, v2=x.total, v3=x.extra) }}</span>{% endif %}</span>
       <span class="acoes">
@@ -77,7 +77,7 @@
   <ul class="lista-alertas">
     {% for o in abertas %}
     <li style="justify-content:space-between;flex-wrap:wrap">
-      <span>{{ DIAS[o.data.weekday()] }} {{ o.data.strftime('%d/%m') }}, {{ o.inicio }}–{{ o.fim }} <span class="etiqueta">{{ _('Esperando alguém') }}</span>
+      <span>{{ DIAS[o.data.weekday()] }} {{ o.data|fdata('%d/%m') }}, {{ o.inicio }}–{{ o.fim }} <span class="etiqueta">{{ _('Esperando alguém') }}</span>
         <br><span class="suave pequeno">{% if o.tipo == 'repasse' %}{{ _('{v1} oferece o próprio turno', v1=(o.de.nome)) }}{% else %}{{ _('Turno aberto') }}{% endif %}{% if o.cargo %} · {{ o.cargo }}{% endif %}{% if o.local %} · {{ o.local.nome }}{% endif %}{% if o.obs %} · {{ o.obs }}{% endif %}</span></span>
       <form method="post" action="/painel/ofertas/{{ o.id }}" class="inline" data-confirma="{{ _('Cancelar esta oferta?') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="cancelar"><button class="botao mini claro" type="submit">{{ _('Cancelar') }}</button></form>
     </li>
@@ -150,7 +150,7 @@
   <div class="rolagem"><table class="tabela-escala">
     <thead><tr>
       <th>{{ _('Funcionário') }}</th>
-      {% for d in dias %}<th class="{{ 'hoje' if d == hoje }}{{ ' destaque' if d == destaque }}"{% if d == destaque %} id="dia-destaque"{% endif %}>{{ DIAS[loop.index0] }}<small>{{ d.strftime('%d/%m') }}</small>{% if feriados.get(d) %}<span class="etiqueta azul" title="{{ feriados[d] }}">{{ _('Feriado') }}</span>{% endif %}</th>{% endfor %}
+      {% for d in dias %}<th class="{{ 'hoje' if d == hoje }}{{ ' destaque' if d == destaque }}"{% if d == destaque %} id="dia-destaque"{% endif %}>{{ DIAS[loop.index0] }}<small>{{ d|fdata('%d/%m') }}</small>{% if feriados.get(d) %}<span class="etiqueta azul" title="{{ feriados[d] }}">{{ _('Feriado') }}</span>{% endif %}</th>{% endfor %}
     </tr></thead>
     <tbody>
     {% for f in equipe %}
@@ -171,10 +171,10 @@
             data-intervalo="{{ t.intervalo_min if t and not t.folga else e.intervalo_padrao_min }}"
             data-saidaint="{{ t.intervalo_inicio if t and not t.folga else '' }}"
             data-uid="{{ f.id }}" data-nome="{{ f.nome }}" data-data="{{ d.isoformat() }}"
-            data-rotulo="{{ DIAS[loop.index0] }} {{ d.strftime('%d/%m') }}"
+            data-rotulo="{{ DIAS[loop.index0] }} {{ d|fdata('%d/%m') }}"
             data-modo="{{ 'folga' if t and t.folga else 'trabalho' }}" data-tem="{{ '1' if t }}"
             data-local="{{ t.local_id if t and t.local_id else 'principal' if t and t.so_principal else '' }}" data-localfixo="{{ '1' if t and t.fixa and (t.local_id or t.so_principal) }}" data-fixa="{{ '1' if (f.id, loop.index0) in fixas }}" data-inicio="{{ t.inicio if t }}" data-fim="{{ t.fim if t }}" data-obs="{{ t.obs if t }}"
-            aria-label="{{ f.nome }}, {{ DIAS[loop.index0] }} {{ d.strftime('%d/%m') }}: {{ 'folga' if t and t.folga else (t.inicio ~ ' a ' ~ t.fim) if t else _('sem escala') }}">
+            aria-label="{{ f.nome }}, {{ DIAS[loop.index0] }} {{ d|fdata('%d/%m') }}: {{ 'folga' if t and t.folga else (t.inicio ~ ' a ' ~ t.fim) if t else _('sem escala') }}">
         {%- if aus %}{{ TIPOS_AUSENCIA.get(aus.tipo, _('Ausência')).split(' ')[0] }}{% if t and not t.folga %}<br><s>{{ t.inicio }}–{{ t.fim }}</s>{% endif %}{% elif t and t.folga %}{{ _('Folga') }}{% elif t %}{{ t.inicio }}<br>{{ t.fim }}{% if t.local %}<br><small>{{ t.local.nome }}</small>{% elif t.so_principal %}<br><small>{{ _('Principal') }}</small>{% endif %}{% else %}+{% endif -%}
         {%- if t and not t.folga and t.intervalo_inicio and not aus %}<br><small class="int-hora">{{ _('intervalo {v1}', v1=(t.intervalo_inicio)) }}</small>{% endif -%}
         {%- if t and not t.fixa and (f.id, loop.index0) in fixas %}<br><small class="so-semana">{{ _('só nesta semana') }}</small>{% endif -%}
@@ -194,7 +194,7 @@
     </tr></tfoot>
   </table></div>
   <p class="ajuda">{% if publicacao and publicacao.publicado_em %}{{ _('Publicada por {v1} em {v2}.', v1=publicacao.publicado_por, v2=local(e, publicacao.publicado_em, '%d/%m %H:%M')) }} {% endif %}{% if publicar_n %}{{ _('{v1} pessoa(s) com mudança ainda não avisada.', v1=publicar_n) }}{% endif %}{% if ver_custo %} {{ _('O custo é estimado pelo valor da hora de cada um, sem horas extras nem gorjetas.') }}{% endif %}</p>
-  {% if fechado and dias[0] <= fechado %}<p class="ajuda">{{ _('Os dias até {v1} estão num período de ponto fechado e não podem ser alterados.', v1=(fechado.strftime('%d/%m/%Y'))) }}</p>{% endif %}
+  {% if fechado and dias[0] <= fechado %}<p class="ajuda">{{ _('Os dias até {v1} estão num período de ponto fechado e não podem ser alterados.', v1=(fechado|fdata('%d/%m/%Y'))) }}</p>{% endif %}
   {% else %}
   {% if not equipe_toda %}<div class="vazio">{{ _('Cadastre os funcionários primeiro.') }} <a href="/painel/equipe">{{ _('Ir para Equipe') }}</a></div>{% endif %}
   {% endif %}
