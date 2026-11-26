@@ -1,30 +1,77 @@
 {% extends "painel_base.html" %}
 {% block conteudo %}
 {% set ar = u.areas_master %}
-<nav class="subabas" aria-label="{{ _('Painel Master') }}">
-  {% if 'crm' in ar %}<a href="/master/crm" class="{{ 'ativa' if sub == 'crm' }}">{{ _('CRM') }}</a>
-  <a href="/master/crm/ao-vivo" class="{{ 'ativa' if sub == 'aovivo' }}">{{ _('Chat ao vivo') }}</a>
-  <a href="/master/crm/tarefas" class="{{ 'ativa' if sub == 'tarefas' }}">{{ _('Tarefas') }}</a>
-  <a href="/master/conversas" class="{{ 'ativa' if sub == 'conversas' }}">{{ _('Conversas') }}</a>
-  <a href="/master/crm/canais" class="{{ 'ativa' if sub == 'canais' }}">{{ _('Canais') }}</a>{% endif %}
-  {% if 'email' in ar %}{% set nl = caixa_nao_lidos() %}<a href="/master/caixa" class="{{ 'ativa' if sub == 'caixa' }}">{{ _('E-mail') }}{% if nl %} <span class="etiqueta" style="background:#4f6bf5;color:#fff">{{ nl }}</span>{% endif %}</a>{% endif %}
-  {% if 'suporte' in ar %}<a href="/master" class="{{ 'ativa' if sub == 'geral' }}">{{ _('Empresas') }}</a>{% endif %}
-  {% if 'financeiro' in ar %}<a href="/master/cupons" class="{{ 'ativa' if sub == 'cupons' }}">{{ _('Cupons') }}</a>
-  <a href="/master/parceiros" class="{{ 'ativa' if sub == 'parceiros' }}">{{ _('Parceiros') }}</a>{% endif %}
-  {% if 'config' in ar %}<a href="/master/equipe" class="{{ 'ativa' if sub == 'equipe' }}">{{ _('Equipe do Master') }}</a>
-  <a href="/master/planos" class="{{ 'ativa' if sub == 'planos' }}">{{ _('Planos') }}</a>
-  <a href="/master/portaria671" class="{{ 'ativa' if sub == 'portaria671' }}">{{ _('Portaria 671') }}</a>
-  <a href="/master/lojas" class="{{ 'ativa' if sub == 'lojas' }}">{{ _('Lojas de apps') }}</a>
-  <a href="/master/rastreamento" class="{{ 'ativa' if sub == 'rastreamento' }}">{{ _('Rastreamento') }}</a>
-  <a href="/master/pagina" class="{{ 'ativa' if sub == 'pagina' }}">{{ _('Página de vendas') }}</a>
-  <a href="/master/plataforma" class="{{ 'ativa' if sub == 'plataforma' }}">{{ _('Plataforma') }}</a>
-  <a href="/master/banners" class="{{ 'ativa' if sub == 'banners' }}">{{ _('Banners') }}</a>
-  <a href="/master/entrada" class="{{ 'ativa' if sub == 'entrada' }}">{{ _('Tela de entrada') }}</a>
-  <a href="/master/folha" class="{{ 'ativa' if sub == 'folha' }}">{{ _('Claude') }}</a>
-  <a href="/master/email" class="{{ 'ativa' if sub == 'email' }}">{{ _('Envio de e-mails') }}</a>
-  {% endif %}
-  {% if 'suporte' in ar %}<a href="/master/avisos" class="{{ 'ativa' if sub == 'avisos' }}">{{ _('Avisos') }}</a>{% endif %}
-  {% if not u.is_admin and u.na_escala %}<a href="/app">{{ _('Meu ponto') }}</a>{% endif %}
-</nav>
-{% block master %}{% endblock %}
+{#- Menu do Master à direita, por categoria. Cada item: (endereço, chave do "sub", rótulo, área). -#}
+{% set grupos = [
+  (_('Vendas'), '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>', [
+    ('/master/crm', 'crm', _('CRM (funil)'), 'crm'),
+    ('/master/crm/ao-vivo', 'aovivo', _('Chat ao vivo'), 'crm'),
+    ('/master/crm/tarefas', 'tarefas', _('Tarefas'), 'crm'),
+    ('/master/conversas', 'conversas', _('Conversas'), 'crm'),
+    ('/master/crm/canais', 'canais', _('Canais'), 'crm'),
+    ('/master/caixa', 'caixa', _('E-mail'), 'email')]),
+  (_('Clientes'), '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/>', [
+    ('/master', 'geral', _('Empresas'), 'suporte'),
+    ('/master/avisos', 'avisos', _('Avisos'), 'suporte')]),
+  (_('Financeiro'), '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>', [
+    ('/master/planos', 'planos', _('Planos'), 'config'),
+    ('/master/cupons', 'cupons', _('Cupons'), 'financeiro'),
+    ('/master/parceiros', 'parceiros', _('Parceiros'), 'financeiro')]),
+  (_('Marketing e site'), '<path d="M4 10v4h3l6 4V6L7 10z"/><path d="M17 9a4 4 0 0 1 0 6"/>', [
+    ('/master/pagina', 'pagina', _('Página de vendas'), 'config'),
+    ('/master/rastreamento', 'rastreamento', _('Rastreamento'), 'config'),
+    ('/master/entrada', 'entrada', _('Tela de entrada'), 'config'),
+    ('/master/banners', 'banners', _('Banners'), 'config'),
+    ('/master/lojas', 'lojas', _('Lojas de apps'), 'config')]),
+  (_('Sistema'), '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/>', [
+    ('/master/plataforma', 'plataforma', _('Plataforma'), 'config'),
+    ('/master/equipe', 'equipe', _('Equipe do Master'), 'config'),
+    ('/master/portaria671', 'portaria671', _('Portaria 671'), 'config'),
+    ('/master/folha', 'folha', _('Claude'), 'config'),
+    ('/master/email', 'email', _('Envio de e-mails'), 'config')]),
+] %}
+<div class="master-layout">
+  <div class="master-conteudo">{% block master %}{% endblock %}</div>
+  <aside class="master-menu" aria-label="{{ _('Painel Master') }}">
+    <div class="master-menu-titulo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>{{ _('Master') }}</div>
+    {% for titulo, desenho, itens in grupos %}
+      {% set meus = itens|selectattr(3, 'in', ar)|list %}
+      {% if meus %}
+      {% set aberto = meus|selectattr(1, 'equalto', sub)|list %}
+      <details class="master-grupo" {{ 'open' if aberto }}>
+        <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ desenho|safe }}</svg><span>{{ titulo }}</span></summary>
+        {% for href, chave, rotulo, area in meus %}
+        <a href="{{ href }}" class="{{ 'ativa' if sub == chave }}" {{ 'aria-current="page"' if sub == chave }}>{{ rotulo }}{% if chave == 'caixa' %}{% set nl = caixa_nao_lidos() %}{% if nl %} <span class="etiqueta" style="background:#4f6bf5;color:#fff">{{ nl }}</span>{% endif %}{% endif %}</a>
+        {% endfor %}
+      </details>
+      {% endif %}
+    {% endfor %}
+    {% if not u.is_admin and u.na_escala %}<a class="master-avulso" href="/app">{{ _('Meu ponto') }}</a>{% endif %}
+  </aside>
+</div>
+<style>
+.master-layout { display: grid; grid-template-columns: minmax(0, 1fr) 232px; gap: 20px; align-items: start; }
+.master-conteudo { min-width: 0; }
+.master-menu { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 6px; padding: 10px;
+  border: 1px solid var(--borda); border-radius: 16px; background: var(--cartao); box-shadow: var(--sombra);
+  max-height: calc(100vh - 32px); overflow: auto; }
+.master-menu-titulo { display: flex; align-items: center; gap: 8px; font-weight: 700; padding: 4px 6px 8px;
+  border-bottom: 1px solid var(--borda); margin-bottom: 2px; }
+.master-menu svg { width: 18px; height: 18px; flex: none; }
+.master-grupo summary { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 10px; cursor: pointer;
+  font-weight: 600; list-style: none; }
+.master-grupo summary::-webkit-details-marker { display: none; }
+.master-grupo summary::after { content: "▾"; margin-left: auto; opacity: .5; transition: transform .15s; }
+.master-grupo:not([open]) summary::after { transform: rotate(-90deg); }
+.master-grupo summary:hover { background: var(--cartao-2); }
+.master-grupo a, .master-avulso { display: block; padding: 7px 10px 7px 34px; border-radius: 10px; color: inherit;
+  text-decoration: none; font-size: .92rem; }
+.master-avulso { padding-left: 10px; }
+.master-grupo a:hover, .master-avulso:hover { background: var(--cartao-2); }
+.master-grupo a.ativa { background: color-mix(in srgb, var(--cor) 12%, transparent); color: var(--cor); font-weight: 600; }
+@media (max-width: 900px) {
+  .master-layout { grid-template-columns: 1fr; }
+  .master-menu { position: static; order: -1; max-height: none; }
+}
+</style>
 {% endblock %}
