@@ -74,6 +74,7 @@ def main():
         assert db.get(Empresa, dono_eid).pais == "BR"
         e = db.get(Empresa, eid)
         assert (e.pais, e.estado, e.fuso) == ("US", "FL", "America/New_York")
+        assert (e.intervalo_padrao_min, e.intervalo_auto, e.pct_noturno) == (30, False, 0)
 
     # configuração: a tela americana aparece só para a empresa americana
     tb = csrf(br, "/painel/config")
