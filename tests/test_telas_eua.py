@@ -66,7 +66,7 @@ def main():
     # a empresa do dono não muda de país; a do cliente vira EUA
     tm = csrf(m, "/master")
     posta(m, f"/master/empresas/{dono_eid}/dados", tm, plano="0", pais="US")
-    posta(m, f"/master/empresas/{eid}/dados", tm, plano="0", pais="US")
+    posta(m, f"/master/empresas/{eid}/dados", tm, plano="0", isenta="1", pais="US")
     with SessionLocal() as db:
         assert db.get(Empresa, dono_eid).pais == "BR"
         e = db.get(Empresa, eid)
@@ -142,7 +142,7 @@ def main():
 
     # depois do primeiro fechamento o país não muda mais
     posta(us, "/painel/fechamento", tg, de=DOM.isoformat(), ate=sab.isoformat())
-    posta(m, f"/master/empresas/{eid}/dados", tm, plano="0", pais="BR")
+    posta(m, f"/master/empresas/{eid}/dados", tm, plano="0", isenta="1", pais="BR")
     with SessionLocal() as db:
         assert db.get(Empresa, eid).pais == "US"
 
