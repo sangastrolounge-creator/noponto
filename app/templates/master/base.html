@@ -41,7 +41,7 @@
       <details class="master-grupo" {{ 'open' if aberto }}>
         <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ desenho|safe }}</svg><span>{{ titulo }}</span></summary>
         {% for href, chave, rotulo, area in meus %}
-        <a href="{{ href }}" class="{{ 'ativa' if sub == chave }}" {{ 'aria-current="page"' if sub == chave }}>{{ rotulo }}{% if chave == 'caixa' %}{% set nl = caixa_nao_lidos() %}{% if nl %} <span class="etiqueta" style="background:#4f6bf5;color:#fff">{{ nl }}</span>{% endif %}{% endif %}</a>
+        <a href="{{ href }}"{% if sub == chave %} class="ativa" aria-current="page"{% endif %}>{{ rotulo }}{% if chave == 'caixa' %}{% set nl = caixa_nao_lidos() %}{% if nl %} <span class="etiqueta" style="background:#4f6bf5;color:#fff">{{ nl }}</span>{% endif %}{% endif %}</a>
         {% endfor %}
       </details>
       {% endif %}

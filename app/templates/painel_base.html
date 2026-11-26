@@ -14,7 +14,7 @@
   {% macro item(href, chave, rotulo, desenho, subs=[]) -%}
     {%- set ativo = aba == chave -%}
     <div class="grupo {{ 'com-sub' if subs }} {{ 'aberto' if ativo and subs }}" data-grupo="{{ chave }}">
-      <a href="{{ href }}" class="{{ 'ativa' if ativo }}" title="{{ rotulo }}" {{ 'aria-current="page"' if ativo }}>
+      <a href="{{ href }}" class="{{ 'ativa' if ativo }}" title="{{ rotulo }}" {% if ativo %}aria-current="page"{% endif %}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ desenho|safe }}</svg><span>{{ rotulo }}</span>{% if selos.get(chave) %}<b class="menu-selo" title="{{ _('{v1} aguardando sua atenção', v1=selos[chave]) }}">{{ selos[chave] }}</b>{% endif %}</a>
       {%- if subs %}
       <button type="button" class="abrir-sub" aria-expanded="{{ 'true' if ativo else 'false' }}" aria-label="{{ _('Abrir submenu de {v1}', v1=rotulo) }}">
