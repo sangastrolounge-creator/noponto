@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import apuracao, custos, push, regras
+from . import apuracao, custos, paises, push, regras
 from . import db as banco
 from .core import HORA_RE, avisar, data_iso, exigir_csrf, gestor_logado, ir, pode, usuario_logado
 from .db import Alerta, EscalaPublicada, Oferta, Turno, Usuario, get_db
@@ -118,7 +118,7 @@ def sugestoes(db: Session, e, d: date, inicio: str, fim: str, cargo: str = "") -
     a = int(inicio[:2]) * 60 + int(inicio[3:])
     b = int(fim[:2]) * 60 + int(fim[3:])
     dur = (b - a) % 1440 or 1440
-    ini_sem = apuracao.inicio_semana(e, d)
+    ini_sem = paises.regras_de(e).inicio_semana(e, d)
     pessoas = list(db.scalars(select(Usuario).where(Usuario.empresa_id == e.id, Usuario.ativo.is_(True),
                                                     Usuario.na_escala.is_(True))))
     turnos_sem = list(db.scalars(select(T).where(T.empresa_id == e.id, T.data.between(ini_sem, ini_sem + timedelta(days=6)))))

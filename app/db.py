@@ -225,6 +225,7 @@ class Plano(Base):
     __tablename__ = "planos"
     id: Mapped[int] = mapped_column(primary_key=True)
     nome: Mapped[str] = mapped_column(String(60))
+    pais: Mapped[str] = mapped_column(String(2), default="BR")  # país em que o plano é vendido
     preco_centavos: Mapped[int] = mapped_column(Integer, default=0)
     limite_funcionarios: Mapped[int] = mapped_column(Integer, default=0)  # 0 = ilimitado
     descricao: Mapped[str] = mapped_column(Text, default="")  # um benefício por linha
@@ -297,6 +298,9 @@ class Empresa(Base):
     __tablename__ = "empresas"
     id: Mapped[int] = mapped_column(primary_key=True)
     nome: Mapped[str] = mapped_column(String(120))
+    # País da empresa (BR, US): decide leis, feriados, folha, moeda e cobrança. Escolhido no
+    # cadastro, nunca pelo IP; o idioma é separado. Ver app/paises.
+    pais: Mapped[str] = mapped_column(String(2), default="BR")
     endereco: Mapped[str] = mapped_column(String(300), default="")
     logo: Mapped[str] = mapped_column(String(60), default="")  # arquivo em dados/logos (impressos)
     facial_ativo: Mapped[bool] = mapped_column(Boolean, default=False)  # reconhecimento facial no ponto
@@ -1422,6 +1426,8 @@ COLUNAS_NOVAS = [
     ("batidas", "facial_dist", "FLOAT"),
     ("empresas", "meta_cmo", "INTEGER NOT NULL DEFAULT 30"),
     ("empresas", "regime_tributario", "VARCHAR(12) NOT NULL DEFAULT 'simples'"),
+    ("empresas", "pais", "VARCHAR(2) NOT NULL DEFAULT 'BR'"),
+    ("planos", "pais", "VARCHAR(2) NOT NULL DEFAULT 'BR'"),
     ("historico", "usuario_id", "INTEGER"),
     ("historico", "dia", "DATE"),
 ]

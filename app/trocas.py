@@ -7,7 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import apuracao, push, regras
+from . import apuracao, paises, push, regras
 from . import db as banco
 from .core import (HORA_RE, avisar, da_empresa, data_iso, exigir_csrf, gestor_logado, ir,
                    usuario_logado)
@@ -78,7 +78,7 @@ def impedimento(db: Session, e: Empresa, o: Oferta, u: Usuario) -> str | None:
 
 def aviso_extra(db: Session, e: Empresa, o: Oferta, u: Usuario) -> dict:
     """Avisa o gestor se, com este turno, a pessoa passa do limite de horas da semana."""
-    ini = apuracao.inicio_semana(e, o.data)
+    ini = paises.regras_de(e).inicio_semana(e, o.data)
     fim = ini + timedelta(days=6)
     regras.gerar_da_fixa(db, e, ini, fim)
     ja = sum(regras.minutos_turno(t) for t in db.scalars(select(Turno).where(

@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import apuracao, regras
+from . import apuracao, paises, regras
 from .core import gestor_logado, pode, render
 from .db import Turno, Usuario, get_db
 
@@ -92,8 +92,8 @@ def verificar(db: Session, e, u) -> dict:
                            det[:12], ("Abrir a escala", "/painel/escala") if det else None))
 
     # 3. período aberto: hora extra acima de 2 h no dia e intervalo não batido
-    ini, fim = apuracao.periodo_aberto(db, e)
-    resultado = apuracao.apurar(db, e, ini, fim)
+    ini, fim = paises.regras_de(e).periodo_aberto(db, e)
+    resultado = paises.regras_de(e).apurar(db, e, ini, fim)
     acima = []
     for r in resultado:
         if (r["u"].classificacao or "clt") == "pj":

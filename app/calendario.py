@@ -6,7 +6,8 @@ from datetime import date, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .apuracao import feriados_nacionais, pascoa
+from . import paises
+from .apuracao import pascoa
 from .db import Feriado
 
 MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto",
@@ -50,13 +51,14 @@ def datas_do_ano(db: Session, e, ano: int) -> dict[date, list[tuple[str, str]]]:
         Feriado.empresa_id == e.id, Feriado.data.between(date(ano, 1, 1), date(ano, 12, 31))))}
     for d, nome in cadastrados.items():
         mapa.setdefault(d, []).append(("feriado", nome))
-    for d, nome in feriados_nacionais(ano):
+    r = paises.regras_de(e)
+    for d, nome in r.feriados(ano):
         if d not in cadastrados:
             mapa.setdefault(d, []).append(("nacional", nome))
-    for d, nome in facultativos(ano):
+    for d, nome in r.facultativos(ano):
         if d not in cadastrados:
             mapa.setdefault(d, []).append(("facultativo", nome))
-    for d, nome in comemorativas(ano):
+    for d, nome in r.comemorativas(ano):
         if not any(nome == n for _t, n in mapa.get(d, [])):
             mapa.setdefault(d, []).append(("comemorativa", nome))
     return mapa
