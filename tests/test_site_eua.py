@@ -61,6 +61,9 @@ def main():
     assert "Data Worke Brasil" in cli(BR).get("/entrar").text
     tela_br = cli(BR).get("/").text
     assert "Starter US" not in tela_br and 'lang="pt-BR"' in tela_br
+    # logo em inglês ("Management solutions") nas páginas dos EUA, a brasileira no Brasil
+    assert "logo-nome-us.png" in v.get("/entrar").text and "logo-nome-us-escuro.png" in v.get("/entrar").text
+    assert "logo-nome-us" not in cli(BR).get("/entrar").text and "logo-nome.png" in cli(BR).get("/entrar").text
     # quem escolheu um idioma continua nele
     v.cookies.set("idioma", "es")
     assert 'lang="es"' in v.get("/").text

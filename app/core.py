@@ -381,6 +381,7 @@ def marca_atual() -> dict | None:
 
 
 templates.env.globals["marca_atual"] = marca_atual
+templates.env.globals["pais_tela"] = lambda: _pais_tela.get()   # país da tela que está sendo montada
 
 
 APP_IOS = "DataWorkeIOS"
