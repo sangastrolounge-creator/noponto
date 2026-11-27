@@ -782,3 +782,8 @@ td.col-func .etiqueta { font-size: max(9px, calc(.72rem - 3px)); }
   box-shadow: 0 0 0 999px rgb(0 0 0 / .5); outline: 2px solid rgb(255 255 255 / .85); outline-offset: -2px; }
 .foto-zoom { display: flex; align-items: center; gap: 10px; margin: 14px 0 16px; font-weight: 800; color: var(--suave); }
 .foto-zoom input { flex: 1; }
+
+/* Ajuste de ponto: coluna Colaboradores com letra 5px menor */
+.colab .colab-txt, .colab .colab-txt strong { font-size: calc(15.5px - 5px); }
+.colab .colab-txt small { font-size: max(9px, calc(.76rem - 5px)); }
+.colab .colab-txt .mini { font-size: max(8.5px, calc(.7rem - 3px)); }
