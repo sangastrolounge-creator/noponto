@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import core, instagram, revisor, whatsapp, whatsapp_robo
+from . import core, instagram, revisor, whatsapp, whatsapp_robo, whatsapp_voz
 from . import db as banco
 from .core import admin_logado, avisar, exigir_csrf, ir, render
 from .db import Config, Empresa, Lead, Pagamento, SessionLocal, Usuario, VisitaCanal, get_db
@@ -218,6 +218,7 @@ def tela(request: Request, u: Usuario = Depends(admin_logado), db: Session = Dep
                   ig_url=(core.PUBLIC_URL or str(request.base_url).rstrip("/")) + "/webhooks/instagram",
                   wa_recebe=whatsapp.recebe(), wa_envia=whatsapp.envia(), wa_modelo=whatsapp.modelo(),
                   wa_robo=whatsapp_robo.ligado(db), ia_ok=revisor.configurado(db),
+                  voz_ouve=whatsapp_voz.transcreve(), voz_fala=whatsapp_voz.fala(), voz_ligada=whatsapp_voz.ligado(db),
                   wa_url=(core.PUBLIC_URL or str(request.base_url).rstrip("/")) + "/webhooks/whatsapp")
 
 
@@ -283,6 +284,18 @@ def robo_whatsapp(request: Request, ligar: str = Form(""), u: Usuario = Depends(
     whatsapp_robo.ligar(db, ligar == "1")
     db.commit()
     avisar(request, "Robô do WhatsApp ligado." if ligar == "1" else "Robô do WhatsApp desligado.")
+    return ir("/master/rastreamento")
+
+
+@rota.post("/master/rastreamento/whatsapp-voz", dependencies=[Depends(exigir_csrf)])
+def voz_whatsapp(request: Request, ligar: str = Form(""), u: Usuario = Depends(admin_logado),
+                 db: Session = Depends(get_db)):
+    if ligar == "1" and not whatsapp_voz.fala():
+        avisar(request, "Falta ELEVENLABS_API_KEY ou VOZ_ID no .env do servidor.", "erro")
+        return ir("/master/rastreamento")
+    whatsapp_voz.ligar(db, ligar == "1")
+    db.commit()
+    avisar(request, "Respostas em voz ligadas." if ligar == "1" else "Respostas em voz desligadas.")
     return ir("/master/rastreamento")
 
 

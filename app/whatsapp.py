@@ -14,6 +14,7 @@ Configuração, só em variáveis de ambiente (.env do servidor):
   WA_VERIFY_TOKEN   palavra combinada do webhook. Vazio = usa META_VERIFY_TOKEN
   WA_MODELO         (opcional) nome da mensagem modelo aprovada para retomar conversa, sem variáveis
   WA_MODELO_IDIOMA  (opcional) idioma do modelo, padrão pt_BR
+Áudio (ouvir e responder com voz): ver whatsapp_voz.py (ELEVENLABS_API_KEY, VOZ_ID).
 """
 import hashlib
 import hmac
@@ -116,6 +117,13 @@ def _texto(m: dict) -> str:
     return (TIPOS.get(tipo, "[mensagem]") + (f" {legenda}" if legenda else ""))[:TEXTO_MAX]
 
 
+def _audio(m: dict) -> dict:
+    """Áudio recebido: guarda o id da mídia para baixar e transcrever."""
+    if m.get("type") != "audio":
+        return {"audio": False, "midia": ""}
+    return {"audio": True, "midia": str((m.get("audio") or {}).get("id", ""))[:80]}
+
+
 def ler_aviso(dados: dict) -> dict:
     """Separa o aviso da Meta em: recebidas, enviadas pelo celular (eco) e mudanças de status."""
     out = {"recebidas": [], "ecos": [], "status": []}
@@ -132,11 +140,12 @@ def ler_aviso(dados: dict) -> dict:
                 de = str(m.get("from", ""))
                 if de:
                     out["recebidas"].append({"wa": de, "nome": str(nomes.get(de, ""))[:80], "mid": str(m.get("id", "")),
-                                             "texto": _texto(m)})
+                                             "texto": _texto(m), **_audio(m)})
             for m in v.get("message_echoes") or []:
                 para = str(m.get("to", ""))
                 if para:
-                    out["ecos"].append({"wa": para, "mid": str(m.get("id", "")), "texto": _texto(m)})
+                    out["ecos"].append({"wa": para, "mid": str(m.get("id", "")), "texto": _texto(m),
+                                        "audio": m.get("type") == "audio"})
             for s in v.get("statuses") or []:
                 erro = ((s.get("errors") or [{}])[0].get("title") or "") if s.get("status") == "failed" else ""
                 out["status"].append({"mid": str(s.get("id", "")), "status": STATUS.get(s.get("status"), ""),
@@ -165,6 +174,7 @@ def _lead_do_numero(db: Session, wa: str, nome: str = "", criar: bool = True) ->
 def processar(eventos: dict) -> None:
     agora = banco.agora()
     novos: list[int] = []
+    audios: list[WhatsMensagem] = []
     with SessionLocal() as db:
         for m in eventos["recebidas"] + eventos["ecos"]:
             if m["mid"] and db.scalar(select(WhatsMensagem.id).where(WhatsMensagem.mid == m["mid"])):
@@ -174,8 +184,12 @@ def processar(eventos: dict) -> None:
             ld, _ = _lead_do_numero(db, m["wa"], m.get("nome", ""), criar=entrada)
             if ld is None:
                 continue
-            db.add(WhatsMensagem(lead_id=ld.id, wa_id=m["wa"], entrada=entrada, texto=m["texto"], mid=m["mid"],
-                                 status="" if entrada else "enviada", pelo_celular=not entrada, criado_em=agora))
+            wm = WhatsMensagem(lead_id=ld.id, wa_id=m["wa"], entrada=entrada, texto=m["texto"], mid=m["mid"],
+                               status="" if entrada else "enviada", pelo_celular=not entrada, criado_em=agora,
+                               audio=bool(m.get("audio")), midia_id=m.get("midia", "") if entrada else "")
+            db.add(wm)
+            if wm.midia_id:
+                audios.append(wm)
             ld.atualizado_em = agora
             if entrada and not ld.nome and m.get("nome"):
                 ld.nome = m["nome"]
@@ -193,7 +207,12 @@ def processar(eventos: dict) -> None:
                     if s["status"] == "falhou" or ordem.index(s["status"]) > ordem.index(x.status if x.status in ordem else ""):
                         x.status, x.erro = s["status"], s["erro"] or x.erro
         db.commit()
-    from . import whatsapp_robo
+        ids_audio = [w.id for w in audios]
+    from . import whatsapp_robo, whatsapp_voz
+    try:
+        whatsapp_voz.transcrever_pendentes(ids_audio)   # antes do robô, para ele responder ao que foi dito
+    except Exception as e:
+        log.warning("WhatsApp: transcrição falhou: %s", e)
     for lid in novos:
         try:
             whatsapp_robo.responder(lid)
@@ -253,7 +272,8 @@ def conversa(lid: int, u: Usuario = Depends(admin_logado), db: Session = Depends
     return {"envia": envia(), "janela": janela_aberta(db, ld), "modelo": bool(modelo()),
             "robo": whatsapp_robo.ligado(db), "robo_pausado": ld.robo_pausado,
             "mensagens": [{"id": m.id, "entrada": m.entrada, "texto": m.texto, "status": m.status, "erro": m.erro,
-                           "quem": "celular" if m.pelo_celular else "robô" if m.robo else nomes.get(m.autor_id, ""),
+                           "quem": "celular" if m.pelo_celular else ("robô, em voz" if m.audio else "robô") if m.robo
+                           else nomes.get(m.autor_id, ""),
                            "hora": m.criado_em.strftime("%d/%m %H:%M")} for m in msgs]}
 
 
