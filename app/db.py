@@ -262,6 +262,9 @@ class Plano(Base):
     tolerancia: Mapped[int] = mapped_column(Integer, default=0)
     # Desconto por volume na cobrança por pessoa: "50:15;150:30" = 15% acima de 50 pessoas, 30% acima de 150.
     descontos_volume: Mapped[str] = mapped_column(String(80), default="")
+    # Plano personalizado: feito no master para uma só empresa (limites e valor combinados com ela).
+    # Fica fora de venda e só aparece para essa empresa.
+    empresa_id: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
     # Recursos liberados no plano (além dos de cima). No teste vale tudo.
     com_escala: Mapped[bool] = mapped_column(Boolean, default=True)      # escala, trocas e turnos abertos
     com_fechamento: Mapped[bool] = mapped_column(Boolean, default=True)  # fechamento, banco de horas e relatórios
@@ -1404,6 +1407,7 @@ COLUNAS_NOVAS = [
     ("fechamento_linhas", "dsr_extras", "INTEGER NOT NULL DEFAULT 0"),
     ("empresas", "ativo", "BOOLEAN NOT NULL DEFAULT 1"),
     ("empresas", "plano_id", "INTEGER"),
+    ("planos", "empresa_id", "INTEGER"),
     ("empresas", "teste_ate", "DATETIME"),
     ("empresas", "pago_ate", "DATETIME"),
     ("empresas", "isenta", "BOOLEAN NOT NULL DEFAULT 0"),
