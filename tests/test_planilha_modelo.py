@@ -112,7 +112,7 @@ def main():
     wb.save(saida)
     r, t = enviar(g, "equipe.xlsx", saida.getvalue(),
                   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    assert r.status_code == 200, t[:500]
+    assert r.status_code == 200, (r.status_code, re.findall(r'class="aviso[^"]*">([^<]*)', t), t[-1500:])
     assert "Prévia: 1 pessoa(s) prontas, 1 com erro" in t, t[t.find("Prévia"):][:300]
     assert "setor não encontrado: Bar" in t and "Sexo" in t
     confirmar(g, t)
