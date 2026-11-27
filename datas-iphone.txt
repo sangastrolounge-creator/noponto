@@ -1,0 +1,8 @@
+ponto: ok
+ausencias: ok
+relatorios: ok
+pagamento: ok
+ficha: ok
+apropriacao: ok
+ferias: ok
+janela colaboradores: {'topo': 664, 'base': 1208, 'tela': 664, 'anim': 'matrix(1, 0, 0, 1, 0, 544.46875)', 'janela': 544, 'lista': 417, 'itens': 4}

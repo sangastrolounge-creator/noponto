@@ -1,0 +1,1 @@
+antes=1500 depois=1331 url=http://127.0.0.1:8100/painel/ponto/ajuste?de=2026-11-01&ate=2026-11-27&func=2

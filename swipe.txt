@@ -1,0 +1,4 @@
+cel-claro voltar: http://127.0.0.1:8100/painel/escala -> http://127.0.0.1:8100/painel
+cel-claro avancar: http://127.0.0.1:8100/painel -> http://127.0.0.1:8100/painel/escala
+cel-escuro voltar: http://127.0.0.1:8100/painel/escala -> http://127.0.0.1:8100/painel
+cel-escuro avancar: http://127.0.0.1:8100/painel -> http://127.0.0.1:8100/painel/escala
