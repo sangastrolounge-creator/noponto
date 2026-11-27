@@ -252,9 +252,11 @@ def main():
                 for nome, url in PAINEL:
                     if not so or nome in so:
                         fotografar(pag, f"{nome}-{sufixo}", url)
-                if tela == "cel" and (not so or "swipe" in so):   # arrastar entre páginas (os dois sentidos)
-                    for nome, origem, x0, x1, x2 in (("frente", "/painel", 330, 260, 150), ("tras", "/painel/escala", 60, 140, 250)):
-                        pag.goto(BASE + origem, wait_until="networkidle")
+                if tela == "cel" and (not so or "swipe" in so):   # arrastar = voltar/avançar pelas páginas vistas
+                    pag.goto(BASE + "/painel", wait_until="networkidle")
+                    pag.goto(BASE + "/painel/escala", wait_until="networkidle")
+                    for nome, x0, x1, x2 in (("voltar", 60, 140, 250), ("avancar", 330, 260, 150)):
+                        origem = pag.url
                         pag.evaluate("""([a, b, c]) => {
                             const el = document.querySelector('h1');
                             const toque = (x, y) => new Touch({identifier: 1, target: el, clientX: x, clientY: y});
