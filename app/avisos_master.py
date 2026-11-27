@@ -87,7 +87,7 @@ def pagamento(empresa_id: int, valor_centavos: int, ok: bool) -> None:
             return
         plano = e.plano.nome if e.plano else "—"
         contato = f"{dono.nome} ({dono.email})" if dono else "—"
-        val = dinheiro(valor_centavos)
+        val = dinheiro(valor_centavos, e.pais or "BR")   # EUA em dólar (Stripe), Brasil em real
     if ok:
         notificar("pago", f"Pagamento confirmado: {e.nome} ({val})",
                   f"{e.nome} pagou {val} pelo plano {plano}.\nResponsável: {contato}")

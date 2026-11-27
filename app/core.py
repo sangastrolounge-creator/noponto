@@ -606,7 +606,7 @@ MASTER_AREAS = {
 }
 # Caminho do Master -> área exigida (o mais específico primeiro). O que não estiver aqui é "config".
 _AREA_CAMINHO = [
-    (re.compile(r"^/master/empresas/\d+/(pagamento|cancelar-assinatura)"), "financeiro"),
+    (re.compile(r"^/master/empresas/\d+/(pagamento|cancelar-assinatura|cancelar-stripe)"), "financeiro"),
     (re.compile(r"^/master/(crm|conversas)(/|$)"), "crm"),
     (re.compile(r"^/master/caixa(/|$)"), "email"),
     (re.compile(r"^/master/(cupons|parceiros)(/|$)"), "financeiro"),

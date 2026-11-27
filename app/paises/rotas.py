@@ -8,7 +8,7 @@ chega ao prefixo direto pela barra de endereço."""
 import anyio
 
 # país -> (prefixo interno, endereços que têm versão própria)
-TELAS = {"US": ("/eua", ("/painel/pagamento", "/app/holerite", "/painel/conformidade"))}
+TELAS = {"US": ("/eua", ("/painel/pagamento", "/app/holerite", "/painel/conformidade", "/painel/assinatura"))}
 INTERNOS = tuple(p for p, _ in TELAS.values())
 
 

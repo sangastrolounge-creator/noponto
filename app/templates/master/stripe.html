@@ -1,0 +1,53 @@
+{% extends "master/base.html" %}
+{% block master %}
+<div class="cabecalho"><div><h1>{{ _('Cobrança pelo Stripe (EUA)') }}</h1><p class="suave" style="margin:0">{{ _('As empresas dos EUA assinam e pagam com cartão pelo Stripe, em dólar. A liberação do acesso é automática. As do Brasil continuam no Asaas.') }}</p></div></div>
+
+<div class="cartao">
+  <h2>{{ _('Situação') }}</h2>
+  {% if not modo %}
+  <div class="alerta">{{ _('Desligado: falta a chave secreta do Stripe. Sem ela as empresas não conseguem pagar pelo site.') }}</div>
+  {% else %}
+  <div class="aviso">{{ _('Ligado em modo de teste: nenhum cartão é cobrado de verdade.') if modo == 'teste' else _('Ligado em modo real: os cartões são cobrados de verdade.') }}</div>
+  <p>{{ _('Webhook (avisos de pagamento):') }} {% if webhook_ok %}<span class="etiqueta ok">{{ _('configurado') }}</span>{% else %}<span class="etiqueta erro">{{ _('faltando') }}</span>{% endif %}
+    <br><span class="suave pequeno">{{ url_webhook }}</span></p>
+  {% endif %}
+</div>
+
+{% if chave_env %}
+<div class="cartao"><p class="ajuda">{{ _('A chave está definida no servidor (arquivo .env) e tem prioridade sobre esta tela.') }}</p></div>
+{% else %}
+<form method="post" action="/master/stripe/chave" class="cartao" autocomplete="off">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Chave secreta') if not modo else _('Trocar a chave') }}</h2>
+  <ol class="pequeno" style="margin:0 0 12px;padding-left:18px;line-height:1.6">
+    <li>{{ _('Entre em dashboard.stripe.com. Para testar, ligue o “Test mode” (modo de teste) no alto da tela.') }}</li>
+    <li>{{ _('Vá em Developers → API keys e copie a “Secret key” (começa com sk_test_ no teste, sk_live_ no real).') }}</li>
+    <li>{{ _('Cole abaixo. O sistema confere a chave e cria o webhook sozinho na sua conta.') }}</li>
+  </ol>
+  <div class="linha-form">
+    <div><label for="chave">{{ _('Chave secreta do Stripe') }}</label><input id="chave" type="password" name="chave" autocomplete="off" required placeholder="{{ _('cole aqui a chave') if not modo else '••••••••••••' }}"></div>
+    <div><button class="botao" type="submit">{{ _('Conferir e ligar') }}</button></div>
+  </div>
+  <p class="ajuda">{{ _('A chave nunca aparece de novo nesta tela. Não envie a chave por mensagem para ninguém.') }}</p>
+</form>
+{% if modo %}
+<form method="post" action="/master/stripe/desligar" class="cartao" data-confirma="{{ _('Desligar o Stripe? As empresas deixam de conseguir pagar pelo site até você ligar de novo.') }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Desligar') }}</h2>
+  <p class="suave pequeno">{{ _('Remove a chave desta tela e apaga o webhook criado no Stripe. As assinaturas já feitas continuam no Stripe.') }}</p>
+  <button class="botao perigo" type="submit">{{ _('Desligar o Stripe') }}</button>
+</form>
+{% endif %}
+{% endif %}
+
+<div class="cartao">
+  <h2>{{ _('Antes de cobrar de verdade') }}</h2>
+  <ul class="pequeno" style="margin:0;padding-left:18px;line-height:1.6">
+    <li>{{ _('No Stripe, em Settings → Billing → Customer portal, salve as opções uma vez (sem isso o botão “Gerenciar assinatura” não abre).') }}</li>
+    <li>{{ _('Ponha à venda os planos dos EUA em Master → Planos (país Estados Unidos), com os preços definitivos.') }}</li>
+    <li>{{ _('Teste primeiro com a chave de teste (sk_test_) e o cartão 4242 4242 4242 4242; depois troque pela chave real (sk_live_).') }}</li>
+    <li>{{ _('Só então ligue o cadastro público dos EUA em Master → Plataforma.') }}</li>
+    <li>{{ _('Para o modo real, o Stripe pede a empresa nos EUA (EIN) e a conta bancária para receber.') }}</li>
+  </ul>
+</div>
+{% endblock %}

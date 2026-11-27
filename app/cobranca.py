@@ -98,13 +98,13 @@ def ajustar_valores(db: Session, forcar: bool = False) -> int:
 
 
 def plano_gratis(db: Session) -> Plano | None:
-    return db.scalar(select(Plano).where(Plano.ativo.is_(True), Plano.preco_centavos == 0,
+    return db.scalar(select(Plano).where(Plano.ativo.is_(True), Plano.pais == "BR", Plano.preco_centavos == 0,
                                          Plano.por_pessoa_centavos == 0)
                      .order_by(Plano.ordem).limit(1))
 
 
 def _planos(db: Session) -> list[Plano]:
-    return list(db.scalars(select(Plano).where(Plano.ativo.is_(True))
+    return list(db.scalars(select(Plano).where(Plano.ativo.is_(True), Plano.pais == "BR")
                            .order_by(Plano.ordem, Plano.preco_centavos)))
 
 

@@ -427,6 +427,8 @@ class Empresa(Base):
     cpf_cnpj: Mapped[str] = mapped_column(String(20), default="")  # exigido pelo Asaas
     asaas_cliente_id: Mapped[str] = mapped_column(String(40), default="")
     asaas_assinatura_id: Mapped[str] = mapped_column(String(40), default="")
+    stripe_cliente_id: Mapped[str] = mapped_column(String(60), default="")      # EUA: cobrança pelo Stripe
+    stripe_assinatura_id: Mapped[str] = mapped_column(String(60), default="")
     # Plano por pessoa: quantas pessoas trabalharam nos últimos 30 dias e o valor que vai na próxima
     # fatura (conferidos uma vez por dia).
     pessoas_cobradas: Mapped[int] = mapped_column(Integer, default=0)
@@ -554,7 +556,7 @@ class Usuario(Base):
 
 
 class AsaasEvento(Base):
-    """Avisos do Asaas já processados (ele entrega "ao menos uma vez")."""
+    """Avisos de pagamento já processados (Asaas e Stripe entregam "ao menos uma vez")."""
     __tablename__ = "asaas_eventos"
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
     evento: Mapped[str] = mapped_column(String(40), default="")
@@ -579,6 +581,7 @@ class Pagamento(Base):
     status: Mapped[str] = mapped_column(String(12), default="pago")
     pago_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     asaas_id: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    stripe_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)   # fatura (in_...)
     fatura_url: Mapped[str] = mapped_column(String(300), default="")
 
 
@@ -1540,6 +1543,9 @@ COLUNAS_NOVAS = [
     ("empresas", "mostrar_fotos", "BOOLEAN NOT NULL DEFAULT 1"),
     ("usuarios", "cadastro_excluido_em", "DATE"),
     ("usuarios", "apagar_registros_em", "DATE"),
+    ("empresas", "stripe_cliente_id", "VARCHAR(60) NOT NULL DEFAULT ''"),
+    ("empresas", "stripe_assinatura_id", "VARCHAR(60) NOT NULL DEFAULT ''"),
+    ("pagamentos", "stripe_id", "VARCHAR(80)"),
     ("historico", "usuario_id", "INTEGER"),
     ("historico", "dia", "DATE"),
 ]

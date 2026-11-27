@@ -57,6 +57,7 @@ def ciclo_alertas():
         regras.limpar_fotos(db)
         desligamento.limpar_excluidos(db, banco.agora().date())   # prazos legais e histórico de 1 ano
         cobranca.ajustar_valores(db)
+        _us_assinatura.ajustar_valores(db)
     vendedor.limpar_antigas()   # planos por pessoa: uma vez por dia
     try:
         crm.sincronizar()           # leads do chat e contas que assinaram
@@ -156,6 +157,9 @@ for _r in (_us_descanso.rota, _us_fw.rota, _us_pto.rota, _us_sm.rota):
     app.include_router(_r, dependencies=[Depends(_us_telas.so_eua)])
 from .paises.us import pagamento as _us_pagamento  # noqa: E402
 app.include_router(_us_pagamento.rota, prefix="/eua", dependencies=[Depends(_us_telas.so_eua)])
+from .paises.us import assinatura as _us_assinatura  # noqa: E402
+app.include_router(_us_assinatura.rota, prefix="/eua", dependencies=[Depends(_us_telas.so_eua)])
+app.include_router(_us_assinatura.rota_geral)
 from .paises.us import conformidade as _us_conformidade  # noqa: E402
 app.include_router(_us_conformidade.rota, prefix="/eua", dependencies=[Depends(_us_telas.so_eua)])
 app.include_router(rastreio.rota)   # antes do CRM: /master/crm/canais não é um lead
