@@ -85,6 +85,16 @@ def datas_iphone(p):
         pag.evaluate("(document.querySelector('input[type=date]') || document.body).scrollIntoView({block: 'center'})")
         pag.wait_for_timeout(300)
         pag.screenshot(path=str(SAIDA / f"datas-iphone-{nome}.png"))
+    # janela Colaboradores do Ajuste de ponto no Safari do iPhone: a lista tem de aparecer
+    pag.goto(BASE + "/painel/ponto/ajuste", wait_until="networkidle")
+    pag.tap("[data-abrir-colab]")
+    pag.wait_for_selector("#colab-modal[open]")
+    pag.wait_for_timeout(400)
+    alt = pag.evaluate("""() => { const m = document.getElementById('colab-modal'), u = m.querySelector('ul');
+        return {janela: Math.round(m.getBoundingClientRect().height), lista: Math.round(u.getBoundingClientRect().height),
+                itens: [...u.querySelectorAll('li')].filter(l => l.getBoundingClientRect().height > 0).length}; }""")
+    linhas.append(f"janela colaboradores: {alt}")
+    pag.screenshot(path=str(SAIDA / "colab-iphone.png"))
     (SAIDA / "datas-iphone.txt").write_text("\n".join(linhas))
     nav.close()
 
