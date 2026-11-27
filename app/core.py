@@ -440,6 +440,7 @@ def render(request: Request, nome: str, status_code: int = 200, **ctx):
     tudo["pais"] = pais
     if pais == "US" and not marca:   # nos EUA a marca é "Data Worke", sem o "Brasil"
         tudo["app_nome"] = nome_eua(plat["nome"])
+        tudo["plat"] = {**plat, "nome_curto": tudo["app_nome"]}   # embaixo do ícone no celular
     if pais != "BR" and (AQUI / "templates" / pais.lower() / nome).exists():
         nome = f"{pais.lower()}/{nome}"
     if marca or base["app_ios"]:

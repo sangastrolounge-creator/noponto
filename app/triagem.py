@@ -217,14 +217,14 @@ def _form(request, u, e, db, erro=None, v=None):
 
 @rota.get("/painel/comecar")
 def tela(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
-    if not pode(u, "dono"):
+    if not pode(u, "dono") or u.empresa.pais == "US":   # as perguntas e modelos são do Brasil
         return ir("/painel")
     return _form(request, u, u.empresa, db)
 
 
 @rota.post("/painel/comecar", dependencies=CSRF)
 async def salvar(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
-    if not pode(u, "dono"):
+    if not pode(u, "dono") or u.empresa.pais == "US":
         return ir("/painel")
     e = u.empresa
     f = await request.form()

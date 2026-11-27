@@ -456,11 +456,13 @@ def plataforma_salvar(request: Request, u: Usuario = Depends(admin_logado),
 
 # ------------------------------------------------------------------ banners da tela Hoje
 CORES_BANNER = {"azul": "Azul", "verde": "Verde", "roxo": "Roxo", "laranja": "Laranja"}
+PAISES_BANNER = {"BR": "Só Brasil", "US": "Só Estados Unidos", "": "Todos os países"}
 
 
-def banners_no_ar(db: Session, hoje: date) -> list[Banner]:
-    """Banners ativos e dentro do período, na ordem escolhida pelo Master."""
-    return [b for b in db.scalars(select(Banner).where(Banner.ativo.is_(True))
+def banners_no_ar(db: Session, hoje: date, pais: str = "BR") -> list[Banner]:
+    """Banners ativos, dentro do período e do país da empresa, na ordem escolhida pelo Master."""
+    return [b for b in db.scalars(select(Banner).where(Banner.ativo.is_(True),
+                                                       Banner.pais.in_((pais, "")))
                                   .order_by(Banner.ordem, Banner.id.desc()))
             if (not b.inicio or b.inicio <= hoje) and (not b.fim or hoje <= b.fim)]
 
@@ -515,7 +517,7 @@ def _data(s: str) -> date | None:
 def banners(request: Request, u: Usuario = Depends(admin_logado), db: Session = Depends(get_db)):
     return render(request, "master/banners.html", u=u, e=u.empresa, aba="master", sub="banners",
                   banners=list(db.scalars(select(Banner).order_by(Banner.ordem, Banner.id.desc()))),
-                  CORES=CORES_BANNER, hoje=date.today())
+                  CORES=CORES_BANNER, PAISES_BANNER=PAISES_BANNER, hoje=date.today())
 
 
 @rota.post("/master/banners", dependencies=CSRF)
@@ -525,7 +527,7 @@ def banner_salvar(request: Request, u: Usuario = Depends(admin_logado), db: Sess
                   imagem: str = Form(""), arquivo: UploadFile | None = File(None),
                   sem_imagem: str = Form(""),
                   inicio: str = Form(""), fim: str = Form(""), ordem: int = Form(0),
-                  ativo: str = Form("")):
+                  ativo: str = Form(""), pais: str = Form("BR")):
     titulo = titulo.strip()
     ini, fi = _data(inicio), _data(fim)
     if not titulo:
@@ -560,6 +562,7 @@ def banner_salvar(request: Request, u: Usuario = Depends(admin_logado), db: Sess
         b.imagem = nova
         b.cor = cor if cor in CORES_BANNER else "azul"
         b.inicio, b.fim, b.ordem, b.ativo = ini, fi, ordem, bool(ativo)
+        b.pais = pais if pais in PAISES_BANNER else "BR"
         db.commit()
         avisar(request, "Banner salvo." + ("" if b.ativo else " Ele está desligado: ligue para aparecer."))
     return ir("/master/banners")
