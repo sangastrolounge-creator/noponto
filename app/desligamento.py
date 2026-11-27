@@ -202,7 +202,7 @@ def excluir_desligado(db: Session, f: Usuario, hoje: date) -> date:
     f.nascimento, f.consentimento_em, f.local_id = None, None, None
     f.desligamento_obs, f.permissoes, f.alcance_setores, f.alcance_locais = "", "", "", ""
     f.ativo = f.na_escala = False
-    base = max(f.desligado_em or hoje, hoje)
+    base = f.desligado_em or hoje          # o prazo conta do último dia de trabalho
     anos = ANOS_GUARDA.get(f.empresa.pais or "BR", 5)
     try:
         ate = base.replace(year=base.year + anos)
