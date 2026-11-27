@@ -89,9 +89,11 @@ def datas_iphone(p):
     pag.goto(BASE + "/painel/ponto/ajuste", wait_until="networkidle")
     pag.tap("[data-abrir-colab]")
     pag.wait_for_selector("#colab-modal[open]")
-    pag.wait_for_timeout(400)
+    pag.wait_for_timeout(1200)
     alt = pag.evaluate("""() => { const m = document.getElementById('colab-modal'), u = m.querySelector('ul');
-        return {janela: Math.round(m.getBoundingClientRect().height), lista: Math.round(u.getBoundingClientRect().height),
+        const r = m.getBoundingClientRect();
+        return {topo: Math.round(r.top), base: Math.round(r.bottom), tela: innerHeight, anim: getComputedStyle(m).transform,
+                janela: Math.round(r.height), lista: Math.round(u.getBoundingClientRect().height),
                 itens: [...u.querySelectorAll('li')].filter(l => l.getBoundingClientRect().height > 0).length}; }""")
     linhas.append(f"janela colaboradores: {alt}")
     pag.screenshot(path=str(SAIDA / "colab-iphone.png"))
