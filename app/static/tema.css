@@ -796,3 +796,19 @@ td.col-func .etiqueta { font-size: max(9px, calc(.72rem - 3px)); }
   :root:not([data-tema="claro"])[data-lateral="recolhida"] .topo .marca .marca-icone.mi-claro { display: none; }
   :root:not([data-tema="claro"])[data-lateral="recolhida"] .topo .marca .marca-icone.mi-escuro { display: block; }
 }
+
+/* Rotinas diárias: ícones da mesma família do menu lateral (traço, cor do grupo, animados) */
+.rotina .rotina-ic { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; font-size: 0;
+  color: var(--ico, var(--cor)); background: color-mix(in srgb, var(--ico, var(--cor)) 14%, var(--cartao));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ico, var(--cor)) 20%, transparent);
+  transition: transform var(--mola), background-color var(--rapido), color var(--rapido), box-shadow var(--rapido); }
+.rotina .rotina-ic svg { width: 24px; height: 24px; }
+.rotina:hover .rotina-ic, .rotina:focus-visible .rotina-ic { color: #fff; background: var(--ico, var(--cor));
+  box-shadow: 0 10px 20px -10px var(--ico, var(--cor)); transform: translateY(-3px) rotate(-6deg) scale(1.1); }
+.rotina:hover .rotina-ic svg { animation: rotina-ic-balanca .6s ease; }
+@keyframes rotina-ic-balanca { 30% { transform: rotate(-10deg); } 60% { transform: rotate(8deg); } }
+.rotina.forte .rotina-ic { color: #fff; background: rgb(255 255 255 / .18); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .3); }
+.rotina.forte:hover .rotina-ic { color: var(--cor); background: #fff; }
+.rotina::before { background: radial-gradient(circle, color-mix(in srgb, var(--ico, var(--cor)) 14%, transparent), transparent 70%); }
+.rotina:hover, .rotina:focus-visible { border-color: color-mix(in srgb, var(--ico, var(--cor)) 45%, var(--borda)); }
+@media (prefers-reduced-motion: reduce) { .rotina:hover .rotina-ic svg { animation: none; } }
