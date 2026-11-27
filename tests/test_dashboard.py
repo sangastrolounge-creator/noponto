@@ -75,7 +75,7 @@ def main():
     assert "Avisos novos" in t and 'href="/painel/avisos"' in t
     assert "Sem ponto: 1" in t                 # Ana não bateu às 10h
     assert "Bom dia, Zé!" in t and "Sugestões do sistema" in t and "Cadastre os feriados de 2026" in t
-    assert 'class="rotina forte" href="/painel/ponto/ajuste"' in t
+    assert 'class="rotina grupo forte" data-grupo="ponto" href="/painel/ponto/ajuste"' in t
     # menu Escala sem submenus
     assert "Turnos abertos e trocas" not in t and "Escala da semana" not in t
 
