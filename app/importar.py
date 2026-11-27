@@ -89,11 +89,9 @@ def ler(conteudo: str, db: Session, empresa_id: int, u: Usuario | None = None) -
     conteudo = conteudo.lstrip("\ufeff")
     if not conteudo.strip():
         return [], "O arquivo está vazio."
-    try:
-        dialeto = csv.Sniffer().sniff(conteudo.splitlines()[0], delimiters=",;\t")
-    except csv.Error:
-        dialeto = csv.excel
-    leitor = csv.reader(io.StringIO(conteudo), dialeto)
+    primeira = conteudo.splitlines()[0]
+    sep = max(";\t,", key=primeira.count)   # o separador que mais aparece no cabeçalho
+    leitor = csv.reader(io.StringIO(conteudo), delimiter=sep)
     try:
         cab = [c.strip().lower() for c in next(leitor)]
     except StopIteration:
