@@ -1,4 +1,5 @@
-{# Foto da pessoa: o navegador corta em quadrado e reduz para 320 px antes de enviar. #}
+{# Foto da pessoa: ao escolher a imagem abre uma janela para enquadrar (arrastar e dar zoom);
+   o navegador corta em quadrado de 320 px e só então envia. #}
 {% macro foto_pessoa(acao, pessoa, titulo, ajuda) %}
 <form method="post" action="{{ acao }}" class="cartao" id="foto" data-foto-form>
   <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="dados" value="">
@@ -13,25 +14,95 @@
       <p class="ajuda erro" data-foto-erro hidden>{{ _('Não deu para ler a foto. Escolha outra imagem.') }}</p>
     </div>
   </div>
+  <dialog class="foto-modal" data-foto-modal aria-labelledby="foto-modal-titulo">
+    <h2 id="foto-modal-titulo">{{ _('Ajustar a foto') }}</h2>
+    <p class="suave pequeno" style="margin-top:0">{{ _('Arraste a foto para centralizar o rosto e use o zoom para aproximar.') }}</p>
+    <div class="foto-quadro" data-foto-quadro tabindex="0" aria-label="{{ _('Área da foto: arraste ou use as setas') }}"><img alt="" data-foto-img draggable="false"></div>
+    <div class="foto-zoom">
+      <span aria-hidden="true">−</span>
+      <input type="range" min="1" max="4" step="0.01" value="1" data-foto-zoom aria-label="{{ _('Zoom') }}">
+      <span aria-hidden="true">+</span>
+    </div>
+    <div class="acoes" style="justify-content:flex-end">
+      <button class="botao claro" type="button" data-foto-cancelar>{{ _('Cancelar') }}</button>
+      <button class="botao" type="button" data-foto-salvar>{{ _('Salvar foto') }}</button>
+    </div>
+  </dialog>
 </form>
 <script>
 (function () {
   var form = document.currentScript.previousElementSibling;
-  var arquivo = form.querySelector('[data-foto-arquivo]');
+  var q = function (s) { return form.querySelector(s); };
+  var arquivo = q('[data-foto-arquivo]'), modal = q('[data-foto-modal]'), quadro = q('[data-foto-quadro]');
+  var img = q('[data-foto-img]'), zoom = q('[data-foto-zoom]');
+  var url = null, base = 1, esc = 1, x = 0, y = 0, arr = null;
+  function lado() { return quadro.clientWidth; }
+  function prender() {   // a foto sempre cobre o quadro inteiro
+    var L = lado(), w = img.naturalWidth * esc, h = img.naturalHeight * esc;
+    x = Math.min(0, Math.max(L - w, x)); y = Math.min(0, Math.max(L - h, y));
+  }
+  function desenhar() {
+    prender();
+    img.style.width = (img.naturalWidth * esc) + 'px';
+    img.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+  }
+  function zoomPara(novo, cx, cy) {   // mantém parado o ponto (cx, cy) do quadro
+    var L = lado(); cx = cx == null ? L / 2 : cx; cy = cy == null ? L / 2 : cy;
+    var px = (cx - x) / esc, py = (cy - y) / esc;
+    esc = base * Math.max(1, Math.min(4, novo));
+    x = cx - px * esc; y = cy - py * esc;
+    zoom.value = esc / base; desenhar();
+  }
+  function fechar() {
+    if (modal.open) modal.close();
+    if (url) { URL.revokeObjectURL(url); url = null; }
+    arquivo.value = '';
+  }
   arquivo.addEventListener('change', function () {
     var f = arquivo.files && arquivo.files[0];
     if (!f) return;
-    var img = new Image(), url = URL.createObjectURL(f);
+    q('[data-foto-erro]').hidden = true;
+    url = URL.createObjectURL(f);
     img.onload = function () {
-      var lado = Math.min(img.naturalWidth, img.naturalHeight), t = Math.min(320, lado);
-      var c = document.createElement('canvas'); c.width = c.height = t;
-      c.getContext('2d').drawImage(img, (img.naturalWidth - lado) / 2, (img.naturalHeight - lado) / 2, lado, lado, 0, 0, t, t);
-      URL.revokeObjectURL(url);
-      form.querySelector('[name=dados]').value = c.toDataURL('image/jpeg', 0.85);
-      form.submit();
+      modal.showModal();
+      var L = lado();
+      base = esc = L / Math.min(img.naturalWidth, img.naturalHeight);
+      x = (L - img.naturalWidth * esc) / 2; y = (L - img.naturalHeight * esc) / 2;
+      zoom.value = 1; desenhar();
     };
-    img.onerror = function () { URL.revokeObjectURL(url); form.querySelector('[data-foto-erro]').hidden = false; };
+    img.onerror = function () { fechar(); q('[data-foto-erro]').hidden = false; };
     img.src = url;
+  });
+  zoom.addEventListener('input', function () { zoomPara(parseFloat(zoom.value)); });
+  quadro.addEventListener('wheel', function (ev) {
+    ev.preventDefault();
+    var r = quadro.getBoundingClientRect();
+    zoomPara(esc / base * (ev.deltaY < 0 ? 1.08 : 1 / 1.08), ev.clientX - r.left, ev.clientY - r.top);
+  }, { passive: false });
+  quadro.addEventListener('pointerdown', function (ev) {
+    arr = { px: ev.clientX, py: ev.clientY, x: x, y: y }; quadro.setPointerCapture(ev.pointerId);
+  });
+  quadro.addEventListener('pointermove', function (ev) {
+    if (!arr) return;
+    x = arr.x + ev.clientX - arr.px; y = arr.y + ev.clientY - arr.py; desenhar();
+  });
+  quadro.addEventListener('pointerup', function () { arr = null; });
+  quadro.addEventListener('pointercancel', function () { arr = null; });
+  quadro.addEventListener('keydown', function (ev) {   // teclado: setas movem, + e − dão zoom
+    var passo = { ArrowLeft: [10, 0], ArrowRight: [-10, 0], ArrowUp: [0, 10], ArrowDown: [0, -10] }[ev.key];
+    if (passo) { ev.preventDefault(); x += passo[0]; y += passo[1]; desenhar(); }
+    else if (ev.key === '+' || ev.key === '=') zoomPara(esc / base * 1.1);
+    else if (ev.key === '-') zoomPara(esc / base / 1.1);
+  });
+  q('[data-foto-cancelar]').addEventListener('click', fechar);
+  modal.addEventListener('cancel', function () { fechar(); });
+  q('[data-foto-salvar]').addEventListener('click', function () {
+    var L = lado(), t = Math.min(320, Math.round(L / esc));
+    var c = document.createElement('canvas'); c.width = c.height = Math.max(64, Math.min(320, t));
+    c.getContext('2d').drawImage(img, -x / esc, -y / esc, L / esc, L / esc, 0, 0, c.width, c.width);
+    q('[name=dados]').value = c.toDataURL('image/jpeg', 0.88);
+    if (modal.open) modal.close();
+    form.submit();
   });
 })();
 </script>

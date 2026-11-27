@@ -233,6 +233,22 @@ def main():
                 pag.set_input_files("#logo-arquivo", "app/static/icone-512.png")
                 pag.click("#logo button[type=submit]:not([name])")
                 pag.wait_for_load_state("networkidle")
+                if not so or "foto" in so:   # foto da pessoa: janela de enquadrar, depois salva
+                    pag.goto(BASE + "/painel/equipe/5/ficha", wait_until="networkidle")
+                    pag.set_input_files("[data-foto-arquivo]", "app/static/logo-nome.png")
+                    pag.wait_for_selector("[data-foto-modal][open]")
+                    pag.fill("[data-foto-zoom]", "1.6")
+                    pag.dispatch_event("[data-foto-zoom]", "input")
+                    caixa = pag.locator("[data-foto-quadro]").bounding_box()
+                    pag.mouse.move(caixa["x"] + 100, caixa["y"] + 100)
+                    pag.mouse.down()
+                    pag.mouse.move(caixa["x"] + 60, caixa["y"] + 120, steps=5)
+                    pag.mouse.up()
+                    pag.wait_for_timeout(300)
+                    pag.screenshot(path=str(SAIDA / f"foto-modal-{sufixo}.png"))
+                    pag.click("[data-foto-salvar]")
+                    pag.wait_for_load_state("networkidle")
+                    pag.screenshot(path=str(SAIDA / f"foto-salva-{sufixo}.png"))
                 for nome, url in PAINEL:
                     if not so or nome in so:
                         fotografar(pag, f"{nome}-{sufixo}", url)
