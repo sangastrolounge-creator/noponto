@@ -59,7 +59,7 @@
       <div class="campo"><label for="plano">{{ _('Plano') }}</label>
         <select id="plano" name="plano">
           <option value="0">{{ _('Sem plano (funcionários ilimitados)') }}</option>
-          {% for p in planos %}<option value="{{ p.id }}" {{ 'selected' if alvo.plano_id == p.id }}>{{ p.nome }} · {{ p.preco_centavos|dinheiro }}{{ '' if p.ativo else _(' (fora de venda)') }}</option>{% endfor %}
+          {% for p in planos %}<option value="{{ p.id }}" {{ 'selected' if alvo.plano_id == p.id }}>{{ p.nome }} · {{ p.preco_centavos|dinheiro }}{{ _(' (só desta empresa)') if p.empresa_id else ('' if p.ativo else _(' (fora de venda)')) }}</option>{% endfor %}
         </select>
       </div>
       <div class="campo"><label for="pais">{{ _('País da empresa') }}</label>
@@ -70,6 +70,27 @@
       <label class="marcar campo"><input type="checkbox" name="isenta" value="1" {{ 'checked' if alvo.isenta }} {{ 'disabled' if alvo.id == e.id }}><span>{{ _('Cortesia: não vence e não tem limite de funcionários') }}{% if alvo.id == e.id %} {{ _('(a sua empresa é sempre cortesia)') }}{% endif %}</span></label>
       <div class="campo"><label for="obs">{{ _('Anotações internas') }}</label><textarea id="obs" name="obs" maxlength="2000">{{ alvo.obs_master }}</textarea></div>
       <button class="botao" type="submit">{{ _('Salvar') }}</button>
+    </form>
+  </div>
+  <div class="cartao">
+    <h2>{{ _('Plano personalizado') }}</h2>
+    <p class="suave pequeno">{{ _('Combine com esta empresa quantos funcionários e quantas unidades ela pode ter, e quanto paga por mês. O plano fica só para ela: não aparece na página de vendas nem para outras empresas.') }}</p>
+    {% if pers %}<p>{% if alvo.plano_id == pers.id %}<span class="etiqueta ok">{{ _('Em uso') }}</span>{% else %}<span class="etiqueta">{{ _('Salvo, mas a empresa está em outro plano') }}</span>{% endif %}</p>{% endif %}
+    <form method="post" action="/master/empresas/{{ alvo.id }}/plano-personalizado">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="campo"><label for="pp-func">{{ _('Funcionários') }}</label><input id="pp-func" type="number" name="funcionarios" min="0" max="100000" value="{{ pers.limite_funcionarios if pers else numeros.limite }}" required>
+        <div class="ajuda">{{ _('Hoje: {v1} ativos. 0 = sem limite.', v1=numeros.equipe) }}</div></div>
+      <div class="campo"><label for="pp-loc">{{ _('Unidades (locais de ponto)') }}</label><input id="pp-loc" type="number" name="locais" min="0" max="1000" value="{{ pers.limite_locais if pers else (alvo.plano.limite_locais if alvo.plano else 0) }}" required>
+        <div class="ajuda">{{ _('Hoje: {v1}, contando o local principal. 0 = sem limite.', v1=locais) }}</div></div>
+      <div class="campo"><label for="pp-valor">{{ _('Valor por mês') }}</label><input id="pp-valor" type="text" name="valor" inputmode="decimal" value="{{ ('%.2f'|format(((pers or alvo.plano).preco_centavos if (pers or alvo.plano) else 0) / 100))|replace('.', ',') }}" required>
+        <div class="ajuda">{{ _('Se a empresa já tem cobrança automática, as próximas cobranças passam para este valor.') }}</div></div>
+      <div class="campo"><label for="pp-base">{{ _('Recursos iguais aos do plano') }}</label>
+        <select id="pp-base" name="base">
+          {% if pers %}<option value="0">{{ _('Manter os recursos atuais') }}</option>{% endif %}
+          {% for p in planos if not p.empresa_id %}<option value="{{ p.id }}" {{ 'selected' if not pers and alvo.plano_id == p.id }}>{{ p.nome }}</option>{% endfor %}
+        </select>
+        <div class="ajuda">{{ _('GPS, foto, reconhecimento facial, cerca, alertas e tela Pagamento vêm deste plano.') }}</div></div>
+      <button class="botao" type="submit">{{ _('Salvar e aplicar o plano personalizado') }}</button>
     </form>
   </div>
 </div>

@@ -28,8 +28,16 @@ def planos_a_venda(db: Session, pais: str = "BR") -> list[Plano]:
                            .order_by(Plano.ordem, Plano.preco_centavos)))
 
 
-def _todos_os_planos(db: Session) -> list[Plano]:
-    return list(db.scalars(select(Plano).order_by(Plano.ordem, Plano.preco_centavos)))
+def _todos_os_planos(db: Session, empresa_id: int | None = None) -> list[Plano]:
+    """Planos gerais (à venda ou não) e, se pedido, o plano personalizado daquela empresa."""
+    cond = Plano.empresa_id.is_(None)
+    if empresa_id:
+        cond = cond | (Plano.empresa_id == empresa_id)
+    return list(db.scalars(select(Plano).where(cond).order_by(Plano.ordem, Plano.preco_centavos)))
+
+
+def plano_personalizado(db: Session, empresa_id: int) -> Plano | None:
+    return db.scalar(select(Plano).where(Plano.empresa_id == empresa_id).limit(1))
 
 
 def criar_empresa(db: Session, empresa: str, nome: str, email: str, senha: str,
@@ -121,7 +129,8 @@ def _detalhe(request: Request, u: Usuario, db: Session, empresa_id: int,
     alvo = _empresa(db, empresa_id)
     return render(
         request, "master/empresa.html", u=u, e=u.empresa, aba="master", sub="geral", alvo=alvo,
-        dono=_dono(db, alvo.id), planos=_todos_os_planos(db), senha_temp=senha_temp,
+        dono=_dono(db, alvo.id), planos=_todos_os_planos(db, alvo.id), senha_temp=senha_temp,
+        pers=plano_personalizado(db, alvo.id), locais=1 + len(_locais(db, alvo.id)),
         entrar_url=f"{base_url(request)}/entrar", PAISES=paises.PAISES,
         pagamentos=list(db.scalars(select(Pagamento).where(Pagamento.empresa_id == alvo.id)
                                    .order_by(Pagamento.criado_em.desc()).limit(50))),
@@ -172,11 +181,85 @@ def empresa_dados(empresa_id: int, request: Request, u: Usuario = Depends(admin_
                             "e a empresa do dono da plataforma fica no Brasil.", "erro")
             return ir(f"/master/empresas/{alvo.id}")
         paises.aplicar_padroes(alvo, pais)   # padrões do país (os brasileiros não valem lá)
-    alvo.plano_id = plano if db.get(Plano, plano) else None
+    escolhido = db.get(Plano, plano) if plano else None
+    if escolhido and escolhido.empresa_id not in (None, alvo.id):
+        escolhido = None   # plano personalizado de outra empresa
+    alvo.plano_id = escolhido.id if escolhido else None
     alvo.isenta = bool(isenta) or alvo.id == u.empresa_id  # a do dono é sempre cortesia
     alvo.obs_master = obs.strip()[:2000]
     db.commit()
     avisar(request, "Dados da empresa salvos.")
+    return ir(f"/master/empresas/{alvo.id}")
+
+
+def _locais(db: Session, empresa_id: int) -> list:
+    from .fase3 import locais_da
+    return locais_da(db, empresa_id)
+
+
+@rota.post("/master/empresas/{empresa_id}/plano-personalizado", dependencies=CSRF)
+def empresa_plano_personalizado(empresa_id: int, request: Request, u: Usuario = Depends(admin_logado),
+                                db: Session = Depends(get_db), funcionarios: int = Form(0),
+                                locais: int = Form(0), valor: str = Form(""), base: int = Form(0)):
+    """Plano só desta empresa: limite de funcionários, de unidades (locais de ponto) e valor mensal
+    combinados com ela. Os recursos (GPS, foto, alertas...) vêm do plano escolhido como base."""
+    from . import crescimento, regras
+    alvo = _empresa(db, empresa_id)
+    centavos = ler_centavos(valor)
+    if centavos is None:
+        avisar(request, "Valor inválido. Use o formato 199,90.", "erro")
+        return ir(f"/master/empresas/{alvo.id}")
+    if not 0 <= funcionarios <= 100000 or not 0 <= locais <= 1000:
+        avisar(request, "Limites inválidos.", "erro")
+        return ir(f"/master/empresas/{alvo.id}")
+    modelo = db.get(Plano, base) if base else None
+    if modelo and modelo.empresa_id not in (None, alvo.id):
+        modelo = None
+    p = plano_personalizado(db, alvo.id)
+    novo = p is None
+    if novo:
+        p = Plano(empresa_id=alvo.id, nome="Personalizado", ativo=False, ordem=999)
+        db.add(p)
+    if modelo and modelo is not p:
+        for campo in ("com_pagamento", "com_alertas", "com_gps", "com_foto", "com_facial", "com_cerca"):
+            setattr(p, campo, getattr(modelo, campo))
+    antes = (p.limite_funcionarios, p.limite_locais, p.preco_centavos)
+    p.pais = alvo.pais or "BR"
+    p.preco_centavos, p.limite_funcionarios, p.limite_locais = centavos, funcionarios, locais
+    p.base_centavos = p.por_pessoa_centavos = p.minimo_centavos = p.tolerancia = 0
+    p.grupo, p.descontos_volume, p.destaque = "", "", False
+    linhas = ["Plano combinado com a sua empresa",
+              f"Até {funcionarios} funcionários" if funcionarios else "Funcionários ilimitados",
+              (f"Até {locais} unidades (locais de ponto)" if locais else "Unidades ilimitadas")]
+    if modelo and modelo is not p:
+        linhas.append(f"Recursos do plano {modelo.nome}")
+    p.descricao = "\n".join(linhas)
+    db.flush()
+    alvo.plano_id, alvo.plano = p.id, p
+    regras.registrar(db, alvo.id, u.email or u.nome, "plano personalizado",
+                     f"Plano personalizado: {funcionarios or 'sem limite de'} funcionários, "
+                     f"{locais or 'sem limite de'} unidades, {dinheiro(centavos, alvo.pais)}/mês.")
+    msg = (f"Plano personalizado de {alvo.nome} salvo: {dinheiro(centavos, alvo.pais)}/mês.")
+    # Quem já tem cobrança automática passa a pagar o valor novo nas próximas cobranças.
+    if alvo.asaas_assinatura_id and asaas.configurado() and (novo or antes[2] != centavos):
+        ciclo = crescimento.valor_do_ciclo(crescimento.calcular(db, alvo, p)[0], alvo.ciclo)
+        try:
+            if ciclo >= asaas.VALOR_MINIMO_CENTAVOS:
+                asaas.mudar_valor_assinatura(alvo.asaas_assinatura_id, ciclo)
+                alvo.valor_assinatura_centavos = ciclo
+                msg += f" A cobrança automática passa para {dinheiro(ciclo, alvo.pais)} a partir da próxima."
+            else:
+                msg += " O valor ficou abaixo do mínimo do Asaas: a cobrança automática não foi mudada."
+        except asaas.AsaasErro as ex:
+            msg += f" Não deu para mudar a cobrança automática no Asaas ({ex}); tente salvar de novo."
+    db.commit()
+    equipe, unidades = funcionarios_ativos(db, alvo.id), 1 + len(_locais(db, alvo.id))
+    if (funcionarios and equipe > funcionarios) or (locais and unidades > locais):
+        msg += (f" Atenção: a empresa já tem {equipe} funcionários ativos e {unidades} unidades; "
+                "acima do limite ela não consegue cadastrar mais.")
+    if alvo.isenta:
+        msg += " Ela está como cortesia: enquanto for cortesia, os limites não valem."
+    avisar(request, msg)
     return ir(f"/master/empresas/{alvo.id}")
 
 

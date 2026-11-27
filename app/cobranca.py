@@ -103,9 +103,12 @@ def plano_gratis(db: Session) -> Plano | None:
                      .order_by(Plano.ordem).limit(1))
 
 
-def _planos(db: Session) -> list[Plano]:
-    return list(db.scalars(select(Plano).where(Plano.ativo.is_(True))
-                           .order_by(Plano.ordem, Plano.preco_centavos)))
+def _planos(db: Session, e: Empresa | None = None) -> list[Plano]:
+    """Planos à venda e, para a empresa `e`, o plano personalizado dela (que fica fora de venda)."""
+    cond = Plano.ativo.is_(True) & Plano.empresa_id.is_(None)
+    if e is not None:
+        cond = cond | (Plano.empresa_id == e.id)
+    return list(db.scalars(select(Plano).where(cond).order_by(Plano.ordem, Plano.preco_centavos)))
 
 
 # ------------------------------------------------- efeitos de um pagamento
@@ -214,7 +217,7 @@ def assinatura(request: Request, u: Usuario = Depends(gestor_logado),
     pagos = list(db.scalars(select(Pagamento).where(
         Pagamento.empresa_id == e.id, Pagamento.status == "pago")
         .order_by(Pagamento.pago_em.desc()).limit(12)))
-    planos = _planos(db)
+    planos = _planos(db, e)
     precos = {p.id: valor_atual(db, e, p)[0] for p in planos}
     return render(request, "painel_assinatura.html", u=u, e=e, aba="assinatura",
                   planos=planos, usados=funcionarios_ativos(db, e.id),
@@ -262,7 +265,7 @@ def pagar(request: Request, u: Usuario = Depends(gestor_logado),
           cpf_cnpj: str = Form(""), modo: str = Form("automatica"), ciclo: str = Form("mensal")):
     e = u.empresa
     ciclo = "anual" if ciclo == "anual" else "mensal"
-    escolhido = next((p for p in _planos(db) if p.id == plano), None)
+    escolhido = next((p for p in _planos(db, e) if p.id == plano), None)
     if escolhido:   # plano de um grupo: vale a faixa que cabe e fica mais barata
         mensal, _, faixa = crescimento.calcular(db, e, escolhido)
         escolhido = faixa or escolhido
