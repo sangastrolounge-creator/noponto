@@ -14,7 +14,7 @@ SAIDA = Path("capturas")
 PUBLICAS = [("inicio", "/"), ("entrar", "/entrar"), ("cadastro", "/cadastro"), ("esqueci", "/esqueci"), ("portaria671", "/portaria-671")]
 PAINEL = [("hoje", "/painel"), ("escala", "/painel/escala"), ("ponto", "/painel/ponto"),
           ("ajuste", "/painel/ponto/ajuste"), ("equipe", "/painel/equipe"), ("historico", "/painel/historico"), ("setores", "/painel/setores"), ("gerentes", "/painel/gerentes"), ("ficha", "/painel/equipe/5/ficha#documentos"),
-          ("config", "/painel/config#logo"), ("relatorios", "/painel/relatorios"), ("folha", "/painel/folha?func=5"), ("fechamento", "/painel/fechamento"), ("horas", "/painel/fechamento/horas"), ("vendas", "/master/pagina/previa"),
+          ("config", "/painel/config#logo"), ("relatorios", "/painel/relatorios"), ("pagamento", "/painel/pagamento"), ("folha", "/painel/folha?func=5"), ("fechamento", "/painel/fechamento"), ("horas", "/painel/fechamento/horas"), ("vendas", "/master/pagina/previa"),
           ("master", "/master"), ("app", "/app"), ("p671-painel", "/painel/portaria671"),
           ("p671-master", "/master/portaria671"), ("comprovantes", "/app/comprovantes"),
           ("conta", "/conta"), ("lojas", "/master/lojas"), ("crm", "/master/crm"), ("crm-lead", "/master/crm/2"),
@@ -70,7 +70,7 @@ def datas_iphone(p):
     pag.wait_for_load_state("networkidle")
     linhas = []
     for nome, url in (("ponto", "/painel/ponto"), ("ausencias", "/painel/ausencias"),
-                      ("relatorios", "/painel/relatorios"), ("ficha", "/painel/equipe/2/ficha"),
+                      ("relatorios", "/painel/relatorios"), ("pagamento", "/painel/pagamento"), ("ficha", "/painel/equipe/2/ficha"),
                       ("apropriacao", "/painel/ponto/ajuste"), ("ferias", "/painel/ferias")):
         pag.goto(BASE + url, wait_until="networkidle")
         pag.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
