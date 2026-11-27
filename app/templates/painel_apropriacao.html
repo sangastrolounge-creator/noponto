@@ -3,6 +3,9 @@
 <div class="cabecalho">
   <div><h1>{{ _('Ajuste de ponto') }}</h1><p class="suave" style="margin:0">{{ _('O dia a dia de cada colaborador. Passe o mouse nos três pontinhos de um dia para ajustar.') }}</p></div>
   <div class="acoes">
+    {% if resultado %}<button type="button" class="botao" data-abrir-colab aria-haspopup="dialog" aria-controls="colab-modal">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.5c2.1.8 3.5 2.8 3.5 5.5"/></svg>
+      {{ _('Colaboradores') }} <span class="colab-cont">{{ resultado|length }}</span></button>{% endif %}
     <a class="botao claro" href="/painel/ponto">{{ _('Batidas e horas') }}</a>
     <a class="botao claro" href="/painel/fechamento">{{ _('Fechamento') }}</a>
   </div>
@@ -22,9 +25,11 @@
 <div class="cartao"><div class="vazio">{{ _('Ninguém com escala ou ponto neste período.') }}</div></div>
 {% else %}
 <div class="apropriacao">
-  <aside class="cartao colaboradores" aria-label="{{ _('Colaboradores') }}">
-    <h2>{{ _('Colaboradores') }} <span class="suave pequeno" style="font-weight:400">{{ resultado|length }}</span></h2>
-    <ul>
+  <dialog class="colab-modal" id="colab-modal" aria-labelledby="colab-modal-titulo">
+    <div class="janela-topo"><h2 id="colab-modal-titulo">{{ _('Colaboradores') }} <span class="suave pequeno" style="font-weight:400">{{ resultado|length }}</span></h2>
+      <button type="button" class="botao link" data-fechar-colab aria-label="{{ _('Fechar') }}">✕</button></div>
+    <input type="search" class="colab-busca" placeholder="{{ _('Buscar pelo nome') }}" aria-label="{{ _('Buscar pelo nome') }}" data-colab-busca autocomplete="off">
+    <ul class="colaboradores">
       {% for r in resultado %}
       {% set saldo_r = r.trabalhado - r.previsto %}
       <li><a href="/painel/ponto/ajuste?de={{ ini.isoformat() }}&ate={{ fim.isoformat() }}&func={{ r.u.id }}" class="colab{{ ' ativo' if atual and atual.u.id == r.u.id }}"{% if atual and atual.u.id == r.u.id %} aria-current="true"{% endif %}>
@@ -36,7 +41,8 @@
       </a></li>
       {% endfor %}
     </ul>
-  </aside>
+    <p class="suave pequeno" data-colab-vazio hidden>{{ _('Ninguém com esse nome.') }}</p>
+  </dialog>
 
   {% if atual %}
   {% set r = atual %}
@@ -133,6 +139,34 @@
   <div id="janela-corpo"></div>
 </dialog>
 <script>
+(function () {   // janela Colaboradores: abre pelo botão, busca pelo nome, fecha ao escolher
+  var m = document.getElementById('colab-modal'), b = document.querySelector('[data-abrir-colab]');
+  if (!m || !b || !m.showModal) return;
+  var busca = m.querySelector('[data-colab-busca]'), vazio = m.querySelector('[data-colab-vazio]');
+  var tira = function (t) { return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
+  b.addEventListener('click', function () {
+    m.showModal();
+    var at = m.querySelector('.colab.ativo');
+    if (at) at.scrollIntoView({ block: 'center' });
+    if (matchMedia('(pointer: fine)').matches) busca.focus();
+  });
+  m.addEventListener('click', function (ev) {
+    if (ev.target === m || ev.target.closest('[data-fechar-colab]')) m.close();
+  });
+  busca.addEventListener('input', function () {
+    var q = tira(busca.value.trim()), n = 0;
+    m.querySelectorAll('.colaboradores li').forEach(function (li) {
+      var ok = !q || tira(li.textContent).indexOf(q) >= 0;
+      li.hidden = !ok; if (ok) n++;
+    });
+    vazio.hidden = n > 0;
+  });
+  busca.addEventListener('keydown', function (ev) {   // Enter abre o primeiro da busca
+    if (ev.key !== 'Enter') return;
+    var a = m.querySelector('.colaboradores li:not([hidden]) a');
+    if (a) { ev.preventDefault(); location.href = a.href; }
+  });
+})();
 (function () {
   var dlg = document.getElementById('janela-acao');
   if (!dlg || !dlg.showModal) return;
