@@ -142,6 +142,8 @@ class WhatsMensagem(Base):
     pelo_celular: Mapped[bool] = mapped_column(Boolean, default=False)     # resposta dada no app do celular
     lida: Mapped[bool] = mapped_column(Boolean, default=False)           # a equipe já viu (só entrada)
     robo: Mapped[bool] = mapped_column(Boolean, default=False)           # resposta escrita pelo robô
+    audio: Mapped[bool] = mapped_column(Boolean, default=False)          # veio (ou foi) como áudio/voz
+    midia_id: Mapped[str] = mapped_column(String(80), default="")        # id do áudio na Meta, até transcrever
     criado_em: Mapped[datetime] = mapped_column(DateTime, index=True)
 
 
@@ -1522,6 +1524,8 @@ COLUNAS_NOVAS = [
     ("crm_leads", "instagram_id", "VARCHAR(40) NOT NULL DEFAULT ''"),
     ("crm_atividades", "ref", "VARCHAR(120) NOT NULL DEFAULT ''"),
     ("crm_leads", "robo_pausado", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("crm_whatsapp", "audio", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("crm_whatsapp", "midia_id", "VARCHAR(80) NOT NULL DEFAULT ''"),
     ("crm_whatsapp", "robo", "BOOLEAN NOT NULL DEFAULT 0"),
     ("conversas_venda", "utm", "TEXT NOT NULL DEFAULT ''"),
     ("turnos", "so_principal", "BOOLEAN NOT NULL DEFAULT 0"),

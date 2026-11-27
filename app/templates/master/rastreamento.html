@@ -58,6 +58,15 @@
     <button class="botao {{ 'claro' if wa_robo }}" type="submit" {{ 'disabled' if not wa_robo and not (wa_envia and ia_ok) }}>{{ _('Desligar o robô do WhatsApp') if wa_robo else _('Ligar o robô do WhatsApp') }}</button>
   </form>
   <p class="suave pequeno">{{ _('O robô usa o mesmo assistente do chat do site (Claude) para responder quem escreve no WhatsApp: tira dúvidas, mostra os planos e manda o link do teste grátis. Ele para sozinho naquela conversa quando alguém do time responde ou quando a pessoa pede para falar com alguém, e deixa uma tarefa no CRM.') }}{% if not ia_ok %} <strong>{{ _('Falta a chave do Claude em Master → Claude.') }}</strong>{% endif %}</p>
+  <h3>{{ _('Áudio') }}</h3>
+  <p>{% if voz_ouve %}<span class="etiqueta ok">{{ _('Transcrevendo áudios') }}</span>{% else %}<span class="etiqueta">{{ _('Não transcreve') }}</span>{% endif %}
+     {% if voz_ligada %}<span class="etiqueta ok">{{ _('Respondendo em voz') }}</span>{% else %}<span class="etiqueta">{{ _('Voz desligada') }}</span>{% endif %}</p>
+  <form method="post" action="/master/rastreamento/whatsapp-voz" style="margin:10px 0">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="ligar" value="{{ '' if voz_ligada else '1' }}">
+    <button class="botao {{ 'claro' if voz_ligada }}" type="submit" {{ 'disabled' if not voz_ligada and not voz_fala }}>{{ _('Desligar as respostas em voz') if voz_ligada else _('Ligar as respostas em voz') }}</button>
+  </form>
+  <p class="suave pequeno">{{ _('Os áudios que chegam viram texto na conversa, para o time e para o robô. Com a voz ligada, quando a pessoa manda um áudio curto o robô responde com mensagem de voz; o link do teste vai em texto logo depois. Os arquivos de áudio não ficam guardados, só o texto. Transcrever precisa de ELEVENLABS_API_KEY; falar precisa também de VOZ_ID (a voz da marca), no .env do servidor.') }}</p>
   <p class="suave pequeno">{{ _('As mensagens do WhatsApp da plataforma aparecem na ficha do lead, e a equipe responde por lá. Receber precisa de META_APP_SECRET e META_VERIFY_TOKEN (ou WA_APP_SECRET e WA_VERIFY_TOKEN); enviar precisa de WA_TOKEN e WA_PHONE_ID no .env do servidor.') }}</p>
   <p class="suave pequeno">{{ _('Endereço para colar no painel da Meta (URL de retorno de chamada):') }}</p>
   <p><code>{{ wa_url }}</code></p>
