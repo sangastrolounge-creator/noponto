@@ -194,8 +194,8 @@ def main():
     with SessionLocal() as db:
         ld = db.scalar(select(Lead).where(Lead.telefone == "98999990005"))
         assert ld.robo_pausado
-        tarefa = db.scalar(select(LeadTarefa).where(LeadTarefa.lead_id == ld.id))
-        assert tarefa.titulo == "Problema no sistema: Batida da Júlia de ontem não aparece no fechamento"
+        titulos = list(db.scalars(select(LeadTarefa.titulo).where(LeadTarefa.lead_id == ld.id)))
+        assert "Problema no sistema: Batida da Júlia de ontem não aparece no fechamento" in titulos, titulos
 
     # áudio que não deu para baixar: fica "[áudio]" e o robô pede para repetir (não inventa)
     roteiro.append("Não consegui ouvir seu áudio. Pode mandar de novo ou escrever?")
