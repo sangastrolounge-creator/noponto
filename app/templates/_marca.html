@@ -4,6 +4,10 @@
 {%- if mp -%}
 <span class="logo-nome logo-parceiro {{ classe }}">{% if mp.logo %}<img src="/marca-logo/{{ mp.logo }}" alt="{{ mp.nome }}">{% else %}<strong>{{ mp.nome }}</strong>{% endif %}</span>
 {%- else -%}
+{%- if pais_tela() == 'US' -%}{# EUA: logo com "Management solutions" #}
+<span class="logo-nome {{ classe }}"><img class="ln-claro" src="/static/logo-nome-us.png?v=1" alt="{{ app_nome }}" width="900" height="178"><img class="ln-escuro" src="/static/logo-nome-us-escuro.png?v=1" alt="{{ app_nome }}" width="900" height="178"></span>
+{%- else -%}
 <span class="logo-nome {{ classe }}"><img class="ln-claro" src="/static/logo-nome.png?v=2" alt="{{ app_nome }}" width="900" height="176"><img class="ln-escuro" src="/static/logo-nome-escuro.png?v=2" alt="{{ app_nome }}" width="900" height="176"></span>
+{%- endif -%}
 {%- endif -%}
 {%- endmacro %}
