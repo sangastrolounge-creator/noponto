@@ -10,7 +10,12 @@
   </header>
 
   {% if p.desligado_em %}
-  <div class="desl-corpo">
+  {% set pode_excluir = p.desligado_em < hoje and not p.ativo %}
+  <div class="desl-passos" role="tablist">
+    <button type="button" role="tab" aria-selected="true" data-passo="resumo">{{ _('Desligamento') }}</button>
+    <button type="button" role="tab" aria-selected="false" data-passo="excluir">{{ _('Excluir cadastro') }}</button>
+  </div>
+  <div class="desl-corpo" data-painel="resumo">
     <div class="desl-resumo">
       <div><span>{{ _('Último dia') }}</span><strong>{{ p.desligado_em|fdata('%d/%m/%Y') }}</strong></div>
       <div><span>{{ _('Tipo') }}</span><strong>{{ _(TIPOS.get(p.desligamento_tipo, '—')) }}</strong></div>
@@ -23,6 +28,31 @@
       <button class="botao claro" type="button" data-fechar>{{ _('Fechar') }}</button>
       <button class="botao" type="submit">{{ _('Desfazer desligamento') }}</button>
     </form>
+  </div>
+  <div class="desl-corpo" data-painel="excluir" hidden>
+    {% if not pode_excluir %}
+    <div class="desl-guia aviso-bloqueio">
+      <strong>{{ _('Ainda não dá para excluir') }}</strong>
+      <span>{{ _('O cadastro pode ser excluído a partir do dia seguinte ao último dia de trabalho ({v1}).', v1=p.desligado_em|fdata('%d/%m/%Y')) }}</span>
+    </div>
+    <div class="desl-acoes"><button class="botao claro" type="button" data-fechar>{{ _('Fechar') }}</button></div>
+    {% else %}
+    {% set anos = 3 if e.pais == 'US' else 5 %}
+    {% set CONFIRMA = _('Excluir o cadastro de {v1}? Isso não pode ser desfeito.', v1=p.nome) %}
+    <div class="desl-guia">
+      <strong>{{ _('O que acontece') }}</strong>
+      <span>{{ _('Contato, documentos, dados de RH, foto, biometria, acesso e escala são apagados agora. As marcações de ponto, os espelhos, as folhas e os holerites ficam guardados por {v1} anos depois do último dia, como a lei exige, e então são apagados sozinhos. O histórico de ações fica 1 ano.', v1=anos) }}</span>
+    </div>
+    <form method="post" action="/painel/equipe/{{ p.id }}/excluir" data-confirma="{{ CONFIRMA }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label for="desl-c-{{ p.id }}">{{ _('Para confirmar, digite o nome completo: {v1}', v1=p.nome) }}</label>
+      <input id="desl-c-{{ p.id }}" type="text" name="confirmar" autocomplete="off" data-nome-confirmar="{{ p.nome }}" required>
+      <div class="desl-acoes">
+        <button class="botao claro" type="button" data-fechar>{{ _('Cancelar') }}</button>
+        <button class="botao perigo" type="submit" data-excluir disabled>{{ _('Excluir cadastro') }}</button>
+      </div>
+    </form>
+    {% endif %}
   </div>
   {% else %}
   <div class="desl-passos" role="tablist">
@@ -64,12 +94,13 @@
     {% if p.id in com_registros %}
     <div class="desl-guia aviso-bloqueio">
       <strong>{{ _('Este cadastro não pode ser excluído') }}</strong>
-      <span>{{ _('{v1} tem marcações de ponto, ausências ou folhas. A empresa precisa guardar esses registros por pelo menos 5 anos, então use a aba Demitir.', v1=p.primeiro_nome) }}</span>
+      <span>{{ _('{v1} tem marcações de ponto, ausências ou folhas. Primeiro faça o desligamento na aba Demitir; depois do último dia de trabalho, o cadastro pode ser excluído.', v1=p.primeiro_nome) }}</span>
     </div>
     <div class="desl-acoes"><button class="botao claro" type="button" data-fechar>{{ _('Fechar') }}</button></div>
     {% else %}
+    {% set CONFIRMA = _('Excluir o cadastro de {v1}? Isso não pode ser desfeito.', v1=p.nome) %}
     <p class="suave pequeno" style="margin-top:0">{{ _('Use só para cadastro feito por engano ou de quem nunca trabalhou. O cadastro, a escala e os acessos são apagados de vez.') }}</p>
-    <form method="post" action="/painel/equipe/{{ p.id }}/excluir">
+    <form method="post" action="/painel/equipe/{{ p.id }}/excluir" data-confirma="{{ CONFIRMA }}">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <label for="desl-c-{{ p.id }}">{{ _('Para confirmar, digite o nome completo: {v1}', v1=p.nome) }}</label>
       <input id="desl-c-{{ p.id }}" type="text" name="confirmar" autocomplete="off" data-nome-confirmar="{{ p.nome }}" required>

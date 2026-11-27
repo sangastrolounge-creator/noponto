@@ -126,11 +126,36 @@ def main():
         c = db.get(Usuario, ids["Caio"])
         assert c.ativo and c.na_escala and c.desligado_em is None and c.desligamento_tipo == ""
 
-    # ---- excluir: Ana tem ponto (não pode); Bruno não tem (pode, digitando o nome)
-    posta(g, f"/painel/equipe/{ids['Ana']}/excluir", tg, confirmar="Ana Souza")
-    assert "precisa guardar" in g.get("/painel/equipe").text
+    # ---- excluir quem tem ponto e não foi desligado: não pode (Caio trabalhou)
     with SessionLocal() as db:
-        assert db.get(Usuario, ids["Ana"])
+        db.add(Batida(empresa_id=1, usuario_id=ids["Caio"], tipo="entrada", dia=SEG,
+                      momento=relogio["agora"] - timedelta(days=3)))
+        db.commit()
+    posta(g, f"/painel/equipe/{ids['Caio']}/excluir", tg, confirmar="Caio Reis")
+    assert "Primeiro faça o desligamento" in g.get("/painel/equipe").text
+    with SessionLocal() as db:
+        assert db.get(Usuario, ids["Caio"]).celular
+
+    # ---- Ana (desligada ontem, com ponto): a exclusão apaga os dados pessoais e guarda o ponto 5 anos
+    tela = g.get("/painel/equipe").text
+    assert "O que acontece" in tela and "5 anos" in tela and "data-confirma" in tela
+    posta(g, f"/painel/equipe/{ids['Ana']}/excluir", tg, confirmar="Ana")
+    with SessionLocal() as db:
+        assert db.get(Usuario, ids["Ana"]).cadastro_excluido_em is None      # nome errado: nada muda
+    posta(g, f"/painel/equipe/{ids['Ana']}/excluir", tg, confirmar="ana souza")
+    with SessionLocal() as db:
+        a = db.get(Usuario, ids["Ana"])
+        assert a.cadastro_excluido_em and a.apagar_registros_em == ontem.replace(year=ontem.year + 5)
+        assert a.celular is None and a.email is None and a.senha_hash is None and a.nome == "Ana Souza"
+        assert db.scalar(select(Batida.id).where(Batida.usuario_id == a.id))   # o ponto fica
+        h = db.scalar(select(Historico).where(Historico.acao == "cadastro excluído", Historico.usuario_id == a.id))
+        assert h and "dados pessoais apagados" in h.detalhe
+    tela = g.get("/painel/equipe").text
+    assert f'id="p{ids["Ana"]}"' not in tela                                 # some da Equipe
+    posta(g, f"/painel/equipe/{ids['Ana']}/desfazer-desligamento", tg)
+    with SessionLocal() as db:
+        assert not db.get(Usuario, ids["Ana"]).ativo                        # não volta
+
     posta(g, f"/painel/equipe/{ids['Bruno']}/excluir", tg, confirmar="Bruno")
     assert "nome completo" in g.get("/painel/equipe").text
     posta(g, f"/painel/equipe/{ids['Bruno']}/excluir", tg, confirmar="  bruno   LIMA ")
@@ -153,6 +178,19 @@ def main():
         c = db.get(Usuario, ids["Caio"])
         assert c and c.ativo and c.desligado_em is None
 
+    # ---- rotina diária: fim do prazo legal apaga o ponto da Ana; 1 ano depois some o histórico
+    from app import desligamento
+    with SessionLocal() as db:
+        assert desligamento.limpar_excluidos(db, ontem.replace(year=ontem.year + 5) - timedelta(days=1))[0] == 0
+        assert db.get(Usuario, ids["Ana"])
+    as_("07:00", SEG + timedelta(days=400))
+    with SessionLocal() as db:
+        n, linhas = desligamento.limpar_excluidos(db, ontem.replace(year=ontem.year + 5))
+        assert n == 1 and linhas >= 3
+        assert db.get(Usuario, ids["Ana"]) is None
+        assert not db.scalar(select(Batida.id).where(Batida.usuario_id == ids["Ana"]))
+        assert not db.scalar(select(Historico.id).where(Historico.usuario_id.in_([ids["Ana"], ids["Bruno"]])))
+        assert db.scalar(select(Historico.id).where(Historico.usuario_id == ids["Caio"]))   # quem segue fica
     print("OK: desligamento e exclusão do cadastro passou")
 
 
