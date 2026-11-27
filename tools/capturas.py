@@ -252,6 +252,21 @@ def main():
                 for nome, url in PAINEL:
                     if not so or nome in so:
                         fotografar(pag, f"{nome}-{sufixo}", url)
+                if tela == "cel" and tema == "light" and (not so or "swipe" in so):   # arrastar entre páginas
+                    pag.goto(BASE + "/painel", wait_until="networkidle")
+                    pag.evaluate("""() => {
+                        const el = document.querySelector('h1');
+                        const toque = (x, y) => new Touch({identifier: 1, target: el, clientX: x, clientY: y});
+                        const ev = (tipo, x, y) => el.dispatchEvent(new TouchEvent(tipo, {bubbles: true, cancelable: true,
+                            touches: tipo === 'touchend' ? [] : [toque(x, y)], changedTouches: [toque(x, y)]}));
+                        ev('touchstart', 300, 300); ev('touchmove', 250, 302); ev('touchmove', 190, 304);
+                        window.__fimSwipe = () => ev('touchend', 190, 304);
+                    }""")
+                    pag.wait_for_timeout(200)
+                    pag.screenshot(path=str(SAIDA / "swipe-painel-meio.png"))
+                    with pag.expect_navigation():
+                        pag.evaluate("window.__fimSwipe()")
+                    (SAIDA / "swipe.txt").write_text("depois do swipe para a esquerda em /painel: " + pag.url)
                 if tela == "cel" and (not so or "gaveta" in so):   # menu em gaveta aberto
                     for nome, url in (("gaveta-painel", "/painel/ponto"), ("gaveta-master", "/master/crm")):
                         pag.goto(BASE + url, wait_until="networkidle")
