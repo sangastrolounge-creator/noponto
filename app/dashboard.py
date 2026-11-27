@@ -125,7 +125,7 @@ def sugestoes(db: Session, e, u, dia: date) -> list[dict]:
     """Próximos passos que fazem diferença para esta empresa (o card "Sugestões do sistema")."""
     s = []
     eua = e.pais == "US"
-    if not e.triagem_em and core.pode(u, "dono") and not eua:   # configuração guiada: só Brasil
+    if not e.triagem_em and core.pode(u, "dono"):
         s.append(dict(titulo="Configure em 2 minutos", link="/painel/comecar", botao="Começar",
                       texto="Responda 7 perguntas e deixamos funções, checklist, regras do seu estado e modelos de turno prontos."))
     tem_equipe = db.scalar(select(Usuario.id).where(Usuario.empresa_id == e.id,

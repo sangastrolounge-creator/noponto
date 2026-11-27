@@ -349,9 +349,6 @@ def cadastro(request: Request, tarefas_bg: BackgroundTasks, empresa: str = Form(
     crescimento.ao_criar_empresa(request, db, u, cupom, bool(contador))
     tarefas_bg.add_task(avisos_master.nova_empresa, u.empresa_id)
     request.session["uid"] = u.id
-    if pais == "US":   # a configuração guiada (perguntas e modelos) ainda é só do Brasil
-        avisar(request, "Conta criada. Confira as regras da empresa em Configurações.")
-        return ir("/painel/config")
     avisar(request, "Conta criada. Responda 7 perguntas rápidas e deixamos tudo pronto.")
     return ir("/painel/comecar")
 

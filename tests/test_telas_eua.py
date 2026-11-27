@@ -199,10 +199,10 @@ def main():
     assert "Fim da escala 6x1" not in hoje_us and "Overtime made easy" in hoje_us and "Novidade para todos" in hoje_us
     assert "Fim da escala 6x1" in hoje_br and "Overtime made easy" not in hoje_br and "Novidade para todos" in hoje_br
     assert 'href="/painel/ferias"' not in hoje_us and "Lançar ausências e PTO" in hoje_us
-    assert "/painel/comecar" not in hoje_us and "atestados" not in hoje_us
+    assert "atestados" not in hoje_us
     assert 'href="/painel/ferias"' in hoje_br and "Lançar atestados e afastamentos" in hoje_br
     assert us.get("/painel/ferias").headers["location"] == "/painel/ausencias"
-    assert us.get("/painel/comecar").headers["location"] == "/painel"
+    assert "De quanto em quanto tempo a equipe recebe?" in us.get("/painel/comecar").text
     assert br.get("/painel/ferias").status_code == 200
     assert 'apple-mobile-web-app-title" content="Data Worke"' in hoje_us
     assert 'apple-mobile-web-app-title" content="Data Worke Brasil"' in hoje_br
@@ -210,6 +210,21 @@ def main():
     assert (mf["short_name"], mf["lang"]) == ("Data Worke", "en-US"), mf
     assert mf["description"] == "Team schedule, time clock and tasks."
     assert TestClient(app).get("/manifest.webmanifest").json()["lang"] == "pt-BR"
+
+    # configuração guiada americana: estado, fuso, hora extra do estado e frequência de pagamento
+    tq = csrf(us, "/painel/comecar")
+    r = posta(us, "/painel/comecar", tq, segmento="restaurante", porte="6-15", locais="1", estado="WA",
+              abre="10:00", fecha="23:00", gorjeta="sim", menores="nao", ponto="celular",
+              frequencia="semimonthly", provedor="gusto")
+    assert r.headers["location"] == "/painel/comecar/pronto", r.text[:500]
+    with SessionLocal() as db:
+        e = db.get(Empresa, eid)
+        assert (e.estado, e.fuso, e.frequencia, e.provedor_folha) == ("WA", "America/Los_Angeles", "semimonthly", "gusto")
+        assert (e.ot_dia_min, e.controle) == (0, "banco") and e.triagem_em
+    pronto = us.get("/painel/comecar/pronto").text
+    assert "Gusto" in pronto and "40 h na semana" in pronto and "por hora" in pronto, pronto[:3000]
+    assert posta(us, "/painel/comecar", tq, segmento="restaurante", porte="6-15", locais="1", estado="SP",
+                 abre="10:00", fecha="23:00", frequencia="weekly").status_code == 400   # UF do Brasil não vale
 
     # a empresa brasileira continua no Brasil, com as regras de lá
     with SessionLocal() as db:

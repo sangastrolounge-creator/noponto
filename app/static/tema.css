@@ -760,3 +760,10 @@ td.col-func .etiqueta { font-size: max(9px, calc(.72rem - 3px)); }
 .zap-icone:focus-visible { outline: 2px solid var(--cor); outline-offset: 2px; }
 .zap-icone img { display: block; }
 .zap-icone.com-texto { gap: 8px; line-height: 1.2; text-decoration: none; font-weight: 600; }
+
+/* Escala: foto à esquerda, nome e horas no meio, WhatsApp à direita (como na referência) */
+.tabela-escala th:first-child, .tabela-escala td:first-child { width: 230px; }
+.tabela-escala .pessoa-cel { gap: 0; }
+.tabela-escala .pessoa-cel > div { flex: 1; line-height: 1.35; }
+.tabela-escala .pessoa-cel .avatar-foto { margin-right: 10px; }
+.pessoa-cel > .zap-icone { margin-left: 8px; flex: none; }
