@@ -28,7 +28,7 @@
       {% for r in resultado %}
       {% set saldo_r = r.trabalhado - r.previsto %}
       <li><a href="/painel/ponto/ajuste?de={{ ini.isoformat() }}&ate={{ fim.isoformat() }}&func={{ r.u.id }}" class="colab{{ ' ativo' if atual and atual.u.id == r.u.id }}"{% if atual and atual.u.id == r.u.id %} aria-current="true"{% endif %}>
-        {% if r.u.foto_perfil and e.mostrar_fotos %}{{ avatar(r.u, 34) }}{% else %}<span class="avatar">{{ r.u.nome[:1]|upper }}</span>{% endif %}
+        {% if e.mostrar_fotos %}{{ avatar(r.u, 24) }}{% else %}<span class="avatar">{{ r.u.nome[:1]|upper }}</span>{% endif %}
         <span class="colab-txt"><strong>{{ r.u.nome }}</strong><small class="suave">{{ r.u.cargo or '—' }}</small>
           <small>{{ fmt_min(r.trabalhado) }} / {{ fmt_min(r.previsto) }}
           {% if r.faltas %}<b class="mini erro">{{ _('{v1} falta(s)', v1=r.faltas) }}</b>{% endif %}
