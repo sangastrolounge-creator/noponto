@@ -511,6 +511,10 @@ class Usuario(Base):
     desligamento_tipo: Mapped[str] = mapped_column(String(20), default="")
     aviso_previo: Mapped[str] = mapped_column(String(16), default="")
     desligamento_obs: Mapped[str] = mapped_column(String(300), default="")
+    # Cadastro excluído depois do desligamento: os dados pessoais saem na hora; o ponto, as
+    # folhas e os holerites ficam só até `apagar_registros_em` (prazo legal) e então são apagados.
+    cadastro_excluido_em: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    apagar_registros_em: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     # Reconhecimento facial (LGPD art. 11, I): consentimento "" | aceito | recusado, e o modelo
     # matemático do rosto (128 números, nunca a foto). Apagado ao revogar ou no desligamento.
     facial_consentimento: Mapped[str] = mapped_column(String(10), default="")
@@ -1534,6 +1538,8 @@ COLUNAS_NOVAS = [
     ("banners", "pais", "VARCHAR(2) NOT NULL DEFAULT 'BR'"),
     ("usuarios", "foto_perfil", "VARCHAR(80) NOT NULL DEFAULT ''"),
     ("empresas", "mostrar_fotos", "BOOLEAN NOT NULL DEFAULT 1"),
+    ("usuarios", "cadastro_excluido_em", "DATE"),
+    ("usuarios", "apagar_registros_em", "DATE"),
     ("historico", "usuario_id", "INTEGER"),
     ("historico", "dia", "DATE"),
 ]

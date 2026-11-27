@@ -55,6 +55,7 @@ def ciclo_alertas():
         novos += n2
         lembretes += l2
         regras.limpar_fotos(db)
+        desligamento.limpar_excluidos(db, banco.agora().date())   # prazos legais e histórico de 1 ano
         cobranca.ajustar_valores(db)
     vendedor.limpar_antigas()   # planos por pessoa: uma vez por dia
     try:
@@ -1092,7 +1093,7 @@ def equipe(request: Request, setor: str = "", u: Usuario = Depends(gestor_logado
            db: Session = Depends(get_db)):
     # O dono vê todos, gerentes incluídos (para editar o cadastro deles); as permissões
     # continuam na tela Gerentes. Um gerente vê os funcionários, o dono e a si mesmo.
-    filtro = [Usuario.empresa_id == u.empresa_id]
+    filtro = [Usuario.empresa_id == u.empresa_id, Usuario.cadastro_excluido_em.is_(None)]
     if not u.dono:
         filtro.append((Usuario.papel != "gestor") | Usuario.dono.is_(True) | (Usuario.id == u.id))
     sid = setores_mod.ler_filtro(db, u.empresa_id, setor)
