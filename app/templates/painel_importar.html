@@ -2,7 +2,7 @@
 {% block conteudo %}
 <div class="cabecalho">
   <div><h1>{{ _('Importar a equipe') }}</h1>
-    <p class="suave" style="margin:0">{{ _('Traga todo mundo de uma vez a partir de uma planilha (CSV), por exemplo exportada do sistema do contador ou do Excel.') }}</p></div>
+    <p class="suave" style="margin:0">{{ _('Traga todo mundo de uma vez a partir de uma planilha (Excel ou CSV), por exemplo exportada do sistema do contador.') }}</p></div>
   <a class="botao claro" href="/painel/equipe">{{ _('Voltar para a equipe') }}</a>
 </div>
 {% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
@@ -11,10 +11,16 @@
 <form method="post" action="/painel/importar-equipe" enctype="multipart/form-data" class="cartao">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <h2>{{ _('1. Prepare a planilha') }}</h2>
-  <p class="pequeno">{{ _('Uma pessoa por linha. Colunas aceitas: Nome, Celular, E-mail, Função, Salário (ou Valor da hora), Jornada, Dependentes, Gorjeta, Admissão, Nascimento, Contrato. Só o nome e o celular são obrigatórios. No Excel, salve como “CSV (separado por ponto e vírgula)”.') }}</p>
-  <p><a class="botao claro mini" href="/painel/importar-equipe/modelo.csv">{{ _('Baixar o modelo') }}</a></p>
+  {% if (e.pais or 'BR') == 'US' %}
+  <p class="pequeno">{{ _('Uma pessoa por linha, com os campos da ficha: nome, sobrenome, celular, e-mail, local, setor, admissão, nascimento, função, tipo e valor do pagamento, gorjeta e classificação. Só o nome e o celular são obrigatórios.') }}</p>
+  {% else %}
+  <p class="pequeno">{{ _('Uma pessoa por linha, com todos os campos da ficha: contato, local, setor, admissão, função e salário, jornada, dependentes, vale-transporte, gorjeta, contrato e os documentos e dados pessoais do eSocial (CPF, PIS, RG, carteira de trabalho, endereço, banco, contato de emergência). Só o nome e o celular são obrigatórios; deixe em branco o que não tiver.') }}</p>
+  {% endif %}
+  <p class="acoes"><a class="botao claro mini" href="/painel/importar-equipe/modelo.xlsx">{{ _('Baixar o modelo em Excel (.xlsx)') }}</a>
+    <a class="botao claro mini" href="/painel/importar-equipe/modelo.csv">{{ _('Baixar o modelo em CSV') }}</a></p>
+  <p class="ajuda">{{ _('No modelo em Excel, as colunas com opções (contrato, sexo, estado civil, UF...) têm a lista pronta e a aba Instruções explica cada coluna.') }}</p>
   <h2>{{ _('2. Envie o arquivo') }}</h2>
-  <div class="campo"><input type="file" name="arquivo" accept=".csv,text/csv" required aria-label="{{ _('Arquivo CSV') }}"></div>
+  <div class="campo"><input type="file" name="arquivo" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required aria-label="{{ _('Arquivo da planilha') }}"></div>
   <button class="botao" type="submit">{{ _('Ver a prévia') }}</button>
   <p class="ajuda">{{ _('Nada é salvo antes de você conferir a prévia e confirmar.') }}</p>
 </form>
@@ -24,6 +30,7 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <textarea name="conteudo" hidden>{{ conteudo }}</textarea>
   <h2>{{ _('Prévia: {v1} pessoa(s) prontas, {v2} com erro', v1=boas|length, v2=linhas|length - boas|length) }}</h2>
+  {% if rh_ignorado %}<div class="alerta">{{ _('Alguns documentos e dados pessoais da planilha não vão entrar: o seu plano não inclui os dados de RH, ou os dados bancários só entram para quem vê a folha de pagamento.') }}</div>{% endif %}
   {% if vagas is not none and boas|length > vagas %}<div class="alerta">{{ _('O seu plano tem {v1} vaga(s) livres: só as primeiras {v1} pessoas entram.', v1=vagas) }}</div>{% endif %}
   <div class="rolagem"><table>
     <thead><tr><th>{{ _('Linha') }}</th><th>{{ _('Nome') }}</th><th>{{ _('Celular') }}</th><th>{{ _('Função') }}</th><th>{{ _('Salário') }}</th><th>{{ _('Situação') }}</th></tr></thead>

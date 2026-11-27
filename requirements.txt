@@ -8,6 +8,8 @@ tzdata
 # Avisos push no aparelho do gestor (opcional: sem ela o app roda, só sem a notificação)
 pywebpush>=2.0,<3
 qrcode==8.2
+# Planilha modelo e importação da equipe em Excel (.xlsx)
+openpyxl==3.1.5
 # Chamadas HTTP (push e outros)
 httpx==0.28.1
 # Revisão da folha de pagamento pelo Claude (API da Anthropic)
