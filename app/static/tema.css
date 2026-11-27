@@ -787,3 +787,12 @@ td.col-func .etiqueta { font-size: max(9px, calc(.72rem - 3px)); }
 .colab .colab-txt, .colab .colab-txt strong { font-size: calc(15.5px - 5px); }
 .colab .colab-txt small { font-size: max(9px, calc(.76rem - 5px)); }
 .colab .colab-txt .mini { font-size: max(8.5px, calc(.7rem - 3px)); }
+
+/* Digital do menu recolhido: branca no tema escuro */
+:root[data-lateral="recolhida"] .topo .marca .marca-icone.mi-escuro { display: none; }
+:root[data-tema="escuro"][data-lateral="recolhida"] .topo .marca .marca-icone.mi-claro { display: none; }
+:root[data-tema="escuro"][data-lateral="recolhida"] .topo .marca .marca-icone.mi-escuro { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"])[data-lateral="recolhida"] .topo .marca .marca-icone.mi-claro { display: none; }
+  :root:not([data-tema="claro"])[data-lateral="recolhida"] .topo .marca .marca-icone.mi-escuro { display: block; }
+}
