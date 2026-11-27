@@ -160,7 +160,7 @@ def config_fotos(request: Request, mostrar: str = Form(""), u: Usuario = Depends
     return ir("/painel/config#fotos")
 
 
-ICONE_ZAP = "/static/whatsapp.svg?v=1"
+ICONE_ZAP = "/static/whatsapp.png?v=2"
 
 
 def zap_icone(href: str, titulo: str = "WhatsApp", tam: int = 22, texto: str = "") -> Markup:

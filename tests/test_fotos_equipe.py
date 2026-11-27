@@ -117,7 +117,7 @@ def main():
         db.get(Usuario, aid).celular = "98999990001"
         db.commit()
     tela = g.get("/painel/escala").text
-    assert 'class="zap-icone"' in tela and "/static/whatsapp.svg" in tela
+    assert 'class="zap-icone"' in tela and "/static/whatsapp.png" in tela
     assert ">Enviar pelo WhatsApp</a>" not in tela
     print("OK: fotos da equipe, ícone do WhatsApp e coluna Funcionário passaram")
 
