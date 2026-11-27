@@ -56,7 +56,7 @@
       <tbody>
       {% for p in equipe %}
       <tr>
-        <td class="nome-forte">{{ p.nome }}{% if p.cargo %}<br><span class="suave pequeno">{{ p.cargo }}</span>{% endif %}</td>
+        <td class="col-func"><div class="pessoa-cel">{{ avatar(p, 26) }}<div><span class="nome-forte">{{ p.nome }}</span>{% if p.cargo %}<br><span class="suave pequeno">{{ p.cargo }}</span>{% endif %}</div></div></td>
         <td><input type="text" inputmode="decimal" name="sal_{{ p.id }}" value="{{ '%.2f'|format(p.salario_centavos / 100)|replace('.', ',') if p.salario_centavos else '' }}" placeholder="0,00" aria-label="{{ _('Salário de {v1}', v1=(p.nome)) }}" style="min-width:110px"></td>
         <td><input type="number" name="jor_{{ p.id }}" value="{{ p.jornada_mensal or 220 }}" min="1" max="300" aria-label="{{ _('Jornada de {v1}', v1=(p.nome)) }}" style="width:90px"></td>
         <td><input type="number" name="dep_{{ p.id }}" value="{{ p.dependentes }}" min="0" max="20" aria-label="{{ _('Dependentes de {v1}', v1=(p.nome)) }}" style="width:80px"></td>

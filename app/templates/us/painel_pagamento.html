@@ -64,7 +64,7 @@
       <tbody>
       {% for p in equipe %}
       <tr>
-        <td class="nome-forte">{{ p.nome }}{% if p.cargo %}<br><span class="suave pequeno">{{ p.cargo }}</span>{% endif %}</td>
+        <td class="col-func"><div class="pessoa-cel">{{ avatar(p, 26) }}<div><span class="nome-forte">{{ p.nome }}</span>{% if p.cargo %}<br><span class="suave pequeno">{{ p.cargo }}</span>{% endif %}</div></div></td>
         <td><input type="text" inputmode="decimal" name="taxa_{{ p.id }}" value="{{ '%.2f'|format(p.taxa_hora_centavos / 100) if p.taxa_hora_centavos else '' }}" placeholder="0.00" aria-label="{{ _('Valor da hora de {v1}', v1=(p.nome)) }}" style="min-width:100px" class="{{ 'campo-erro' if p.id in baixos }}">{% if p.id in baixos %}<br><span class="etiqueta erro pequeno">{{ _('Abaixo do mínimo') }}</span>{% endif %}</td>
         <td><input type="checkbox" name="gorjeta_{{ p.id }}" value="1" {{ 'checked' if p.gorjeta }} aria-label="{{ _('{v1} recebe gorjeta', v1=(p.nome)) }}"></td>
         <td><input type="checkbox" name="isento_{{ p.id }}" value="1" {{ 'checked' if p.isento }} aria-label="{{ _('{v1} é exempt', v1=(p.nome)) }}"></td>

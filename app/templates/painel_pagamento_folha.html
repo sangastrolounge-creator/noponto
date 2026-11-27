@@ -26,7 +26,7 @@
     {% for it in itens %}
     {% set c = calcs[it.id] %}
     <tr>
-      <td><div class="pessoa-cel">{{ avatar(it.usuario, 26) }}<div><span class="nome-forte">{{ it.usuario.nome }}</span>{% for a in c.alertas or [] %}<br><span class="etiqueta erro pequeno">{{ _(a) }}</span>{% endfor %}</div></div></td>
+      <td class="col-func"><div class="pessoa-cel">{{ avatar(it.usuario, 26) }}<div><span class="nome-forte">{{ it.usuario.nome }}</span>{% if it.usuario.cargo %}<br><span class="suave pequeno">{{ it.usuario.cargo }}</span>{% endif %}{% for a in c.alertas or [] %}<br><span class="etiqueta erro pequeno">{{ _(a) }}</span>{% endfor %}</div>{% if f.situacao == 'finalizada' and it.usuario.celular %}{{ zap_icone(zap(it.usuario.celular, _('Oi ') ~ it.usuario.primeiro_nome ~ _(', seu holerite de ') ~ (f.inicio|fdata('%d/%m')) ~ _(' a ') ~ (f.fim|fdata('%d/%m/%Y')) ~ _(' já está no aplicativo, em Holerites.')), _('Avisar pelo WhatsApp'), 22) }}{% endif %}</div></td>
       <td>{{ it.salario_centavos|dinheiro }}</td>
       <td>{{ it.bruto|dinheiro }}</td>
       <td>{{ it.descontos|dinheiro }}</td>
