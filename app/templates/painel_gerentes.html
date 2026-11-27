@@ -30,7 +30,7 @@
 {% for g in gerentes %}
 <div class="cartao" id="g{{ g.id }}">
   <div class="mural-topo" style="justify-content:space-between">
-    <div><strong>{{ g.nome }}</strong> <span class="suave pequeno">{{ g.email }}</span>
+    <div>{{ avatar(g, 28) }}<strong>{{ g.nome }}</strong> <span class="suave pequeno">{{ g.email }}</span>
       {% if g.dono %}<span class="etiqueta azul">{{ _('Dono') }}</span>{% elif not g.ativo %}<span class="etiqueta erro">{{ _('Desativado') }}</span>{% elif g.convite_token %}<span class="etiqueta alerta">{{ _('Ainda não criou a senha') }}</span>{% else %}<span class="etiqueta ok">{{ _('Ativo') }}</span>{% endif %}</div>
   </div>
   {% if g.dono %}

@@ -39,7 +39,7 @@
     <tbody>
     {% for r in resultado %}
     <tr>
-      <td class="nome-forte">{{ r.u.nome }}</td>
+      <td class="col-func"><div class="pessoa-cel">{{ avatar(r.u, 26) }}<span class="nome-forte">{{ r.u.nome }}</span></div></td>
       <td>{{ fmt_min(r.previsto) }}</td><td>{{ fmt_min(r.trabalhado) }}</td>
       <td>{{ fmt_min(r.extra_normal) if r.extra_normal else '—' }}</td>
       <td>{{ fmt_min(r.extra_especial) if r.extra_especial else '—' }}</td>

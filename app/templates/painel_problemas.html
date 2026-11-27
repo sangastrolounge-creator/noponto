@@ -15,7 +15,7 @@
     {% for p in lista %}
     <tr>
       <td><input type="checkbox" class="sel" name="sel_{{ p.chave }}" value="1" {{ 'checked' if p.sugestao }} aria-label="{{ _('Resolver') }}"></td>
-      <td class="nome-forte">{{ p.u.nome }}</td>
+      <td><div class="pessoa-cel">{{ avatar(p.u, 26) }}<span class="nome-forte">{{ p.u.nome }}</span></div></td>
       <td style="white-space:nowrap">{{ DIAS[p.dia.weekday()] }} {{ p.dia|fdata('%d/%m') }}</td>
       <td>{% if p.tipo == 'sem_saida' %}<span class="etiqueta erro">{{ _('Saída esquecida') }}</span><br><span class="suave pequeno">{{ _('Entrou às {v1}', v1=p.entrada.strftime('%H:%M')) }}{% if p.turno %} · {{ _('escala {v1}–{v2}', v1=p.turno.inicio, v2=p.turno.fim) }}{% else %} · {{ _('sem escala') }}{% endif %}</span>
         {% elif p.tipo == 'antecipada' %}<span class="etiqueta alerta">{{ _('Entrada antecipada') }}</span><br><span class="suave pequeno">{{ _('Marcou às {v1}', v1=p.entrada.strftime('%H:%M')) }}{% if p.turno %} · {{ _('escala {v1}–{v2}', v1=p.turno.inicio, v2=p.turno.fim) }}{% endif %}</span>
@@ -63,7 +63,7 @@
     <tbody>
     {% for x in descansos %}
     <tr>
-      <td class="nome-forte">{{ x.u.nome }}</td>
+      <td><div class="pessoa-cel">{{ avatar(x.u, 26) }}<span class="nome-forte">{{ x.u.nome }}</span></div></td>
       <td style="white-space:nowrap">{{ DIAS[x.dia.weekday()] }} {{ x.dia.strftime('%m/%d') }}</td>
       <td>{{ fmt_min(x.minutos) }}<br><span class="suave pequeno">{{ _('{v1} pausa(s) de direito', v1=x.pausas) }}</span></td>
       <td><select name="desc_{{ x.chave }}" aria-label="{{ _('Pausas de {v1}', v1=x.u.nome) }}">

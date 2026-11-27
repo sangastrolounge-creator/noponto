@@ -27,7 +27,7 @@
   <h2>{{ _('Planos') }}</h2>
   <p class="suave">{{ _('Assinatura mensal, sem fidelidade.') }}{% if plat.dias_teste and cadastro_aberto %} {{ _('Teste {v1} dias grátis, sem cartão.', v1=(plat.dias_teste)) }}{% endif %}</p>
   {{ cartoes(planos, 'venda' if cadastro_aberto else 'mostra', None, plat.dias_teste) }}
-  {% if plat.whatsapp %}<p class="suave">{{ _('Dúvidas?') }} <a href="https://wa.me/55{{ plat.whatsapp }}" target="_blank" rel="noopener">{{ _('Fale com a gente no WhatsApp') }}</a>.</p>{% endif %}
+  {% if plat.whatsapp %}<p class="suave">{{ _('Dúvidas?') }} {{ zap_icone('https://wa.me/55' ~ plat.whatsapp, _('Fale com a gente no WhatsApp'), 26) }}</p>{% endif %}
 </section>
 {% endif %}
 <p class="suave pequeno legal-links"><a href="/terms">{{ _('Termos de Uso') }}</a> · <a href="/privacy">{{ _('Política de Privacidade') }}</a></p>

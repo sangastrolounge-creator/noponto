@@ -131,6 +131,14 @@
   <p class="ajuda">{{ _('O termo já vem com o nome da sua empresa. Recomendamos que um advogado ou a sua contabilidade revise o texto antes de usar.') }}</p>
 </form>
 
+<form method="post" action="/painel/config/fotos" class="cartao" id="fotos">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ _('Fotos da equipe') }}</h2>
+  <p class="suave pequeno">{{ _('Mostra a foto de cada pessoa ao lado do nome na Escala, na Equipe, no Ponto, no Fechamento, nos Relatórios e nas outras telas. Quem não tem foto aparece com as iniciais. A foto é enviada na ficha da pessoa ou por ela mesma no aplicativo.') }}</p>
+  <label class="marcar campo"><input type="checkbox" name="mostrar" value="1" {{ 'checked' if e.mostrar_fotos }}><span>{{ _('Mostrar as fotos da equipe nas telas') }}</span></label>
+  <button class="botao" type="submit">{{ _('Salvar') }}</button>
+</form>
+
 <form method="post" action="/painel/config/logo" class="cartao" id="logo" enctype="multipart/form-data">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <h2>{{ _('Logo da empresa') }}</h2>

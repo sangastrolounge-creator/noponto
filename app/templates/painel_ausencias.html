@@ -11,7 +11,7 @@
   <form method="post" action="/painel/ausencias/{{ a.id }}" class="pedido">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div>
-      <span class="nome-forte">{{ a.usuario.nome }}</span> · {{ TIPOS_AUSENCIA.get(a.tipo, a.tipo) }} ·
+      {{ avatar(a.usuario, 26) }}<span class="nome-forte">{{ a.usuario.nome }}</span> · {{ TIPOS_AUSENCIA.get(a.tipo, a.tipo) }} ·
       <strong>{{ a.inicio|fdata('%d/%m') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim|fdata('%d/%m'))) }}{% endif %}</strong>
       {% if a.anexo %} · <a href="/anexo/{{ a.id }}" target="_blank" rel="noopener">{{ _('ver anexo') }}</a>{% endif %}
       {% if a.abono_dias %} · {{ _('vende {v1} dia(s)', v1=a.abono_dias) }}{% endif %}
@@ -56,7 +56,7 @@
     <tbody>
     {% for a in decididas %}
     <tr>
-      <td class="nome-forte">{{ a.usuario.nome }}</td>
+      <td><div class="pessoa-cel">{{ avatar(a.usuario, 26) }}<span class="nome-forte">{{ a.usuario.nome }}</span></div></td>
       <td>{{ TIPOS_AUSENCIA.get(a.tipo, a.tipo) }}{% if a.obs %}<br><span class="suave pequeno">{{ a.obs }}</span>{% endif %}</td>
       <td style="white-space:nowrap">{{ a.inicio|fdata('%d/%m/%Y') }}{% if a.fim != a.inicio %} {{ _('a {v1}', v1=(a.fim|fdata('%d/%m/%Y'))) }}{% endif %}</td>
       <td><span class="etiqueta {{ 'ok' if a.situacao == 'aprovado' else 'erro' }}">{{ _('Válida') if a.situacao == 'aprovado' else _('Recusada') }}</span>

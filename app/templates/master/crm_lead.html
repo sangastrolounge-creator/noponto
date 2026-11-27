@@ -24,7 +24,7 @@
 <p class="suave" style="margin:0">{{ ld.empresa_nome or '' }}{% if ld.empresa_nome %} · {% endif %}{{ _(ORIGENS.get(ld.origem, ld.origem)) }} · {{ _('desde') }} {{ local(u.empresa, ld.criado_em, '%d/%m/%Y') }}
  · {% if ld.dono_id %}{{ _('Responsável:') }} {{ nomes.get(ld.dono_id, '—') }}{% else %}<strong>{{ _('Na fila') }}</strong>{% endif %}</p></div>
 <div class="acoes">
-  {% if zap %}<a class="botao zap" href="{{ zap }}" target="_blank" rel="noopener">{{ _('WhatsApp') }}</a>
+  {% if zap %}{{ zap_icone(zap, _('WhatsApp'), 34) }}
   <a class="botao claro" href="tel:+55{{ ld.telefone }}">{{ _('Ligar') }}</a>{% endif %}
   {% if ld.email %}{% if 'email' in u.areas_master %}<a class="botao claro" href="/master/caixa/novo?lead={{ ld.id }}">{{ _('Enviar e-mail') }}</a>{% else %}<a class="botao claro" href="mailto:{{ ld.email }}">{{ _('E-mail') }}</a>{% endif %}{% endif %}
   {% if emp and 'suporte' in u.areas_master %}<a class="botao claro" href="/master/empresas/{{ emp.id }}">{{ _('Ver a conta') }}</a>{% endif %}

@@ -5,7 +5,7 @@
   {% for m in mensagens %}
   <li class="{{ 'fixada' if m.fixada }} {{ 'nova' if visto and m.criado_em > visto and m.autor_id != u.id }}">
     <div class="mural-topo">
-      <strong>{{ m.autor.nome }}</strong>{% if m.autor.gestor %} <span class="etiqueta azul">{{ _('Gestor') }}</span>{% endif %}
+      {{ avatar(m.autor, 26) }}<strong>{{ m.autor.nome }}</strong>{% if m.autor.gestor %} <span class="etiqueta azul">{{ _('Gestor') }}</span>{% endif %}
       {% if m.fixada %}<span class="etiqueta">{{ _('Fixada') }}</span>{% endif %}
       <span class="suave pequeno">{{ local(u.empresa, m.criado_em, '%d/%m %H:%M') }}</span>
     </div>

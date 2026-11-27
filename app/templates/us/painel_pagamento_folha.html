@@ -25,7 +25,7 @@
     {% for it in itens %}
     {% set c = calcs[it.id] %}
     <tr>
-      <td class="nome-forte">{{ it.usuario.nome }}{% for a in c.alertas or [] %}<br><span class="etiqueta erro pequeno">{{ _(a) }}</span>{% endfor %}</td>
+      <td><div class="pessoa-cel">{{ avatar(it.usuario, 26) }}<div><span class="nome-forte">{{ it.usuario.nome }}</span>{% for a in c.alertas or [] %}<br><span class="etiqueta erro pequeno">{{ _(a) }}</span>{% endfor %}</div></div></td>
       <td>{{ _('Exempt') if it.isento else _('Por hora') }}</td>
       <td>{{ it.taxa_hora_centavos|dinheiro if not it.isento else '—' }}</td>
       <td>{{ fmt_min(c.horas_pagas or 0) }}</td>

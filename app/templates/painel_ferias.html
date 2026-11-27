@@ -32,7 +32,7 @@
     {% for s in linhas %}
     {% set p = s.proximo %}
     <tr>
-      <td class="nome-forte">{{ s.u.nome }}{% if s.u.classificacao == 'estagio' %}<br><span class="suave pequeno">{{ _('recesso de estágio') }}</span>{% endif %}</td>
+      <td><div class="pessoa-cel">{{ avatar(s.u, 26) }}<div><span class="nome-forte">{{ s.u.nome }}</span>{% if s.u.classificacao == 'estagio' %}<br><span class="suave pequeno">{{ _('recesso de estágio') }}</span>{% endif %}</div></div></td>
       <td>{{ s.u.data_admissao|fdata('%d/%m/%Y') }}</td>
       <td>{% if s.saldo %}<strong>{{ _('{v1} dia(s)', v1=s.saldo) }}</strong>{% else %}—{% endif %}</td>
       <td>{% if p %}{{ p.concessivo|fdata('%d/%m/%Y') }}{% else %}—{% endif %}</td>

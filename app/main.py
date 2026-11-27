@@ -27,7 +27,7 @@ from . import crescimento, entrada, parceiros, rep
 from . import setores as setores_mod
 from . import (apuracao, asaas, caixa, instagram, whatsapp, cobranca, conta, crm, rastreio, desligamento, lojas, vendedor, facial, logo_empresa, fase2, fase3, i18n, master, pagamento, push, regras,
                vendas, avisos_master, custos, email_envio, extra, ficha, gerentes, menu, mural,
-               ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento, paises)
+               ponto_problemas, trocas, disponibilidade, avaliacao, relatorios, legal, salario_minimo, escala_justa, menores, conformidade, triagem, confirmacao, importar, perguntas, cerca, ferias, apropriacao, calendario, dashboard, faturamento, paises, fotos_equipe)
 from .core import (APP_NOME, AQUI, CADASTRO_ABERTO, COOKIE_SECURE, HORA_RE,
                    SECRET_KEY, Redirecionar, app_ios, destino_inicial, avisar, base_url, celular_limpo,
                    da_empresa, data_iso, ir,
@@ -119,6 +119,7 @@ app.include_router(gerentes.rota)
 app.include_router(email_envio.rota)
 app.include_router(desligamento.rota)
 app.include_router(logo_empresa.rota)
+app.include_router(fotos_equipe.rota)
 app.include_router(facial.rota)
 app.include_router(avisos_master.rota)
 app.include_router(custos.rota)
@@ -173,7 +174,8 @@ templates.env.globals.update(
     mural_novas=mural.novas, SITUACOES_OFERTA=i18n.Traduzido(trocas.SITUACOES),
     alertas_liberados=core.alertas_liberados, contadores_menu=menu.contadores, gps_liberado=core.gps_liberado,
     foto_liberada=core.foto_liberada, facial_liberado=core.facial_liberado, cerca_liberada=core.cerca_liberada, exige_foto=core.exige_foto, pode=core.pode,
-    PERMISSOES=i18n.Traduzido(core.PERMISSOES), funcoes_empresa=triagem.funcoes_da, modelos_turno=triagem.modelos_da)
+    PERMISSOES=i18n.Traduzido(core.PERMISSOES), funcoes_empresa=triagem.funcoes_da, modelos_turno=triagem.modelos_da,
+    avatar=fotos_equipe.avatar, zap_icone=fotos_equipe.zap_icone)
 
 
 @app.exception_handler(Redirecionar)

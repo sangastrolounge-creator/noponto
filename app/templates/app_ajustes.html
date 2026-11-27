@@ -1,6 +1,8 @@
 {% extends "app_base.html" %}
+{% from "_foto_pessoa.html" import foto_pessoa with context %}
 {% block saudacao %}{{ _('Ajustes de ponto') }}{% endblock %}
 {% block conteudo %}
+{{ foto_pessoa('/app/foto', u, _('Minha foto'), _('Aparece ao lado do seu nome nas telas da empresa e no mural. Use uma foto do rosto, de frente.')) }}
 <section class="cartao">
   <h2>{{ _('Esqueceu de bater o ponto?') }}</h2>
   {% if e.ajuste_dias > 0 %}
