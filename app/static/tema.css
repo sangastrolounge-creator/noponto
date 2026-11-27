@@ -812,3 +812,15 @@ td.col-func .etiqueta { font-size: max(9px, calc(.72rem - 3px)); }
 .rotina::before { background: radial-gradient(circle, color-mix(in srgb, var(--ico, var(--cor)) 14%, transparent), transparent 70%); }
 .rotina:hover, .rotina:focus-visible { border-color: color-mix(in srgb, var(--ico, var(--cor)) 45%, var(--borda)); }
 @media (prefers-reduced-motion: reduce) { .rotina:hover .rotina-ic svg { animation: none; } }
+
+/* Swipe entre páginas: a etiqueta com o nome da próxima página aparece na borda durante o gesto */
+.swipe-dica { position: fixed; top: 50%; z-index: 90; display: flex; align-items: center; gap: 8px; max-width: 62vw;
+  padding: 10px 16px; border-radius: 999px; background: var(--cartao); color: var(--texto); font-weight: 700; font-size: .92rem;
+  box-shadow: var(--sombra-alta, 0 14px 40px -12px rgb(0 0 0 / .35)); border: 1px solid var(--borda); opacity: 0; pointer-events: none;
+  transition: opacity .12s, background-color .15s, color .15s; white-space: nowrap; }
+.swipe-dica span { overflow: hidden; text-overflow: ellipsis; }
+.swipe-dica b { font-size: 1.3rem; line-height: 1; color: var(--cor); }
+.swipe-dica.dir { right: 12px; transform: translate(calc(-1 * var(--desloca, 0px)), -50%); }
+.swipe-dica.esq { left: 12px; transform: translate(var(--desloca, 0px), -50%); }
+.swipe-dica.pronta { background: var(--cor); color: var(--cor-texto, #fff); border-color: transparent; }
+.swipe-dica.pronta b { color: inherit; }
