@@ -736,3 +736,27 @@ main.legal.parceiro { max-width: 1040px; }
 .grupo[data-grupo="m-vendas"] { --ico: #3b82f6; } .grupo[data-grupo="m-clientes"] { --ico: #f97316; }
 .grupo[data-grupo="m-financeiro"] { --ico: #10b981; } .grupo[data-grupo="m-marketing"] { --ico: #ec4899; }
 .grupo[data-grupo="m-sistema"] { --ico: #64748b; }
+
+/* Fotos da equipe: redondas, com as iniciais quando a pessoa não tem foto */
+.avatar-foto { --av: 30px; width: var(--av); height: var(--av); min-width: var(--av); border-radius: 50%;
+  object-fit: cover; display: inline-block; vertical-align: middle; margin-right: 8px;
+  background: color-mix(in srgb, var(--cor) 16%, var(--cartao, #fff)); box-shadow: 0 0 0 1px var(--borda); }
+.avatar-ini { display: inline-grid; place-items: center; font-size: calc(var(--av) * .38); font-weight: 800;
+  color: var(--cor); letter-spacing: 0; line-height: 1; text-transform: uppercase; }
+.pessoa-cel { display: flex; align-items: center; gap: 0; min-width: 0; }
+.pessoa-cel > div { min-width: 0; }
+.foto-ficha { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.foto-ficha .avatar-foto { margin: 0; }
+
+/* Coluna Funcionário de Escala, Relatórios e Fechamento: letra 5px menor */
+td.col-func, td.col-func .nome-forte { font-size: calc(15.5px - 5px); }
+td.col-func .pequeno, td.col-func small, td.col-func .funcao, td.col-func .disp-aviso { font-size: max(9px, calc(.86rem - 5px)); }
+td.col-func .etiqueta { font-size: max(9px, calc(.72rem - 3px)); }
+
+/* WhatsApp: ícone clicável no lugar do link escrito */
+.zap-icone { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+  border-radius: 8px; line-height: 0; transition: transform .15s; }
+.zap-icone:hover { transform: scale(1.08); }
+.zap-icone:focus-visible { outline: 2px solid var(--cor); outline-offset: 2px; }
+.zap-icone img { display: block; }
+.zap-icone.com-texto { gap: 8px; line-height: 1.2; text-decoration: none; font-weight: 600; }

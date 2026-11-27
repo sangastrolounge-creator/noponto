@@ -25,7 +25,7 @@
     <p class="suave">{{ _('Quem criar a conta por este link fica ligado a você. Os clientes também podem informar o seu código em Configurações → Contador parceiro.') }}</p>
     <div class="linha-form" style="grid-template-columns:1fr auto;align-items:end;max-width:640px">
       <div class="campo"><label for="link">{{ _('Link') }}</label><input type="text" id="link" value="{{ link }}" readonly onclick="this.select()"></div>
-      <div class="campo"><a class="botao claro" target="_blank" rel="noopener" href="https://wa.me/?text={{ (_('Organizei o ponto e a escala dos meus clientes com o {v1}. Teste grátis:', v1=app_nome) ~ ' ' ~ link)|urlencode }}">{{ _('Enviar pelo WhatsApp') }}</a></div>
+      <div class="campo">{{ zap_icone('https://wa.me/?text=' ~ (_('Organizei o ponto e a escala dos meus clientes com o {v1}. Teste grátis:', v1=app_nome) ~ ' ' ~ link)|urlencode, _('Enviar pelo WhatsApp'), 34) }}</div>
     </div>
   </div>
 

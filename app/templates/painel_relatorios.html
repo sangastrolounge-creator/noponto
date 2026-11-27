@@ -32,7 +32,7 @@
     <tbody>
     {% for x in r.linhas %}
     <tr>
-      <td><span class="nome-forte">{{ x.u.nome }}</span>{% if x.u.cargo %}<br><span class="suave pequeno">{{ x.u.cargo }}</span>{% endif %}</td>
+      <td class="col-func"><div class="pessoa-cel">{{ avatar(x.u, 26) }}<div><span class="nome-forte">{{ x.u.nome }}</span>{% if x.u.cargo %}<br><span class="suave pequeno">{{ x.u.cargo }}</span>{% endif %}</div></div></td>
       <td>{{ x.turnos }}</td>
       <td>{{ fmt_min(x.escala) }}</td>
       <td>{{ fmt_min(x.trab) }}</td>
@@ -63,7 +63,7 @@
     <h2>{{ _('O que a equipe disse') }}</h2>
     {% if r.comentarios %}
     <ul class="lista-alertas">
-      {% for a in r.comentarios %}<li style="display:block"><strong>{{ a.usuario.nome }}</strong> {{ estrelas(a.nota) }} <span class="suave pequeno">{{ a.dia|fdata('%d/%m') }}</span><br>{{ a.comentario }}</li>{% endfor %}
+      {% for a in r.comentarios %}<li style="display:block">{{ avatar(a.usuario, 22) }}<strong>{{ a.usuario.nome }}</strong> {{ estrelas(a.nota) }} <span class="suave pequeno">{{ a.dia|fdata('%d/%m') }}</span><br>{{ a.comentario }}</li>{% endfor %}
     </ul>
     {% else %}<p class="suave pequeno">{{ _('Nenhum comentário neste período.') }}</p>{% endif %}
     {% if pode(u, 'dono') %}

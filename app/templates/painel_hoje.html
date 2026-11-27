@@ -154,19 +154,19 @@
     <tbody>
     {% for l in linhas %}
     <tr>
-      <td><span class="nome-forte">{{ l.u.nome }}</span>{% if l.u.cargo %}<br><span class="suave pequeno">{{ l.u.cargo }}</span>{% endif %}</td>
+      <td><div class="pessoa-cel">{{ avatar(l.u, 28) }}<div><span class="nome-forte">{{ l.u.nome }}</span>{% if l.u.cargo %}<br><span class="suave pequeno">{{ l.u.cargo }}</span>{% endif %}</div></div></td>
       <td>{{ _('Folga') if l.t.folga else l.t.inicio ~ '–' ~ l.t.fim }}{% if l.t.local %}<br><span class="suave pequeno">{{ l.t.local.nome }}</span>{% endif %}</td>
       {% set ent = l.batidas|selectattr('tipo', 'equalto', 'entrada')|first %}
       {% set sai = l.batidas|selectattr('tipo', 'equalto', 'saida')|list|last %}
       <td>{% if ent %}{% if ent.foto %}<a href="/painel/ponto/foto/{{ ent.id }}" target="_blank" rel="noopener"><img class="mini-foto" src="/painel/ponto/foto/{{ ent.id }}" alt="{{ _('Foto da entrada de {v1}', v1=(l.u.primeiro_nome)) }}" loading="lazy"></a>{% endif %}{{ local(e, ent.momento) }}{% else %}—{% endif %}</td>
       <td>{{ local(e, sai.momento) if sai and l.batidas[-1].tipo == 'saida' else '—' }}</td>
       <td><span class="etiqueta {{ l.sit.cor }}">{{ _(l.sit.texto) }}</span>
-        {% if l.sit.cod == 'sem_ponto' and l.u.celular %}<br><a class="pequeno" target="_blank" rel="noopener" href="{{ zap(l.u.celular, _('Oi ') ~ l.u.primeiro_nome ~ _(', seu turno começou às ') ~ l.t.inicio ~ _(' e o ponto ainda não foi batido. Está tudo bem?')) }}">{{ _('Chamar no WhatsApp') }}</a>{% endif %}</td>
+        {% if l.sit.cod == 'sem_ponto' and l.u.celular %}<br>{{ zap_icone(zap(l.u.celular, _('Oi ') ~ l.u.primeiro_nome ~ _(', seu turno começou às ') ~ l.t.inicio ~ _(' e o ponto ainda não foi batido. Está tudo bem?')), _('Chamar no WhatsApp'), 22) }}{% endif %}</td>
     </tr>
     {% endfor %}
     {% for b in soltas %}
     <tr>
-      <td><span class="nome-forte">{{ b.usuario.nome }}</span></td>
+      <td><div class="pessoa-cel">{{ avatar(b.usuario, 28) }}<span class="nome-forte">{{ b.usuario.nome }}</span></div></td>
       <td class="suave">{{ _('fora da escala') }}</td>
       <td>{{ local(e, b.momento) if b.tipo == 'entrada' else '—' }}</td>
       <td>{{ local(e, b.momento) if b.tipo == 'saida' else '—' }}</td>

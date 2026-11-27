@@ -16,7 +16,7 @@
         <td>{{ local(u.empresa, c.contato_em or c.atualizado_em, '%d/%m %H:%M') }}</td>
         <td>{{ c.nome or '—' }}{% if not c.autorizou %}<br><span class="suave pequeno">{{ _('número escrito no chat') }}</span>{% endif %}</td>
         <td>{{ c.empresa or '—' }}</td>
-        <td><a class="botao mini" href="{{ x.zap }}" target="_blank" rel="noopener">{{ c.telefone }}</a></td>
+        <td>{{ zap_icone(x.zap, _('WhatsApp'), 22) }} <span class="pequeno">{{ c.telefone }}</span></td>
         <td><form method="post" action="/master/conversas/{{ c.id }}/situacao" class="inline">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <select name="situacao" onchange="this.form.submit()" aria-label="{{ _('Situação') }}">

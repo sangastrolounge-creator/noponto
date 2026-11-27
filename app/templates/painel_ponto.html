@@ -19,7 +19,7 @@
   <form method="post" action="/painel/ajustes/{{ a.id }}" class="pedido">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div>
-      <span class="nome-forte">{{ a.usuario.nome }}</span> {{ _('pede') }}
+      {{ avatar(a.usuario, 26) }}<span class="nome-forte">{{ a.usuario.nome }}</span> {{ _('pede') }}
       <strong>{{ _('{v1} em {v2} {v3} às {v4}', v1=('entrada' if a.tipo == 'entrada' else _('saída')), v2=(DIAS[a.data.weekday()]|lower), v3=(a.data|fdata('%d/%m')), v4=(a.hora)) }}</strong>
       <br><span class="suave pequeno">{{ _('Motivo: {v1} · pedido em {v2}', v1=(a.motivo), v2=(local(e, a.criado_em, '%d/%m %H:%M'))) }}</span>
     </div>
@@ -100,7 +100,7 @@
     <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Dias') }}</th><th>{{ _('Horas trabalhadas') }}</th><th>{{ _('Horas na escala') }}</th><th>{{ _('Atrasos') }}</th></tr></thead>
     <tbody>
     {% for t in totais %}
-    <tr><td class="nome-forte">{{ t.u.nome }}</td><td>{{ t.dias }}</td><td>{{ fmt_min(t.minutos) }}</td>
+    <tr><td><div class="pessoa-cel">{{ avatar(t.u, 26) }}<span class="nome-forte">{{ t.u.nome }}</span></div></td><td>{{ t.dias }}</td><td>{{ fmt_min(t.minutos) }}</td>
       <td>{{ fmt_min(t.previsto) if t.previsto else '—' }}</td>
       <td>{% if t.atrasos %}<span class="etiqueta alerta">{{ t.atrasos }}</span>{% else %}0{% endif %}</td></tr>
     {% endfor %}

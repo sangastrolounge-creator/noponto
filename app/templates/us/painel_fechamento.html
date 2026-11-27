@@ -30,7 +30,7 @@
     <tbody>
     {% for r in resultado %}
     <tr>
-      <td class="nome-forte">{{ r.u.nome }}{% if r.ot + r.dt > 0 %}<br><span class="etiqueta alerta pequeno">{{ _('hora extra') }}</span>{% endif %}</td>
+      <td class="col-func"><div class="pessoa-cel">{{ avatar(r.u, 26) }}<div><span class="nome-forte">{{ r.u.nome }}</span>{% if r.ot + r.dt > 0 %}<br><span class="etiqueta alerta pequeno">{{ _('hora extra') }}</span>{% endif %}</div></div></td>
       <td>{{ fmt_min(r.previsto) }}</td><td>{{ fmt_min(r.trabalhado) }}</td>
       <td>{{ fmt_min(r.regular) }}</td>
       <td>{{ fmt_min(r.ot) if r.ot else '—' }}</td>

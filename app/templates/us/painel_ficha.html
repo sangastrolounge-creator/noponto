@@ -1,4 +1,5 @@
 {% extends "painel_base.html" %}
+{% from "_foto_pessoa.html" import foto_pessoa with context %}
 {% macro val(campo, padrao='') %}{{ v.get(campo, padrao) if v else padrao }}{% endmacro %}
 {% block conteudo %}
 {% set novo = alvo is none %}
@@ -8,6 +9,7 @@
   <a class="botao claro" href="/painel/equipe">{{ _('Voltar para Equipe') }}</a>
 </div>
 {% if erro %}<div class="aviso erro">{{ _(erro) }}</div>{% endif %}
+{% if not novo %}{{ foto_pessoa('/painel/equipe/' ~ alvo.id ~ '/foto', alvo, _('Foto'), _('Aparece ao lado do nome nas telas da empresa. Use uma foto do rosto, de frente. A pessoa também pode trocar a foto no aplicativo.')) }}{% endif %}
 {% set partes = (alvo.nome.split(' ', 1) if alvo else ['', '']) %}
 <form method="post" action="{{ '/painel/equipe/novo' if novo else '/painel/equipe/' ~ alvo.id ~ '/ficha' }}" class="ficha">
   <input type="hidden" name="csrf" value="{{ csrf }}">

@@ -62,7 +62,7 @@
   <ul class="lista-alertas">
     {% for o in pedidas %}
     <li style="justify-content:space-between;flex-wrap:wrap">
-      <span><strong>{{ o.candidato.nome }}</strong> {{ _('quer') }} {{ DIAS[o.data.weekday()] }} {{ o.data|fdata('%d/%m') }}, {{ o.inicio }}–{{ o.fim }}
+      <span>{{ avatar(o.candidato, 24) }}<strong>{{ o.candidato.nome }}</strong> {{ _('quer') }} {{ DIAS[o.data.weekday()] }} {{ o.data|fdata('%d/%m') }}, {{ o.inicio }}–{{ o.fim }}
         <br><span class="suave pequeno">{% if o.tipo == 'repasse' %}{{ _('Cobrindo {v1}', v1=(o.de.nome)) }}{% else %}{{ _('Turno aberto') }}{% endif %}{% if o.cargo %} · {{ o.cargo }}{% endif %}{% if o.local %} · {{ o.local.nome }}{% endif %}</span>
         {% set x = avisos_extra.get(o.id) %}{% if x %}<br><span class="etiqueta alerta pequeno">{{ _('Com este turno, {v1} fica com {v2} na semana: {v3} além das 44 horas (hora extra).', v1=x.nome, v2=x.total, v3=x.extra) }}</span>{% endif %}</span>
       <span class="acoes">
@@ -157,7 +157,7 @@
     {% set grupo = nomes_setor.get(f.setor_id) or _('Sem setor') %}
     {% if agrupar and (loop.first or grupo != (nomes_setor.get(loop.previtem.setor_id) or _('Sem setor'))) %}<tr class="grupo-setor"><td colspan="{{ dias|length + 1 }}">{{ grupo }}</td></tr>{% endif %}
     <tr>
-      <td><span class="nome-forte">{{ f.nome }}</span>{% if menor.menores.get(f.id) %} <span class="etiqueta alerta pequeno" title="{{ _('Menor de idade: a escala é conferida pelos limites da lei') }}">{{ _('Menor') }}</span>{% endif %}{% if menor.semana.get(f.id) %}<br><span class="disp-aviso pequeno">{{ menor.semana[f.id]|traduz }}</span>{% endif %}<br><span class="suave pequeno">{{ _('{v1} na semana', v1=(fmt_min(horas[f.id]))) }}{% if ver_custo %} · {% set cs = namespace(t=0) %}{% for d in dias %}{% set cs.t = cs.t + custo[(f.id, d)] %}{% endfor %}{{ cs.t|dinheiro }}{% endif %}</span>{% if zaps.get(f.id) %}<br><a class="pequeno" target="_blank" rel="noopener" href="{{ zaps[f.id] }}">{{ _('Enviar pelo WhatsApp') }}</a>{% endif %}</td>
+      <td class="col-func"><div class="pessoa-cel">{{ avatar(f, 26) }}<div><span class="nome-forte">{{ f.nome }}</span>{% if menor.menores.get(f.id) %} <span class="etiqueta alerta pequeno" title="{{ _('Menor de idade: a escala é conferida pelos limites da lei') }}">{{ _('Menor') }}</span>{% endif %}{% if menor.semana.get(f.id) %}<br><span class="disp-aviso pequeno">{{ menor.semana[f.id]|traduz }}</span>{% endif %}<br><span class="suave pequeno">{{ _('{v1} na semana', v1=(fmt_min(horas[f.id]))) }}{% if ver_custo %} · {% set cs = namespace(t=0) %}{% for d in dias %}{% set cs.t = cs.t + custo[(f.id, d)] %}{% endfor %}{{ cs.t|dinheiro }}{% endif %}</span>{% if zaps.get(f.id) %}<br>{{ zap_icone(zaps[f.id], _('Enviar pelo WhatsApp'), 20) }}{% endif %}</div></div></td>
       {% for d in dias %}
       {% set t = turnos.get((f.id, d)) %}
       {% set aus = ausencias.get((f.id, d)) %}

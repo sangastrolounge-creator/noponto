@@ -61,6 +61,9 @@ def excluir(request: Request, tarefas_bg: BackgroundTasks, senha: str = Form("")
     if tem_registros(db, u.id):
         u.senha_hash, u.pin_hash, u.google_sub = "", None, None
         u.facial_descritor, u.convite_token, u.redefinir_hash = "", None, None
+        from .fotos_equipe import _apagar as apagar_foto
+        apagar_foto(u.foto_perfil)
+        u.foto_perfil = ""
         u.conta_excluida_em = banco.agora()
         for m in (Aparelho, PushSub):
             db.execute(m.__table__.delete().where(m.usuario_id == u.id))

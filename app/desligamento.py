@@ -158,6 +158,8 @@ def apagar_cadastro(db: Session, f: Usuario) -> None:
     for msg in db.scalars(select(Mensagem).where(Mensagem.autor_id == f.id)):
         db.execute(delete(LeituraMensagem).where(LeituraMensagem.mensagem_id == msg.id))
         db.delete(msg)
+    from .fotos_equipe import _apagar as apagar_foto
+    apagar_foto(f.foto_perfil)
     db.delete(f)
 
 

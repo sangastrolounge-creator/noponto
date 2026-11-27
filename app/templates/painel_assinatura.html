@@ -82,7 +82,7 @@
     <button class="botao claro" type="submit">{{ _('Usar o plano {v1}', v1=(gratis.nome)) }}</button>
   </form>
   {% endif %}
-  {% if plat.whatsapp %}<p class="pequeno"><a target="_blank" rel="noopener" href="{{ zap(plat.whatsapp, _('Olá! Quero falar sobre a assinatura do ') ~ app_nome ~ _(' da empresa ') ~ e.nome ~ '.') }}">{{ _('Falar com o suporte no WhatsApp') }}</a></p>{% endif %}
+  {% if plat.whatsapp %}<p class="pequeno">{{ zap_icone(zap(plat.whatsapp, _('Olá! Quero falar sobre a assinatura do ') ~ app_nome ~ _(' da empresa ') ~ e.nome ~ '.'), _('Falar com o suporte no WhatsApp'), 30) }}</p>{% endif %}
 {% endif %}
 
 {% if s != 'cortesia' %}
@@ -102,7 +102,7 @@
   {% set link = request.base_url ~ 'i/' ~ indica.codigo %}
   <div class="linha-form" style="grid-template-columns:1fr auto;align-items:end;max-width:620px">
     <div class="campo"><label for="link-indica">{{ _('Seu link') }}</label><input type="text" id="link-indica" value="{{ link }}" readonly onclick="this.select()"></div>
-    <div class="campo"><a class="botao claro" target="_blank" rel="noopener" href="https://wa.me/?text={{ (_('Uso o {v1} para o ponto e a escala da equipe e recomendo. Teste grátis:', v1=app_nome) ~ ' ' ~ link)|urlencode }}">{{ _('Enviar pelo WhatsApp') }}</a></div>
+    <div class="campo">{{ zap_icone('https://wa.me/?text=' ~ (_('Uso o {v1} para o ponto e a escala da equipe e recomendo. Teste grátis:', v1=app_nome) ~ ' ' ~ link)|urlencode, _('Enviar pelo WhatsApp'), 34) }}</div>
   </div>
   <p class="pequeno suave">{{ _('{v1} empresa(s) indicada(s) · {v2} já pagaram e deram o mês grátis', v1=indica.indicadas, v2=indica.premiadas) }}</p>
 </div>

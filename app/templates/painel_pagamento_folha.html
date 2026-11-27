@@ -26,7 +26,7 @@
     {% for it in itens %}
     {% set c = calcs[it.id] %}
     <tr>
-      <td class="nome-forte">{{ it.usuario.nome }}{% for a in c.alertas or [] %}<br><span class="etiqueta erro pequeno">{{ _(a) }}</span>{% endfor %}</td>
+      <td><div class="pessoa-cel">{{ avatar(it.usuario, 26) }}<div><span class="nome-forte">{{ it.usuario.nome }}</span>{% for a in c.alertas or [] %}<br><span class="etiqueta erro pequeno">{{ _(a) }}</span>{% endfor %}</div></div></td>
       <td>{{ it.salario_centavos|dinheiro }}</td>
       <td>{{ it.bruto|dinheiro }}</td>
       <td>{{ it.descontos|dinheiro }}</td>

@@ -331,6 +331,7 @@ class Empresa(Base):
     ein: Mapped[str] = mapped_column(String(20), default="")  # Employer Identification Number
     endereco: Mapped[str] = mapped_column(String(300), default="")
     logo: Mapped[str] = mapped_column(String(60), default="")  # arquivo em dados/logos (impressos)
+    mostrar_fotos: Mapped[bool] = mapped_column(Boolean, default=True)   # fotos da equipe nas telas
     facial_ativo: Mapped[bool] = mapped_column(Boolean, default=False)  # reconhecimento facial no ponto
     # O dono pediu o encerramento da conta e a exclusão dos dados (a plataforma conclui).
     exclusao_pedida_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -462,6 +463,7 @@ class Usuario(Base):
     empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), index=True)
     nome: Mapped[str] = mapped_column(String(120))
     cargo: Mapped[str] = mapped_column(String(80), default="")
+    foto_perfil: Mapped[str] = mapped_column(String(80), default="")  # arquivo em dados/perfis
     # Gestor entra com e-mail; funcionário entra com o celular.
     email: Mapped[str | None] = mapped_column(String(200), unique=True, nullable=True)
     celular: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=True)
@@ -1530,6 +1532,8 @@ COLUNAS_NOVAS = [
     ("empresas", "pais", "VARCHAR(2) NOT NULL DEFAULT 'BR'"),
     ("planos", "pais", "VARCHAR(2) NOT NULL DEFAULT 'BR'"),
     ("banners", "pais", "VARCHAR(2) NOT NULL DEFAULT 'BR'"),
+    ("usuarios", "foto_perfil", "VARCHAR(80) NOT NULL DEFAULT ''"),
+    ("empresas", "mostrar_fotos", "BOOLEAN NOT NULL DEFAULT 1"),
     ("historico", "usuario_id", "INTEGER"),
     ("historico", "dia", "DATE"),
 ]

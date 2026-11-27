@@ -39,7 +39,7 @@
     <thead><tr><th>{{ _('Funcionário') }}</th><th>{{ _('Batida original') }}</th><th>{{ _('Origem') }}</th><th>{{ _('Anulada por') }}</th></tr></thead>
     <tbody>
     {% for b in anuladas %}
-    <tr><td class="nome-forte">{{ b.usuario.nome }}</td>
+    <tr><td><div class="pessoa-cel">{{ avatar(b.usuario, 24) }}<span class="nome-forte">{{ b.usuario.nome }}</span></div></td>
       <td>{{ _('{v1} em {v2}', v1=(_('Entrada') if b.tipo == 'entrada' else _('Saída')), v2=(local(e, b.momento, '%d/%m/%Y %H:%M'))) }}{% if b.foto %} <a class="link-foto" href="/painel/ponto/foto/{{ b.id }}" target="_blank" rel="noopener">{{ _('foto') }}</a>{% endif %}</td>
       <td>{% if b.manual %}{{ _('Lançada à mão: {v1}', v1=(b.obs)) }}{% elif b.distancia_m is not none %}{{ _('Aplicativo, a {v1} m da empresa', v1=(b.distancia_m)) }}{% else %}{{ _('Aplicativo') }}{% endif %}</td>
       <td>{{ _('{v1} em {v2}', v1=(b.anulada_por), v2=(local(e, b.anulada_em, '%d/%m/%Y %H:%M'))) }}</td></tr>

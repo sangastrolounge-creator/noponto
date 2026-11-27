@@ -16,7 +16,7 @@
   {% for p in pessoas %}
   <div id="p{{ p.id }}" style="padding:14px 0;{{ 'border-bottom:1px solid var(--borda)' if not loop.last }};{{ 'opacity:.55' if not p.ativo }}">
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
-      <div>
+      <div class="pessoa-cel">{{ avatar(p, 40) }}<div>
         <span class="nome-forte">{{ p.nome }}</span>
         {% if p.dono %}<span class="etiqueta azul">{{ _('Dono') }}</span>{% elif p.gestor %}<span class="etiqueta azul">{{ _('Gerente') }}</span>{% if u.dono %} <a class="pequeno" href="/painel/gerentes#g{{ p.id }}">{{ _('Permissões') }}</a>{% endif %}{% endif %}
         {% if p.desligado_em and not p.ativo %}<span class="etiqueta erro">{{ _('Desligado em {v1}', v1=p.desligado_em|fdata('%d/%m/%Y')) }}</span>
@@ -25,7 +25,7 @@
         {% elif convites.get(p.id) %}<span class="etiqueta alerta">{{ _('Aguardando 1º acesso') }}</span>
         {% elif not p.gestor %}<span class="etiqueta ok">{{ _('Ativo') }}</span>{% endif %}
         <br><span class="suave pequeno">{% if p.setor_id and nomes_setor.get(p.setor_id) %}<span class="etiqueta">{{ nomes_setor[p.setor_id] }}</span> {% endif %}{{ p.cargo ~ ' · ' if p.cargo }}{{ p.celular or p.email }}</span>
-      </div>
+      </div></div>
       {% if convites.get(p.id) and p.ativo %}
       <div class="acoes">
         <a class="botao mini zap" href="{{ convites[p.id].zap }}" target="_blank" rel="noopener">{{ _('Enviar link pelo WhatsApp') }}</a>
