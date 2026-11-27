@@ -106,6 +106,8 @@ def main():
 
     # ================================================= Ajuste de ponto
     base = f"/painel/ponto/ajuste?de=2026-11-13&ate=2026-11-18&func={ids['Ana']}"
+    tela_aj = g.get(base).text
+    assert "data-abrir-colab" in tela_aj and 'id="colab-modal"' in tela_aj and "<aside" not in tela_aj
     r = g.get(base)
     assert r.status_code == 200, r.text[-2000:]
     t = r.text

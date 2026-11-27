@@ -252,6 +252,13 @@ def main():
                 for nome, url in PAINEL:
                     if not so or nome in so:
                         fotografar(pag, f"{nome}-{sufixo}", url)
+                if not so or "colab" in so:   # Ajuste de ponto: janela Colaboradores aberta
+                    pag.goto(BASE + "/painel/ponto/ajuste", wait_until="networkidle")
+                    pag.click("[data-abrir-colab]")
+                    pag.wait_for_selector("#colab-modal[open]")
+                    pag.fill("[data-colab-busca]", "a")
+                    pag.wait_for_timeout(300)
+                    pag.screenshot(path=str(SAIDA / f"ajuste-colaboradores-{sufixo}.png"))
                 if tela == "cel" and (not so or "swipe" in so):   # arrastar = voltar/avançar pelas páginas vistas
                     pag.goto(BASE + "/painel", wait_until="networkidle")
                     pag.goto(BASE + "/painel/escala", wait_until="networkidle")
