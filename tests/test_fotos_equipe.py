@@ -66,6 +66,8 @@ def main():
     # sem foto: iniciais na escala, letra menor na coluna e WhatsApp como ícone
     tela = g.get("/painel/escala").text
     assert 'class="col-func"' in tela and 'avatar-ini' in tela and ">AS<" in tela
+    pg = g.get("/painel/pagamento").text
+    assert 'class="col-func"' in pg and ">AS<" in pg, pg[:1500]
     tela_eq = g.get("/painel/equipe").text
     assert "avatar-ini" in tela_eq
 
