@@ -911,6 +911,7 @@ class Banner(Base):
     fim: Mapped[date | None] = mapped_column(Date, nullable=True)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
     ordem: Mapped[int] = mapped_column(Integer, default=0)
+    pais: Mapped[str] = mapped_column(String(2), default="BR")   # BR | US | "" (todos os países)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=agora)
 
 
@@ -1528,6 +1529,7 @@ COLUNAS_NOVAS = [
     ("empresas", "regime_tributario", "VARCHAR(12) NOT NULL DEFAULT 'simples'"),
     ("empresas", "pais", "VARCHAR(2) NOT NULL DEFAULT 'BR'"),
     ("planos", "pais", "VARCHAR(2) NOT NULL DEFAULT 'BR'"),
+    ("banners", "pais", "VARCHAR(2) NOT NULL DEFAULT 'BR'"),
     ("historico", "usuario_id", "INTEGER"),
     ("historico", "dia", "DATE"),
 ]

@@ -124,7 +124,8 @@ def saudacao(agora_l) -> str:
 def sugestoes(db: Session, e, u, dia: date) -> list[dict]:
     """Próximos passos que fazem diferença para esta empresa (o card "Sugestões do sistema")."""
     s = []
-    if not e.triagem_em and core.pode(u, "dono"):
+    eua = e.pais == "US"
+    if not e.triagem_em and core.pode(u, "dono") and not eua:   # configuração guiada: só Brasil
         s.append(dict(titulo="Configure em 2 minutos", link="/painel/comecar", botao="Começar",
                       texto="Responda 7 perguntas e deixamos funções, checklist, regras do seu estado e modelos de turno prontos."))
     tem_equipe = db.scalar(select(Usuario.id).where(Usuario.empresa_id == e.id,
@@ -136,7 +137,8 @@ def sugestoes(db: Session, e, u, dia: date) -> list[dict]:
             Feriado.empresa_id == e.id, Feriado.data.between(date(dia.year, 1, 1), date(dia.year, 12, 31)))):
         s.append(dict(titulo=f"Cadastre os feriados de {dia.year}", link="/painel/ausencias#feriados",
                       botao="Cadastrar",
-                      texto="Em feriado ninguém deve horas, e quem trabalha recebe a hora como extra."))
+                      texto="Em feriado ninguém deve horas; o adicional de feriado segue a regra da empresa em Configurações."
+                      if eua else "Em feriado ninguém deve horas, e quem trabalha recebe a hora como extra."))
     seg = dia - timedelta(days=dia.weekday()) + timedelta(days=7)
     if tem_equipe and core.pode(u, "escala") and dia.weekday() >= 3 and not db.scalar(
             select(Turno.id).where(Turno.empresa_id == e.id, Turno.data.between(seg, seg + timedelta(days=6))).limit(1)):
@@ -150,5 +152,6 @@ def sugestoes(db: Session, e, u, dia: date) -> list[dict]:
                       texto="Se a empresa vende produtos ou serviços, informe o faturamento do mês e veja quanto a equipe pesa nele."))
     if core.pode(u, "ponto"):
         s.append(dict(titulo="Confira o Ajuste de ponto", link="/painel/ponto/ajuste", botao="Abrir",
-                      texto="Corrija marcações com um clique, lance atestados, sobreaviso e o motivo de cada ajuste."))
+                      texto="Corrija marcações com um clique, lance ausências e o motivo de cada ajuste." if eua
+                      else "Corrija marcações com um clique, lance atestados, sobreaviso e o motivo de cada ajuste."))
     return s

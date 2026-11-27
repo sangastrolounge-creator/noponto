@@ -243,13 +243,20 @@ def sw():
 
 
 @app.get("/manifest.webmanifest")
-def manifest():
+def manifest(request: Request):
+    plat = master.plataforma()
+    nome, curto = plat["nome"], plat.get("nome_curto") or plat["nome"]
+    lingua, descricao = "pt-BR", "Escala, ponto e tarefas da equipe."
+    if paises.pais_do_host(request) == "US":   # site dos EUA: marca sem o "Brasil", em inglês
+        nome = curto = core.nome_eua(plat["nome"])
+        with i18n.no_idioma("en"):
+            lingua, descricao = "en-US", i18n._(descricao)
     return JSONResponse({
-        "name": master.plataforma()["nome"],
-        "short_name": master.plataforma().get("nome_curto") or master.plataforma()["nome"],
+        "name": nome,
+        "short_name": curto,
         "id": "/", "start_url": "/", "scope": "/",
         "display": "standalone", "background_color": "#ffffff", "theme_color": "#4f6bf5",
-        "lang": "pt-BR", "description": "Escala, ponto e tarefas da equipe.",
+        "lang": lingua, "description": descricao,
         "categories": ["business", "productivity"],
         "icons": [
             {"src": "/static/icone-192.png?v=4", "sizes": "192x192", "type": "image/png"},
@@ -340,6 +347,9 @@ def cadastro(request: Request, tarefas_bg: BackgroundTasks, empresa: str = Form(
     crescimento.ao_criar_empresa(request, db, u, cupom, bool(contador))
     tarefas_bg.add_task(avisos_master.nova_empresa, u.empresa_id)
     request.session["uid"] = u.id
+    if pais == "US":   # a configuração guiada (perguntas e modelos) ainda é só do Brasil
+        avisar(request, "Conta criada. Confira as regras da empresa em Configurações.")
+        return ir("/painel/config")
     avisar(request, "Conta criada. Responda 7 perguntas rápidas e deixamos tudo pronto.")
     return ir("/painel/comecar")
 
@@ -472,7 +482,7 @@ def painel(request: Request, u: Usuario = Depends(gestor_logado),
     return render(
         request, "painel_hoje.html", u=u, e=e, aba="hoje", dia=dia, linhas=linhas,
         soltas=soltas, alertas=alertas, tarefas=tarefas, sm=sm,
-        banners=master.banners_no_ar(db, dia),
+        banners=master.banners_no_ar(db, dia, e.pais or "BR"),
         saudacao=dashboard.saudacao(regras.agora_local(e)),
         n_problemas=len(ponto_problemas.problemas(db, e)) if core.pode(u, "ponto") else 0,
         sugestoes=dashboard.sugestoes(db, e, u, dia),

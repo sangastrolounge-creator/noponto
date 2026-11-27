@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 tmp = tempfile.mkdtemp()
 os.environ.update({"DATABASE_URL": f"sqlite:///{tmp}/teste.db".replace("\\", "/"),
                    "SECRET_KEY": "teste", "IDIOMA_PADRAO": "pt", "SEM_AGENDADOR": "1",
-                   "ADMIN_EMAIL": "dono@plataforma.com"})
+                   "ADMIN_EMAIL": "dono@plataforma.com", "APP_NOME": "Data Worke Brasil"})
 for k in ("ANTHROPIC_API_KEY", "ASAAS_API_KEY", "PUBLIC_URL"):
     os.environ.pop(k, None)
 sys.modules["anthropic"] = types.SimpleNamespace(Anthropic=lambda **kw: None)
@@ -24,7 +24,7 @@ from sqlalchemy import select  # noqa: E402
 
 from app import db as banco  # noqa: E402
 from app.core import dinheiro  # noqa: E402
-from app.db import Batida, Empresa, Fechamento, MovimentoPTO, SessionLocal, Usuario  # noqa: E402
+from app.db import Banner, Batida, Empresa, Fechamento, MovimentoPTO, SessionLocal, Usuario  # noqa: E402
 from app.main import app  # noqa: E402
 
 DOM = date(2026, 11, 15)          # domingo; semana de trabalho de domingo a sábado
@@ -189,6 +189,27 @@ def main():
     assert "regras federais e as do seu estado" not in tela
     assert br.get("/painel/ausencias").status_code == 200 and "Saldos de sick leave" not in br.get("/painel/ausencias").text
     assert br.get("/painel/ponto/problemas").status_code == 200
+
+    # banners e rotinas da tela Hoje seguem o país da empresa
+    with SessionLocal() as db:
+        db.add_all([Banner(titulo="Fim da escala 6x1", pais="BR"), Banner(titulo="Overtime made easy", pais="US"),
+                    Banner(titulo="Novidade para todos", pais="")])
+        db.commit()
+    hoje_us, hoje_br = us.get("/painel").text, br.get("/painel").text
+    assert "Fim da escala 6x1" not in hoje_us and "Overtime made easy" in hoje_us and "Novidade para todos" in hoje_us
+    assert "Fim da escala 6x1" in hoje_br and "Overtime made easy" not in hoje_br and "Novidade para todos" in hoje_br
+    assert 'href="/painel/ferias"' not in hoje_us and "Lançar ausências e PTO" in hoje_us
+    assert "/painel/comecar" not in hoje_us and "atestados" not in hoje_us
+    assert 'href="/painel/ferias"' in hoje_br and "Lançar atestados e afastamentos" in hoje_br
+    assert us.get("/painel/ferias").headers["location"] == "/painel/ausencias"
+    assert us.get("/painel/comecar").headers["location"] == "/painel"
+    assert br.get("/painel/ferias").status_code == 200
+    assert 'apple-mobile-web-app-title" content="Data Worke"' in hoje_us
+    assert 'apple-mobile-web-app-title" content="Data Worke Brasil"' in hoje_br
+    mf = TestClient(app, base_url="https://dataworke.com").get("/manifest.webmanifest").json()
+    assert (mf["short_name"], mf["lang"]) == ("Data Worke", "en-US"), mf
+    assert mf["description"] == "Team schedule, time clock and tasks."
+    assert TestClient(app).get("/manifest.webmanifest").json()["lang"] == "pt-BR"
 
     # a empresa brasileira continua no Brasil, com as regras de lá
     with SessionLocal() as db:

@@ -20,11 +20,12 @@
     <div><label>{{ _('Começa em') }}</label><input type="date" name="inicio" value="{{ b.inicio.isoformat() if b and b.inicio }}"></div>
     <div><label>{{ _('Termina em') }}</label><input type="date" name="fim" value="{{ b.fim.isoformat() if b and b.fim }}"></div>
     <div><label>{{ _('Ordem') }}</label><input type="number" name="ordem" value="{{ b.ordem if b else 0 }}"></div>
+    <div><label>{{ _('Aparece para') }}</label><select name="pais">{% for k, v in PAISES_BANNER.items() %}<option value="{{ k }}" {{ 'selected' if (b.pais if b else 'BR') == k }}>{{ v|traduz }}</option>{% endfor %}</select></div>
   </div>
   <label class="marcar campo"><input type="checkbox" name="ativo" value="1" {{ 'checked' if not b or b.ativo }}><span>{{ _('Ligado') }}</span></label>
 {% endmacro %}
 {% block master %}
-<div class="cabecalho"><div><h1>{{ _('Banners') }}</h1><p class="suave" style="margin:0">{{ _('Avisos e ações promocionais no topo da tela Hoje de todas as empresas.') }}</p></div></div>
+<div class="cabecalho"><div><h1>{{ _('Banners') }}</h1><p class="suave" style="margin:0">{{ _('Avisos e ações promocionais no topo da tela Hoje das empresas do país escolhido.') }}</p></div></div>
 
 {% for b in banners %}
 {% set no_ar = b.ativo and (not b.inicio or b.inicio <= hoje) and (not b.fim or hoje <= b.fim) %}
@@ -34,6 +35,7 @@
     {% if b.link %}<span class="botao">{{ b.botao or _('Saiba mais') }}</span>{% endif %}
   </div>
   <p class="pequeno" style="margin-top:0">{% if no_ar %}<span class="etiqueta ok">{{ _('No ar') }}</span>{% elif not b.ativo %}<span class="etiqueta">{{ _('Desligado') }}</span>{% else %}<span class="etiqueta alerta">{{ _('Fora do período') }}</span>{% endif %}
+    <span class="etiqueta">{{ PAISES_BANNER.get(b.pais, '')|traduz }}</span>
     {% if b.inicio or b.fim %}<span class="suave">{{ b.inicio|fdata('%d/%m/%Y') if b.inicio else '…' }} – {{ b.fim|fdata('%d/%m/%Y') if b.fim else '…' }}</span>{% endif %}</p>
   <details><summary>{{ _('Editar') }}</summary>
     <form method="post" action="/master/banners" enctype="multipart/form-data" style="margin-top:10px">{{ campos(b) }}<button class="botao" type="submit">{{ _('Salvar') }}</button></form>

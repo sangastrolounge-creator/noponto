@@ -97,13 +97,13 @@
 
 {% set ROTINAS = [
   ('ponto', '/painel/ponto/ajuste', _('Ajuste de ponto'), '🛠', 0, true),
-  ('ausencias', '/painel/ausencias', _('Lançar atestados e afastamentos'), '🩺', 0, false),
+  ('ausencias', '/painel/ausencias', _('Lançar ausências e PTO') if pais == 'US' else _('Lançar atestados e afastamentos'), '🩺', 0, false),
   ('equipe', '/painel/equipe', _('Equipe'), '👥', 0, false),
   ('escala', '/painel/escala', _('Escala'), '📅', 0, false),
   ('fechamento', '/painel/folha', _('Folha de ponto'), '📄', 0, false),
   ('ponto', '/painel/ponto/problemas', _('Pendências de ponto'), '⚠️', n_problemas, false),
   ('hoje', '/painel/avisos', _('Avisos'), '🔔', alertas|length, false),
-  ('ausencias', '/painel/ferias', _('Férias'), '🏖', 0, false),
+] + ([] if pais == 'US' else [('ausencias', '/painel/ferias', _('Férias'), '🏖', 0, false)]) + [
   ('fechamento', '/painel/fechamento', _('Fechamento'), '🔒', 0, false),
   ('pagamento', '/painel/pagamento', _('Folha de pagamento'), '💰', 0, false),
   ('ponto', '/painel/relatorios', _('Relatórios'), '📊', 0, false),

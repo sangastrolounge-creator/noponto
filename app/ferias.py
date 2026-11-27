@@ -161,6 +161,8 @@ def _tela(request: Request, u: Usuario, db: Session, previa: dict | None = None,
 
 @rota.get("/painel/ferias")
 def ferias_tela(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
+    if u.empresa.pais == "US":   # férias da CLT: nos EUA o descanso remunerado é o PTO, em Ausências
+        return ir("/painel/ausencias")
     return _tela(request, u, db)
 
 
