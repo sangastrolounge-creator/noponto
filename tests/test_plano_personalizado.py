@@ -41,11 +41,11 @@ def main():
     m = novo()
     cadastrar(m, "Plataforma", "dono@plataforma.com")
     with SessionLocal() as db:
-        db.add(Plano(nome="Essencial", preco_centavos=5990, limite_funcionarios=10, limite_locais=2, ativo=True,
+        db.add(Plano(nome="Essencial Teste", preco_centavos=5990, limite_funcionarios=10, limite_locais=2, ativo=True,
                      com_gps=True, com_foto=False, com_facial=False, com_cerca=True, com_alertas=True,
                      com_pagamento=False, descricao="Até 10 funcionários"))
         db.commit()
-        essencial = db.scalar(select(Plano.id).where(Plano.nome == "Essencial"))
+        essencial = db.scalar(select(Plano.id).where(Plano.nome == "Essencial Teste"))
 
     cli = novo()
     eid = cadastrar(cli, "Rede Sabor", "gestor@redesabor.com")
