@@ -42,11 +42,11 @@
     <fieldset class="tri-etapa" data-passo="4">
       <legend>{{ _('Onde fica a empresa?') }}</legend>
       <div class="linha-form" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-        <div class="campo"><label for="tri-estado">{{ _('Estado (UF)') }}</label><select id="tri-estado" name="estado" required>
+        <div class="campo"><label for="tri-estado">{{ _('Estado') if pais == 'US' else _('Estado (UF)') }}</label><select id="tri-estado" name="estado" required>
           <option value="">{{ _('Escolha') }}</option>
-          {% for sigla, nome in estados.items() %}<option value="{{ sigla }}" {{ 'selected' if (v.estado or e.uf) == sigla }}>{{ nome }}</option>{% endfor %}</select></div>
+          {% for sigla, nome in estados.items() %}<option value="{{ sigla }}" {{ 'selected' if (v.estado or (e.estado if pais == 'US' else e.uf)) == sigla }}>{{ nome }}</option>{% endfor %}</select></div>
       </div>
-      <p class="ajuda">{{ _('Com a UF, o sistema acerta o fuso horário do ponto.') }}</p>
+      <p class="ajuda">{% if pais == 'US' %}{{ _('Com o estado, o sistema acerta o fuso horário do ponto e as regras de hora extra (como o dia de 8 h na Califórnia).') }}{% else %}{{ _('Com a UF, o sistema acerta o fuso horário do ponto.') }}{% endif %}</p>
     </fieldset>
 
     <fieldset class="tri-etapa" data-passo="5">
@@ -69,11 +69,16 @@
     </fieldset>
 
     <fieldset class="tri-etapa" data-passo="7">
+      {% if pais == 'US' %}
+      <legend>{{ _('De quanto em quanto tempo a equipe recebe?') }}</legend>
+      <div class="tri-grade">{% for k, rot in FREQUENCIAS.items() %}{{ opcao('frequencia', k, _(rot), marcado=(v.frequencia or (e.frequencia if e.triagem_em else '')) == k) }}{% endfor %}</div>
+      {% else %}
       <legend>{{ _('E as horas a mais da equipe?') }}</legend>
       <div class="tri-grade">{% for k, rot in FREQUENCIAS.items() %}{{ opcao('frequencia', k, _(rot), marcado=(v.frequencia or (e.controle if e.triagem_em else '')) == k) }}{% endfor %}</div>
+      {% endif %}
       <div class="campo" style="margin-top:12px"><label for="tri-prov">{{ _('Quem faz a sua folha de pagamento?') }}</label><select id="tri-prov" name="provedor">
         {% for k, rot in PROVEDORES.items() %}<option value="{{ k }}" {{ 'selected' if (v.provedor or e.provedor_folha) == k }}>{{ _(rot) }}</option>{% endfor %}</select>
-        <div class="ajuda">{{ _('O sistema fecha o ponto do mês e gera a planilha para o contador, ou calcula a folha aqui mesmo.') }}</div></div>
+        <div class="ajuda">{% if pais == 'US' %}{{ _('O sistema fecha o ponto do período e gera a planilha de horas para importar no seu provedor de folha.') }}{% else %}{{ _('O sistema fecha o ponto do mês e gera a planilha para o contador, ou calcula a folha aqui mesmo.') }}{% endif %}</div></div>
     </fieldset>
 
     <div class="tri-acoes">

@@ -51,6 +51,19 @@ ESTADOS = {
 }
 
 
+# Fuso principal de cada estado (os que têm dois fusos ficam com o da maior parte da população).
+_CT = ("AL", "AR", "IL", "IA", "KS", "LA", "MN", "MS", "MO", "NE", "ND", "OK", "SD", "TN", "TX", "WI")
+_MT = ("CO", "ID", "MT", "NM", "UT", "WY")
+_PT = ("CA", "NV", "OR", "WA")
+FUSO_ESTADO = {**{x: "America/Chicago" for x in _CT}, **{x: "America/Denver" for x in _MT},
+               **{x: "America/Los_Angeles" for x in _PT},
+               "AZ": "America/Phoenix", "AK": "America/Anchorage", "HI": "Pacific/Honolulu"}
+
+
+def fuso_do_estado(estado: str) -> str:
+    return FUSO_ESTADO.get(estado, "America/New_York")
+
+
 def aplicar_estado(e: Empresa, estado: str) -> None:
     ot, dt, setimo, meal = REGRAS_ESTADO.get(estado, (0, 0, False, False))
     e.estado, e.ot_semana_min = estado, 2400

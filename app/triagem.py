@@ -79,6 +79,12 @@ UFS = {"AC": "Acre", "AL": "Alagoas", "AP": "Amapá", "AM": "Amazonas", "BA": "B
        "SC": "Santa Catarina", "SP": "São Paulo", "SE": "Sergipe", "TO": "Tocantins"}
 FUSO_UF = {**{uf: "America/Manaus" for uf in ("AM", "RR", "RO", "MT", "MS")}, "AC": "America/Rio_Branco"}
 
+# --- EUA: as mesmas perguntas, com estado, frequência de pagamento e provedor de folha americanos
+FREQUENCIAS_EUA = {"weekly": "Toda semana (weekly)", "biweekly": "A cada duas semanas (biweekly)",
+                   "semimonthly": "Duas vezes por mês (semimonthly)", "monthly": "Uma vez por mês (monthly)"}
+PROVEDORES_EUA = {"gusto": "Gusto", "adp": "ADP", "quickbooks": "QuickBooks Payroll", "paychex": "Paychex",
+                  "contador": "Meu contador faz a folha", "nenhum": "Ainda não sei"}
+
 
 def _min(h: str) -> int:
     return int(h[:2]) * 60 + int(h[3:5])
@@ -109,9 +115,10 @@ def modelos(abre: str, fecha: str) -> list[dict]:
     return sai
 
 
-def plano_recomendado(db: Session, pessoas: int, locais: int):
+def plano_recomendado(db: Session, pessoas: int, locais: int, pais: str = "BR"):
     from .master import planos_a_venda
-    planos = sorted((p for p in planos_a_venda(db) if p.preco_centavos > 0 or len(planos_a_venda(db)) == 1),
+    venda = planos_a_venda(db, pais)
+    planos = sorted((p for p in venda if p.preco_centavos > 0 or len(venda) == 1),
                     key=lambda p: p.preco_centavos)
     for p in planos:
         if (not p.limite_funcionarios or p.limite_funcionarios >= pessoas) and \
@@ -127,14 +134,30 @@ def aplicar(db: Session, e, autor: str, r: dict) -> list[str]:
     feito = []
     seg = SEGMENTOS[r["segmento"]]
     e.segmento, e.porte = r["segmento"], r["porte"]
+    eua = e.pais == "US"
 
-    # UF e fuso
-    e.uf = r["estado"]
-    e.fuso = FUSO_UF.get(r["estado"], "America/Sao_Paulo")
-    feito.append(_("{v1}: fuso horário {v2}.", v1=UFS[r["estado"]], v2=e.fuso))
-    m = salario_minimo.minimo(e, regras.hoje(e))
-    feito.append(_("Salário mínimo em uso: {v1} por mês ({v2}). Se a sua categoria tem piso maior, informe em Configurações.",
-                   v1=salario_minimo.dinheiro(m["centavos"]), v2=_(m["fonte"])))
+    if eua:   # estado, fuso e as regras de hora extra do estado
+        from .paises.us import apuracao as ap_us, salario_minimo as sm_us
+        ap_us.aplicar_estado(e, r["estado"])
+        e.fuso = ap_us.fuso_do_estado(r["estado"])
+        from .paises.us.telas import FUSOS
+        feito.append(_("{v1}: fuso horário {v2}.", v1=ap_us.ESTADOS[r["estado"]], v2=dict(FUSOS).get(e.fuso, e.fuso)))
+        ot, dt, setimo, meal = ap_us.REGRAS_ESTADO.get(r["estado"], (0, 0, False, False))
+        if ot:
+            feito.append(_("Hora extra: acima de 40 h na semana e também acima de {v1} h no dia, pela lei do estado.",
+                           v1=ot // 60) + (" " + _("Dobro acima de {v1} h no dia.", v1=dt // 60) if dt else ""))
+        else:
+            feito.append(_("Hora extra: acima de 40 h na semana (lei federal)."))
+        m = sm_us.minimo(e, regras.hoje(e))
+        feito.append(_("Salário mínimo em uso: {v1} por hora ({v2}). Se a sua cidade tem mínimo maior, informe em Configurações.",
+                       v1=sm_us.dinheiro(m["centavos"]), v2=_(m["fonte"])))
+    else:     # UF e fuso
+        e.uf = r["estado"]
+        e.fuso = FUSO_UF.get(r["estado"], "America/Sao_Paulo")
+        feito.append(_("{v1}: fuso horário {v2}.", v1=UFS[r["estado"]], v2=e.fuso))
+        m = salario_minimo.minimo(e, regras.hoje(e))
+        feito.append(_("Salário mínimo em uso: {v1} por mês ({v2}). Se a sua categoria tem piso maior, informe em Configurações.",
+                       v1=salario_minimo.dinheiro(m["centavos"]), v2=_(m["fonte"])))
 
     # horário e modelos de turno
     e.abre, e.fecha = r["abre"], r["fecha"]
@@ -148,8 +171,12 @@ def aplicar(db: Session, e, autor: str, r: dict) -> list[str]:
         e.saida_auto_min = 60
     if seg[5] and not e.entrada_antecipada_min:
         e.entrada_antecipada_min = seg[5]
-    feito.append(_("Ponto: tolerância de {v1} min, aviso de saída esquecida 60 min depois do fim do turno e aviso quando alguém estiver perto da hora extra do dia.",
-                   v1=e.tolerancia_min))
+    if eua:
+        feito.append(_("Ponto: refeição de {v1} min batida no ponto, aviso de saída esquecida 60 min depois do fim do turno e aviso quando alguém estiver perto da hora extra.",
+                       v1=e.intervalo_padrao_min))
+    else:
+        feito.append(_("Ponto: tolerância de {v1} min, aviso de saída esquecida 60 min depois do fim do turno e aviso quando alguém estiver perto da hora extra do dia.",
+                       v1=e.tolerancia_min))
     if seg[5]:
         feito.append(_("Entrada feita mais de {v1} min antes do turno fica sinalizada para você decidir se o tempo conta.", v1=seg[5]))
 
@@ -179,9 +206,20 @@ def aplicar(db: Session, e, autor: str, r: dict) -> list[str]:
         feito.append(_("{v1} local(is) extra(s) criado(s). Abra cada um em Locais e marque o endereço no mapa.", v1=criados))
 
     # jornada e folha
-    e.controle = r["frequencia"]
     e.provedor_folha = r.get("provedor", "")
-    feito.append(_("Horas a mais: {v1}.", v1=_(CONTROLES[r["frequencia"]])))
+    if eua:
+        from .paises.us import apuracao as ap_us
+        e.frequencia = r["frequencia"]
+        e.periodo_ancora = (ap_us.inicio_semana(e, regras.hoje(e))
+                            if e.frequencia in ("weekly", "biweekly") else None)
+        feito.append(_("Pagamento: {v1}. O fechamento do ponto segue esse período.",
+                       v1=_(FREQUENCIAS_EUA[e.frequencia])))
+        if e.provedor_folha in ("gusto", "adp", "quickbooks", "paychex"):
+            feito.append(_("No fechamento, a planilha de horas sai pronta para importar no {v1}.",
+                           v1=PROVEDORES_EUA[e.provedor_folha]))
+    else:
+        e.controle = r["frequencia"]
+        feito.append(_("Horas a mais: {v1}.", v1=_(CONTROLES[r["frequencia"]])))
 
     e.triagem_em = banco.agora()
     e.triagem_resumo = json.dumps(feito, ensure_ascii=False)
@@ -201,7 +239,10 @@ def dicas(db: Session, e, r: dict) -> list[tuple[str, str, str]]:
     if r.get("menores") == "sim":
         sai.append((_("Na ficha de quem tem menos de 18 anos, informe a data de nascimento: o sistema confere os limites da lei."),
                     _("Ver a equipe"), "/painel/equipe"))
-    if (r.get("provedor") or e.provedor_folha) == "noponto":
+    if e.pais == "US":
+        sai.append((_("Na ficha de cada pessoa, informe o valor da hora e se ela é isenta de hora extra (exempt)."),
+                    _("Ver a equipe"), "/painel/equipe"))
+    elif (r.get("provedor") or e.provedor_folha) == "noponto":
         sai.append((_("Em Pagamento, informe o salário, a jornada e os dependentes de cada um para calcular a folha."),
                     _("Abrir Pagamento"), "/painel/pagamento"))
     sai.append((_("Monte a escala da semana usando os modelos de turno."), _("Abrir a escala"), "/painel/escala"))
@@ -210,23 +251,30 @@ def dicas(db: Session, e, r: dict) -> list[tuple[str, str, str]]:
 
 # ------------------------------------------------------------------ telas
 def _form(request, u, e, db, erro=None, v=None):
+    if e.pais == "US":
+        from .paises.us import apuracao as ap_us
+        extra = dict(FREQUENCIAS=FREQUENCIAS_EUA, PROVEDORES=PROVEDORES_EUA, estados=ap_us.ESTADOS)
+    else:
+        extra = dict(FREQUENCIAS=CONTROLES, PROVEDORES=PROVEDORES, estados=UFS)
     return render(request, "painel_triagem.html", 400 if erro else 200, u=u, e=e, aba="config", erro=erro,
-                  v=v or {}, SEGMENTOS=SEGMENTOS, PORTES=PORTES, LOCAIS=LOCAIS, FREQUENCIAS=CONTROLES,
-                  PROVEDORES=PROVEDORES, PONTO=PONTO, estados=UFS, cidades={})
+                  v=v or {}, SEGMENTOS=SEGMENTOS, PORTES=PORTES, LOCAIS=LOCAIS, PONTO=PONTO, cidades={}, **extra)
 
 
 @rota.get("/painel/comecar")
 def tela(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
-    if not pode(u, "dono") or u.empresa.pais == "US":   # as perguntas e modelos são do Brasil
+    if not pode(u, "dono"):
         return ir("/painel")
     return _form(request, u, u.empresa, db)
 
 
 @rota.post("/painel/comecar", dependencies=CSRF)
 async def salvar(request: Request, u: Usuario = Depends(gestor_logado), db: Session = Depends(get_db)):
-    if not pode(u, "dono") or u.empresa.pais == "US":
+    if not pode(u, "dono"):
         return ir("/painel")
     e = u.empresa
+    eua = e.pais == "US"
+    if eua:
+        from .paises.us import apuracao as ap_us
     f = await request.form()
     r = {k: str(f.get(k, "")).strip() for k in ("segmento", "porte", "locais", "estado", "cidade", "abre", "fecha",
                                                  "gorjeta", "menores", "ponto", "frequencia", "provedor")}
@@ -236,12 +284,12 @@ async def salvar(request: Request, u: Usuario = Depends(gestor_logado), db: Sess
         erro = "Escolha o tipo do negócio."
     elif r["porte"] not in PORTES or r["locais"] not in LOCAIS:
         erro = "Informe quantas pessoas e quantos locais."
-    elif r["estado"] not in UFS:
-        erro = "Escolha o estado (UF)."
+    elif r["estado"] not in (ap_us.ESTADOS if eua else UFS):
+        erro = "Escolha o estado." if eua else "Escolha o estado (UF)."
     elif not (HORA_RE.match(r["abre"]) and HORA_RE.match(r["fecha"])) or r["abre"] == r["fecha"]:
         erro = "Informe a hora em que abre e a hora em que fecha."
-    elif r["frequencia"] not in CONTROLES:
-        erro = "Escolha como as horas a mais são tratadas."
+    elif r["frequencia"] not in (FREQUENCIAS_EUA if eua else CONTROLES):
+        erro = "Escolha de quanto em quanto tempo a equipe recebe." if eua else "Escolha como as horas a mais são tratadas."
     if erro:
         return _form(request, u, e, db, erro, r)
     if r["ponto"] not in PONTO:
@@ -260,7 +308,7 @@ def pronto(request: Request, u: Usuario = Depends(gestor_logado), db: Session = 
     r = request.session.get("triagem") or {"porte": e.porte}
     pessoas = PORTES.get(e.porte, ("", 5))[1]
     locais = LOCAIS.get(r.get("locais", "1"), 1)
-    plano = plano_recomendado(db, pessoas, locais)
+    plano = plano_recomendado(db, pessoas, locais, e.pais or "BR")
     return render(request, "painel_triagem_pronto.html", u=u, e=e, aba="config",
                   feito=json.loads(e.triagem_resumo or "[]"), dicas=dicas(db, e, r), plano=plano)
 
