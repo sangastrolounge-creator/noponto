@@ -1,4 +1,4 @@
-/* Reconhecimento facial no celular (Data Worke Brasil).
+/* Reconhecimento facial no celular (Data Worke).
    A foto do rosto não sai do aparelho: a biblioteca (face-api, MIT, servida pelo próprio site)
    transforma o rosto em 128 números, e só esses números vão para o servidor.
    Prova de vida simples: a pessoa precisa piscar diante da câmera. */
