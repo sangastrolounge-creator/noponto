@@ -762,8 +762,23 @@ td.col-func .etiqueta { font-size: max(9px, calc(.72rem - 3px)); }
 .zap-icone.com-texto { gap: 8px; line-height: 1.2; text-decoration: none; font-weight: 600; }
 
 /* Escala: foto à esquerda, nome e horas no meio, WhatsApp à direita (como na referência) */
-.tabela-escala th:first-child, .tabela-escala td:first-child { width: 230px; }
+.tabela-escala th:first-child, .tabela-escala td:first-child { width: 260px; }
 .tabela-escala .pessoa-cel { gap: 0; }
 .tabela-escala .pessoa-cel > div { flex: 1; line-height: 1.35; }
 .tabela-escala .pessoa-cel .avatar-foto { margin-right: 10px; }
 .pessoa-cel > .zap-icone { margin-left: 8px; flex: none; }
+
+/* Janela para enquadrar a foto antes de enviar */
+.foto-modal { border: 0; border-radius: 18px; padding: 22px; width: min(92vw, 380px); background: var(--cartao, #fff);
+  color: var(--texto); box-shadow: 0 30px 80px -20px rgb(0 0 0 / .45); }
+.foto-modal::backdrop { background: rgb(15 23 42 / .55); backdrop-filter: blur(2px); }
+.foto-modal h2 { margin: 0 0 4px; }
+.foto-quadro { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 14px;
+  background: #111; cursor: grab; touch-action: none; user-select: none; }
+.foto-quadro:active { cursor: grabbing; }
+.foto-quadro:focus-visible { outline: 3px solid var(--cor); outline-offset: 2px; }
+.foto-quadro img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; pointer-events: none; }
+.foto-quadro::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 0 0 999px rgb(0 0 0 / .5); outline: 2px solid rgb(255 255 255 / .85); outline-offset: -2px; }
+.foto-zoom { display: flex; align-items: center; gap: 10px; margin: 14px 0 16px; font-weight: 800; color: var(--suave); }
+.foto-zoom input { flex: 1; }

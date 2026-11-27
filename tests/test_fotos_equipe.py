@@ -71,7 +71,8 @@ def main():
 
     # o gestor envia a foto na ficha
     tf = csrf(g, f"/painel/equipe/{aid}/ficha")
-    assert 'data-foto-form' in g.get(f"/painel/equipe/{aid}/ficha").text
+    ficha = g.get(f"/painel/equipe/{aid}/ficha").text
+    assert 'data-foto-form' in ficha and 'data-foto-modal' in ficha and 'data-foto-zoom' in ficha
     assert posta(g, f"/painel/equipe/{aid}/foto", tf, dados="data:image/png;base64,xxx").status_code == 303
     with SessionLocal() as db:
         assert db.get(Usuario, aid).foto_perfil == ""          # imagem inválida não entra
@@ -80,7 +81,7 @@ def main():
         nome = db.get(Usuario, aid).foto_perfil
     assert re.match(rf"^{eid}-{aid}-[0-9a-f]{{12}}\.png$", nome), nome
     tela = g.get("/painel/escala").text
-    assert f'src="/equipe/foto/{nome}"' in tela
+    assert f'src="/equipe/foto/{nome}"' in tela and 'width="52"' in tela   # o dobro dos 26 px da escala
     assert f'src="/equipe/foto/{nome}"' in g.get("/painel/equipe").text
     r = g.get(f"/equipe/foto/{nome}")
     assert r.status_code == 200 and r.content == PNG and r.headers["content-type"] == "image/png"

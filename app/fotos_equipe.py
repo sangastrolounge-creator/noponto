@@ -71,6 +71,9 @@ def remover(db: Session, pessoa: Usuario, quem: str):
     regras.registrar(db, pessoa.empresa_id, quem, "foto da pessoa", f"Foto de {pessoa.nome} removida.")
 
 
+AUMENTO = 2   # as fotos aparecem com o dobro do tamanho pedido em cada tela
+
+
 def iniciais(nome: str) -> str:
     partes = (nome or "?").split()
     return ((partes[0][:1] + (partes[-1][:1] if len(partes) > 1 else "")) or "?").upper()
@@ -84,7 +87,8 @@ def avatar(p, tam: int = 30, sempre: bool = False) -> Markup:
     e = getattr(p, "empresa", None)
     if not sempre and e is not None and not getattr(e, "mostrar_fotos", True):
         return Markup("")
-    estilo = f"--av:{int(tam)}px"
+    tam = int(tam) * AUMENTO
+    estilo = f"--av:{tam}px"
     if p.foto_perfil and NOME.match(p.foto_perfil):
         return Markup(f'<img class="avatar-foto" src="/equipe/foto/{escape(p.foto_perfil)}" alt="" '
                       f'width="{int(tam)}" height="{int(tam)}" loading="lazy" style="{estilo}">')
